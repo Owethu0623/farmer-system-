@@ -363,20 +363,20 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Connectivity Status */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2.5">
               {isOnline ? (
-                <Wifi className="w-5 h-5 text-[#1B4332]" />
+                <Wifi className="w-5 h-5 text-[#174C3C]" />
               ) : (
-                <WifiOff className="w-5 h-5 text-[#8E2424]" />
+                <WifiOff className="w-5 h-5 text-[#DC2626]" />
               )}
-              <h1 className="font-display text-2xl font-bold text-[#143326]">
+              <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
                 Offline Field Storage & Synchronisation
               </h1>
             </div>
-            <p className="text-sm text-[#4A5A50]">
+            <p className="text-sm text-[#475569]">
               Save selected farms, weather snapshots, business plans, and guides on your device for rural areas with weak or no signal.
             </p>
           </div>
@@ -387,8 +387,8 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               onClick={() => toggleSimulatedOffline()}
               className={`min-h-[42px] px-3.5 py-2 rounded-xl border text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2 ${
                 simulatedOffline
-                  ? 'bg-[#FDF2F2] border-[#E8B4B4] text-[#8E2424]'
-                  : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#143326] hover:bg-[#EDF2EC]'
+                  ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+                  : 'bg-[#F8FAFC] border-[#CBD5E1] text-[#0B1F3A] hover:bg-[#EFF6FF]'
               }`}
             >
               <CloudOff className="w-4 h-4" />
@@ -401,7 +401,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               type="button"
               disabled={!isOnline || syncing || queue.length === 0}
               onClick={() => handleRunSync()}
-              className="min-h-[42px] px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2"
+              className="min-h-[42px] px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${syncing ? 'animate-spin' : ''}`} />
               <span>
@@ -412,12 +412,12 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         </div>
 
         {/* Status Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-[#E2E6DF]">
-          <div className="p-3.5 rounded-xl bg-[#F6F7F4] border border-[#E2E6DF]">
-            <p className="text-xs text-[#4A5A50]">Connection Status</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-2 border-t border-[#E2E8F0]">
+          <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+            <p className="text-xs text-[#475569]">Connection Status</p>
             <p
               className={`font-semibold text-sm mt-1 ${
-                isOnline ? 'text-[#1B4332]' : 'text-[#8E2424]'
+                isOnline ? 'text-[#174C3C]' : 'text-[#B91C1C]'
               }`}
             >
               {isOnline
@@ -428,39 +428,39 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
             </p>
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#F6F7F4] border border-[#E2E6DF]">
-            <p className="text-xs text-[#4A5A50]">Last Downloaded Pack</p>
-            <p className="font-mono text-xs font-semibold text-[#143326] mt-1 tabular-nums">
+          <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+            <p className="text-xs text-[#475569]">Last Downloaded Pack</p>
+            <p className="font-mono text-xs font-semibold text-[#0B1F3A] mt-1 tabular-nums">
               {bundle ? new Date(bundle.downloadedAt).toLocaleString() : 'Not downloaded yet'}
             </p>
             {staleness.isBundleStale && (
-              <p className="text-[11px] font-semibold text-[#9A5B13] mt-0.5">
+              <p className="text-[11px] font-semibold text-[#92400E] mt-0.5">
                 Outdated cache ({staleness.bundleAgeHours}h old — refresh when online)
               </p>
             )}
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#F6F7F4] border border-[#E2E6DF]">
-            <p className="text-xs text-[#4A5A50]">Weather Cache Status</p>
-            <p className="font-mono text-xs font-semibold text-[#143326] mt-1 tabular-nums">
+          <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+            <p className="text-xs text-[#475569]">Weather Cache Status</p>
+            <p className="font-mono text-xs font-semibold text-[#0B1F3A] mt-1 tabular-nums">
               {bundle
                 ? `${bundle.weatherSnapshots.length} farm snapshot(s)`
                 : 'No cached weather'}
             </p>
             {staleness.isWeatherStale && (
-              <p className="text-[11px] font-semibold text-[#9A5B13] mt-0.5">
+              <p className="text-[11px] font-semibold text-[#92400E] mt-0.5">
                 Cached weather &gt; 6h old ({staleness.weatherAgeHours}h)
               </p>
             )}
           </div>
 
-          <div className="p-3.5 rounded-xl bg-[#F6F7F4] border border-[#E2E6DF]">
-            <p className="text-xs text-[#4A5A50]">Pending Queue</p>
-            <p className="font-mono text-sm font-bold text-[#143326] mt-1 tabular-nums">
+          <div className="p-3.5 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0]">
+            <p className="text-xs text-[#475569]">Pending Queue</p>
+            <p className="font-mono text-sm font-bold text-[#0B1F3A] mt-1 tabular-nums">
               {queue.length} record{queue.length === 1 ? '' : 's'} waiting
             </p>
             {queue.some((i) => i.syncState === 'conflict') && (
-              <p className="text-[11px] font-semibold text-[#8E2424] mt-0.5">
+              <p className="text-[11px] font-semibold text-[#B91C1C] mt-0.5">
                 Conflict review needed before overwrite
               </p>
             )}
@@ -468,35 +468,35 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         </div>
 
         {/* Connectivity Requirement Notice */}
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-[#143326]">
-          <AlertTriangle className="w-4 h-4 text-[#1B4332] shrink-0 mt-0.5" />
+        <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3.5 flex items-start gap-2.5 text-xs text-[#0B1F3A]">
+          <AlertTriangle className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />
           <p className="leading-relaxed">
             <strong>Internet Connectivity Note:</strong> Fresh weather forecasts, external satellite/ARC feeds, and online Gemini AI chat/visual diagnostics require an active internet connection. Cached snapshots show their exact download time, and offline changes never silently overwrite newer server records.
           </p>
         </div>
 
         {statusMessage && (
-          <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl px-4 py-3 text-sm text-[#143326] flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-[#1B4332] shrink-0" />
+          <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl px-4 py-3 text-sm text-[#174C3C] flex items-center gap-2">
+            <CheckCircle2 className="w-4 h-4 text-[#174C3C] shrink-0" />
             <span>{statusMessage}</span>
           </div>
         )}
 
         {errorMessage && (
-          <div className="bg-[#FDF2F2] border border-[#E8B4B4] rounded-xl px-4 py-3 text-sm text-[#8E2424]">
+          <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#B91C1C]">
             {errorMessage}
           </div>
         )}
       </div>
 
       {/* Download Selected Farms Pack */}
-      <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+      <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-bold text-[#143326]">
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
               1. Save Farm Information, Plans & Guides Locally
             </h2>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               Choose which farms to store on this device. Saved business plans and learning guides are always included.
             </p>
           </div>
@@ -504,7 +504,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
             type="button"
             disabled={!isOnline || downloading}
             onClick={handleDownloadPack}
-            className="min-h-[42px] px-4 py-2 rounded-xl bg-[#143326] hover:bg-[#1B4332] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2"
+            className="min-h-[42px] px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2"
           >
             <Download className="w-4 h-4" />
             <span>
@@ -522,19 +522,19 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                   key={farm.id}
                   className={`flex items-start gap-3 p-3.5 rounded-xl border cursor-pointer ${
                     checked
-                      ? 'bg-[#EDF5EF] border-[#1B4332]'
-                      : 'bg-white border-[#D4DDD2]'
+                      ? 'bg-[#EFF6FF] border-[#0B3D91]'
+                      : 'bg-white border-[#CBD5E1]'
                   }`}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
                     onChange={() => handleToggleFarmSelect(farm.id)}
-                    className="mt-1 w-4 h-4 accent-[#1B4332]"
+                    className="mt-1 w-4 h-4 accent-[#0B3D91]"
                   />
                   <div className="min-w-0">
-                    <p className="font-semibold text-sm text-[#143326] truncate">{farm.name}</p>
-                    <p className="text-xs text-[#4A5A50] truncate">
+                    <p className="font-semibold text-sm text-[#0B1F3A] truncate">{farm.name}</p>
+                    <p className="text-xs text-[#475569] truncate">
                       {farm.location?.province || 'South Africa'} · <span className="font-mono">{farm.farmSizeHectares} ha</span>
                     </p>
                   </div>
@@ -543,31 +543,31 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
             })}
           </div>
         ) : (
-          <p className="text-xs text-[#4A5A50]">
+          <p className="text-xs text-[#475569]">
             No registered farms linked yet. Downloading the offline pack will still store your saved business plans and official farming guides.
           </p>
         )}
       </section>
 
       {/* Pending Synchronisation Queue & Conflict Resolution */}
-      <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+      <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-bold text-[#143326]">
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
               2. Pending Synchronisation Queue ({queue.length})
             </h2>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               Each record carries a unique mutation ID to prevent duplicates and compares timestamps so newer server data is never silently overwritten.
             </p>
           </div>
         </div>
 
         {queue.length === 0 ? (
-          <p className="text-sm text-[#4A5A50] py-2">
+          <p className="text-sm text-[#475569] py-2">
             No pending offline records. Capture a crop activity, livestock event, or incident offline below or in any farm module while offline.
           </p>
         ) : (
-          <div className="divide-y divide-[#E2E6DF]">
+          <div className="divide-y divide-[#E2E8F0]">
             {queue.map((item) => (
               <div key={item.clientMutationId} className="py-4 space-y-2">
                 <div className="flex flex-wrap items-start justify-between gap-3">
@@ -576,8 +576,8 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                       <span
                         className={`font-mono font-bold uppercase ${
                           item.syncState === 'conflict' || item.syncState === 'error'
-                            ? 'text-[#8E2424]'
-                            : 'text-[#1B4332]'
+                            ? 'text-[#B91C1C]'
+                            : 'text-[#0B3D91]'
                         }`}
                       >
                         {item.syncState === 'conflict'
@@ -586,15 +586,15 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                           ? 'SYNC ERROR'
                           : 'PENDING SYNC'}
                       </span>
-                      <span className="text-[#4A5A50] font-mono tabular-nums">
+                      <span className="text-[#475569] font-mono tabular-nums">
                         {new Date(item.createdAt).toLocaleString()}
                       </span>
                       {item.farmName && (
-                        <span className="text-[#35443B] font-semibold">· {item.farmName}</span>
+                        <span className="text-[#334155] font-semibold">· {item.farmName}</span>
                       )}
                     </div>
-                    <p className="font-semibold text-sm text-[#143326]">{item.label}</p>
-                    <p className="text-[11px] font-mono text-[#4A5A50]">
+                    <p className="font-semibold text-sm text-[#0B1F3A]">{item.label}</p>
+                    <p className="text-[11px] font-mono text-[#475569]">
                       Mutation ID: {item.clientMutationId}
                       {item.forceOverwrite ? ' · Marked to overwrite server' : ''}
                     </p>
@@ -606,7 +606,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleDiscardItem(item.clientMutationId)}
-                          className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] text-xs font-semibold text-[#143326] hover:bg-[#F6F7F4] whitespace-nowrap shrink-0 cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] text-xs font-semibold text-[#0B1F3A] hover:bg-[#F8FAFC] whitespace-nowrap shrink-0 cursor-pointer"
                         >
                           Keep Server (Discard Local)
                         </button>
@@ -614,7 +614,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                           type="button"
                           disabled={!isOnline || syncing}
                           onClick={() => handleOverwriteConflict(item.clientMutationId)}
-                          className="px-3 py-1.5 rounded-lg bg-[#8E2424] hover:bg-[#731C1C] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[#FC3D21] hover:bg-[#DC2626] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
                         >
                           Overwrite Server
                         </button>
@@ -625,7 +625,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                           type="button"
                           disabled={!isOnline || syncing}
                           onClick={() => handleRunSync(item.clientMutationId)}
-                          className="px-3 py-1.5 rounded-lg bg-[#EDF5EF] hover:bg-[#DCEBDD] disabled:opacity-50 text-[#143326] text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE] hover:bg-[#DBEAFE] disabled:opacity-50 text-[#0B3D91] text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
                         >
                           Sync Now
                         </button>
@@ -633,7 +633,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                           type="button"
                           onClick={() => handleDiscardItem(item.clientMutationId)}
                           aria-label="Discard queued item"
-                          className="p-1.5 rounded-lg border border-[#E8B4B4] text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                          className="p-1.5 rounded-lg border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -643,10 +643,10 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                 </div>
 
                 {item.lastError && (
-                  <div className="bg-[#FDF2F2] border border-[#E8B4B4] rounded-xl p-3 text-xs text-[#8E2424] space-y-1">
+                  <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3 text-xs text-[#B91C1C] space-y-1">
                     <p className="font-semibold">{item.lastError}</p>
                     {item.serverSummary && (
-                      <p className="text-[#35443B]">Server version: {item.serverSummary}</p>
+                      <p className="text-[#334155]">Server version: {item.serverSummary}</p>
                     )}
                   </div>
                 )}
@@ -657,17 +657,17 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
       </section>
 
       {/* Offline Quick Capture Forms */}
-      <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+      <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-bold text-[#143326]">
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
               3. Record Farming Activities & Incidents Offline
             </h2>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               Capture field work immediately even when signal drops. Records are queued safely until connectivity returns.
             </p>
           </div>
-          <div className="flex flex-wrap gap-1.5 p-1 bg-[#EAEFE8] rounded-xl">
+          <div className="flex flex-wrap gap-1.5 p-1 bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl">
             {(
               [
                 { id: 'crop_activity', label: 'Crop Activity' },
@@ -680,7 +680,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                 type="button"
                 onClick={() => setCaptureTab(t.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer ${
-                  captureTab === t.id ? 'bg-white text-[#143326]' : 'text-[#4A5A50]'
+                  captureTab === t.id ? 'bg-[#0B3D91] text-white' : 'text-[#334155] hover:bg-white'
                 }`}
               >
                 {t.label}
@@ -692,11 +692,11 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         {captureTab === 'crop_activity' && (
           <form onSubmit={handleQueueCropActivity} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Downloaded Crop</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Downloaded Crop</label>
               <select
                 value={capCropId}
                 onChange={(e) => setCapCropId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
               >
                 {(bundle?.crops || []).length === 0 ? (
                   <option value="">Download offline pack first</option>
@@ -710,11 +710,11 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Activity</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Activity</label>
               <select
                 value={capActType}
                 onChange={(e) => setCapActType(e.target.value as CropActivityType)}
-                className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
               >
                 <option value="irrigation">Irrigation</option>
                 <option value="fertiliser">Fertiliser</option>
@@ -725,39 +725,39 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Date & Qty</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Date & Qty</label>
               <div className="flex gap-2">
                 <input
                   type="date"
                   value={capActDate}
                   onChange={(e) => setCapActDate(e.target.value)}
-                  className="w-full px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                  className="w-full px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                 />
                 <input
                   type="number"
                   min={0}
                   value={capActQty}
                   onChange={(e) => setCapActQty(e.target.value)}
-                  className="w-24 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                  className="w-24 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                 />
               </div>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Unit & Notes</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Unit & Notes</label>
               <div className="flex gap-2">
                 <input
                   type="text"
                   value={capActUnit}
                   onChange={(e) => setCapActUnit(e.target.value)}
                   placeholder="liters/kg"
-                  className="w-20 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] text-xs"
+                  className="w-20 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] text-xs"
                 />
                 <input
                   type="text"
                   value={capActNotes}
                   onChange={(e) => setCapActNotes(e.target.value)}
                   placeholder="Field notes..."
-                  className="flex-1 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] text-xs"
+                  className="flex-1 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] text-xs"
                 />
               </div>
             </div>
@@ -765,7 +765,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               <button
                 type="submit"
                 disabled={(bundle?.crops || []).length === 0}
-                className="w-full min-h-[42px] px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
+                className="w-full min-h-[42px] px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
               >
                 Queue Crop Activity
               </button>
@@ -776,11 +776,11 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         {captureTab === 'livestock_record' && (
           <form onSubmit={handleQueueLivestockRecord} className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Livestock Group</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Livestock Group</label>
               <select
                 value={capLivestockId}
                 onChange={(e) => setCapLivestockId(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
               >
                 {(bundle?.livestockGroups || []).length === 0 ? (
                   <option value="">Download offline pack first</option>
@@ -794,11 +794,11 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Event Type</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Event Type</label>
               <select
                 value={capRecType}
                 onChange={(e) => setCapRecType(e.target.value as LivestockRecordType)}
-                className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
               >
                 <option value="Feeding">Feeding</option>
                 <option value="Birth">Birth</option>
@@ -809,30 +809,30 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Date</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Date</label>
               <input
                 type="date"
                 value={capRecDate}
                 onChange={(e) => setCapRecDate(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
               />
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Count & Notes</label>
+              <label className="block text-xs font-semibold text-[#475569] mb-1">Count & Notes</label>
               <div className="flex gap-2">
                 <input
                   type="number"
                   min={0}
                   value={capRecCount}
                   onChange={(e) => setCapRecCount(e.target.value)}
-                  className="w-20 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                  className="w-20 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                 />
                 <input
                   type="text"
                   value={capRecNotes}
                   onChange={(e) => setCapRecNotes(e.target.value)}
                   placeholder="Observation..."
-                  className="flex-1 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] text-xs"
+                  className="flex-1 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] text-xs"
                 />
               </div>
             </div>
@@ -840,7 +840,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
               <button
                 type="submit"
                 disabled={(bundle?.livestockGroups || []).length === 0}
-                className="w-full min-h-[42px] px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
+                className="w-full min-h-[42px] px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
               >
                 Queue Livestock Log
               </button>
@@ -852,11 +852,11 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
           <form onSubmit={handleQueueIncident} className="space-y-3">
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Farm</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Farm</label>
                 <select
                   value={capIncFarmId}
                   onChange={(e) => setCapIncFarmId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   {selectableFarms.length === 0 ? (
                     <option value="">No farm downloaded</option>
@@ -870,11 +870,11 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Incident Type</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Incident Type</label>
                 <select
                   value={capIncType}
                   onChange={(e) => setCapIncType(e.target.value as IncidentType)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="storm_damage">Storm damage</option>
                   <option value="heavy_rainfall">Heavy rainfall</option>
@@ -888,18 +888,18 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Title</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Title</label>
                 <input
                   type="text"
                   required
                   value={capIncTitle}
                   onChange={(e) => setCapIncTitle(e.target.value)}
                   placeholder="E.g. Fence damaged by storm"
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Affected Qty & Area (ha)
                 </label>
                 <div className="flex gap-2">
@@ -909,7 +909,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                     value={capIncAffectedQty}
                     onChange={(e) => setCapIncAffectedQty(e.target.value)}
                     placeholder="Qty"
-                    className="w-1/2 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                    className="w-1/2 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                   />
                   <input
                     type="number"
@@ -918,7 +918,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                     value={capIncAffectedHa}
                     onChange={(e) => setCapIncAffectedHa(e.target.value)}
                     placeholder="ha"
-                    className="w-1/2 px-2.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                    className="w-1/2 px-2.5 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                   />
                 </div>
               </div>
@@ -930,12 +930,12 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                   value={capIncDesc}
                   onChange={(e) => setCapIncDesc(e.target.value)}
                   placeholder="Describe visible damage and immediate actions taken..."
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
               <div className="sm:col-span-3">
-                <label className="min-h-[42px] px-3 py-2 rounded-xl border border-[#D4DDD2] bg-[#F6F7F4] text-xs font-semibold text-[#143326] flex items-center gap-2 cursor-pointer">
-                  <Upload className="w-4 h-4 text-[#1B4332] shrink-0" />
+                <label className="min-h-[42px] px-3 py-2 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] text-xs font-semibold text-[#0B1F3A] flex items-center gap-2 cursor-pointer">
+                  <Upload className="w-4 h-4 text-[#0B3D91] shrink-0" />
                   <span className="truncate">{capIncPhotoName || 'Attach Photo (JPEG/PNG)'}</span>
                   <input
                     type="file"
@@ -949,7 +949,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                 <button
                   type="submit"
                   disabled={selectableFarms.length === 0}
-                  className="w-full min-h-[42px] px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
+                  className="w-full min-h-[42px] px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
                 >
                   Queue Incident Offline
                 </button>
@@ -960,20 +960,20 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
       </section>
 
       {/* Cached Offline Data Viewer */}
-      <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+      <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h2 className="font-display text-lg font-bold text-[#143326]">
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
               4. View Downloaded Offline Information
             </h2>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               {bundle
                 ? `Showing cached pack downloaded ${new Date(bundle.downloadedAt).toLocaleString()}.`
                 : 'No offline pack saved on this device yet. Click Download Offline Pack above while online.'}
             </p>
           </div>
 
-          <div className="flex flex-wrap gap-1.5 p-1 bg-[#EAEFE8] rounded-xl">
+          <div className="flex flex-wrap gap-1.5 p-1 bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl">
             {(
               [
                 { id: 'farms', label: `Farms (${bundle?.farms.length || 0})`, icon: Tractor },
@@ -992,7 +992,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                 type="button"
                 onClick={() => setCacheTab(tab.id)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-1.5 ${
-                  cacheTab === tab.id ? 'bg-white text-[#143326]' : 'text-[#4A5A50]'
+                  cacheTab === tab.id ? 'bg-[#0B3D91] text-white' : 'text-[#334155] hover:bg-white'
                 }`}
               >
                 <tab.icon className="w-3.5 h-3.5" />
@@ -1005,28 +1005,28 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         {bundle && cacheTab === 'farms' && (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {bundle.farms.length === 0 ? (
-              <p className="text-sm text-[#4A5A50]">No farms stored in this offline pack.</p>
+              <p className="text-sm text-[#475569]">No farms stored in this offline pack.</p>
             ) : (
               bundle.farms.map((farm) => (
-                <div key={farm.id} className="border border-[#E2E6DF] rounded-xl p-4 space-y-2">
+                <div key={farm.id} className="border border-[#CBD5E1] rounded-xl p-4 space-y-2">
                   <div className="flex items-start justify-between gap-2">
                     <div>
-                      <p className="font-display font-bold text-[#143326]">{farm.name}</p>
-                      <p className="text-xs text-[#4A5A50]">
+                      <p className="font-display font-bold text-[#0B1F3A]">{farm.name}</p>
+                      <p className="text-xs text-[#475569]">
                         {farm.location?.province || 'South Africa'} · {farm.location?.districtMunicipality || 'District'}
                       </p>
                     </div>
-                    <span className="font-mono text-xs font-bold tabular-nums text-[#1B4332]">
+                    <span className="font-mono text-xs font-bold tabular-nums text-[#174C3C]">
                       {farm.farmSizeHectares} ha
                     </span>
                   </div>
-                  <p className="text-xs text-[#35443B]">
+                  <p className="text-xs text-[#334155]">
                     Water: {farm.waterAvailability} · Fields: {farm.fields.length}
                   </p>
                   {farm.fields.length > 0 && (
-                    <div className="pt-2 border-t border-[#E2E6DF] space-y-1">
+                    <div className="pt-2 border-t border-[#E2E8F0] space-y-1">
                       {farm.fields.map((fld) => (
-                        <p key={fld.id} className="text-xs font-mono text-[#4A5A50]">
+                        <p key={fld.id} className="text-xs font-mono text-[#475569]">
                           • {fld.name}: {fld.areaHectares} ha ({fld.cropOrLivestock || fld.status})
                         </p>
                       ))}
@@ -1041,28 +1041,28 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         {bundle && cacheTab === 'crops_livestock' && (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="space-y-2">
-              <h3 className="text-sm font-bold text-[#143326]">
+              <h3 className="text-sm font-bold text-[#0B1F3A]">
                 Cached Crops ({bundle.crops.length})
               </h3>
               {bundle.crops.length === 0 ? (
-                <p className="text-xs text-[#4A5A50]">No crops cached.</p>
+                <p className="text-xs text-[#475569]">No crops cached.</p>
               ) : (
-                <div className="divide-y divide-[#E2E6DF] border border-[#E2E6DF] rounded-xl px-4">
+                <div className="divide-y divide-[#E2E8F0] border border-[#CBD5E1] rounded-xl px-4">
                   {bundle.crops.map((c) => (
                     <div key={c.id} className="py-3 flex items-center justify-between gap-3 text-xs">
                       <div>
-                        <p className="font-semibold text-[#143326]">
+                        <p className="font-semibold text-[#0B1F3A]">
                           {c.cropName} ({c.cropVariety})
                         </p>
-                        <p className="text-[#4A5A50]">
+                        <p className="text-[#475569]">
                           {c.farmName} · Stage: <span className="capitalize">{c.growthStage}</span>
                         </p>
                       </div>
                       <div className="text-right font-mono tabular-nums">
-                        <p className="font-semibold text-[#1B4332]">
+                        <p className="font-semibold text-[#174C3C]">
                           {(c.remainingPlants ?? c.plantingQuantity).toLocaleString()} plants
                         </p>
-                        <p className="text-[#4A5A50]">{c.harvestedQuantityKg.toLocaleString()} kg harvested</p>
+                        <p className="text-[#475569]">{c.harvestedQuantityKg.toLocaleString()} kg harvested</p>
                       </div>
                     </div>
                   ))}
@@ -1071,26 +1071,26 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
             </div>
 
             <div className="space-y-2">
-              <h3 className="text-sm font-bold text-[#143326]">
+              <h3 className="text-sm font-bold text-[#0B1F3A]">
                 Cached Livestock Groups ({bundle.livestockGroups.length})
               </h3>
               {bundle.livestockGroups.length === 0 ? (
-                <p className="text-xs text-[#4A5A50]">No livestock cached.</p>
+                <p className="text-xs text-[#475569]">No livestock cached.</p>
               ) : (
-                <div className="divide-y divide-[#E2E6DF] border border-[#E2E6DF] rounded-xl px-4">
+                <div className="divide-y divide-[#E2E8F0] border border-[#CBD5E1] rounded-xl px-4">
                   {bundle.livestockGroups.map((g) => (
                     <div key={g.id} className="py-3 flex items-center justify-between gap-3 text-xs">
                       <div>
-                        <p className="font-semibold text-[#143326]">
+                        <p className="font-semibold text-[#0B1F3A]">
                           {g.groupName} ({g.breed})
                         </p>
-                        <p className="text-[#4A5A50]">
+                        <p className="text-[#475569]">
                           {g.farmName} · {g.healthStatus}
                         </p>
                       </div>
                       <div className="text-right font-mono tabular-nums">
-                        <p className="font-semibold text-[#143326]">{g.quantity} head</p>
-                        <p className="text-[#4A5A50]">{g.animalType}</p>
+                        <p className="font-semibold text-[#0B1F3A]">{g.quantity} head</p>
+                        <p className="text-[#475569]">{g.animalType}</p>
                       </div>
                     </div>
                   ))}
@@ -1103,29 +1103,29 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         {bundle && cacheTab === 'weather' && (
           <div className="space-y-4">
             {bundle.weatherSnapshots.length === 0 ? (
-              <p className="text-sm text-[#4A5A50]">No cached weather snapshots.</p>
+              <p className="text-sm text-[#475569]">No cached weather snapshots.</p>
             ) : (
               bundle.weatherSnapshots.map((ws) => (
-                <div key={ws.farmId} className="border border-[#E2E6DF] rounded-xl p-4 space-y-2">
+                <div key={ws.farmId} className="border border-[#CBD5E1] rounded-xl p-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-display font-bold text-sm text-[#143326]">{ws.farmName}</p>
-                    <span className="font-mono text-xs text-[#4A5A50]">
+                    <p className="font-display font-bold text-sm text-[#0B1F3A]">{ws.farmName}</p>
+                    <span className="font-mono text-xs text-[#475569]">
                       Cached forecast timestamp: {new Date(ws.snapshotFetchedAt).toLocaleString()}
                     </span>
                   </div>
                   {ws.forecasts.length === 0 ? (
-                    <p className="text-xs text-[#4A5A50]">
+                    <p className="text-xs text-[#475569]">
                       No prior forecast snapshot saved yet for this farm. Connect online and open Weather Intelligence to fetch and store one.
                     </p>
                   ) : (
                     <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
                       {ws.forecasts.slice(0, 4).map((f) => (
-                        <div key={f.id} className="bg-[#F6F7F4] rounded-lg p-2.5 font-mono tabular-nums">
-                          <p className="font-semibold text-[#143326]">{f.forecastDate}</p>
-                          <p className="text-[#35443B]">
+                        <div key={f.id} className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2.5 font-mono tabular-nums">
+                          <p className="font-semibold text-[#0B1F3A]">{f.forecastDate}</p>
+                          <p className="text-[#334155]">
                             {f.predictedTempMinC}°–{f.predictedTempMaxC}°C · {f.predictedRainfallMm} mm
                           </p>
-                          <p className="font-sans text-[11px] text-[#4A5A50] truncate">{f.weatherDescription}</p>
+                          <p className="font-sans text-[11px] text-[#475569] truncate">{f.weatherDescription}</p>
                         </div>
                       ))}
                     </div>
@@ -1139,12 +1139,12 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
         {bundle && cacheTab === 'plans' && (
           <div className="space-y-3">
             {bundle.businessPlans.length === 0 ? (
-              <div className="text-sm text-[#4A5A50] flex flex-wrap items-center justify-between gap-2">
+              <div className="text-sm text-[#475569] flex flex-wrap items-center justify-between gap-2">
                 <span>No saved farming business plans in offline cache yet.</span>
                 <button
                   type="button"
                   onClick={() => onNavigateTab('planner')}
-                  className="text-xs font-semibold text-[#1B4332] underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] underline cursor-pointer"
                 >
                   Open Business Planner
                 </button>
@@ -1152,34 +1152,34 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {bundle.businessPlans.map((bp) => (
-                  <div key={bp.id} className="border border-[#E2E6DF] rounded-xl p-4 space-y-2">
+                  <div key={bp.id} className="border border-[#CBD5E1] rounded-xl p-4 space-y-2">
                     <div className="flex items-start justify-between gap-2">
                       <div>
-                        <p className="font-display font-bold text-[#143326]">{bp.planName}</p>
-                        <p className="text-xs text-[#4A5A50]">
+                        <p className="font-display font-bold text-[#0B1F3A]">{bp.planName}</p>
+                        <p className="text-xs text-[#475569]">
                           {bp.province} · {bp.farmSizeHectares} ha · {bp.scaleTier.replace(/_/g, ' ')}
                         </p>
                       </div>
-                      <span className="font-mono text-xs text-[#4A5A50]">
+                      <span className="font-mono text-xs text-[#475569]">
                         {bp.updatedAt.slice(0, 10)}
                       </span>
                     </div>
-                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E2E6DF] font-mono text-xs tabular-nums">
+                    <div className="grid grid-cols-3 gap-2 pt-2 border-t border-[#E2E8F0] font-mono text-xs tabular-nums">
                       <div>
-                        <p className="font-sans text-[11px] text-[#4A5A50]">Startup Cost</p>
-                        <p className="font-semibold text-[#143326]">
+                        <p className="font-sans text-[11px] text-[#475569]">Startup Cost</p>
+                        <p className="font-semibold text-[#0B1F3A]">
                           R {bp.calculation.estimatedStartupCostsZar.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="font-sans text-[11px] text-[#4A5A50]">Est. Revenue</p>
-                        <p className="font-semibold text-[#1B4332]">
+                        <p className="font-sans text-[11px] text-[#475569]">Est. Revenue</p>
+                        <p className="font-semibold text-[#174C3C]">
                           R {bp.calculation.estimatedRevenueZar.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="font-sans text-[11px] text-[#4A5A50]">Est. Op. Profit</p>
-                        <p className="font-semibold text-[#143326]">
+                        <p className="font-sans text-[11px] text-[#475569]">Est. Op. Profit</p>
+                        <p className="font-semibold text-[#0B1F3A]">
                           R {bp.calculation.estimatedOperatingProfitLossZar.toLocaleString()}
                         </p>
                       </div>
@@ -1196,28 +1196,28 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
             {bundle.learningGuides.map((g) => {
               const expanded = expandedGuideId === g.id;
               return (
-                <div key={g.id} className="border border-[#E2E6DF] rounded-xl p-4 space-y-2">
+                <div key={g.id} className="border border-[#CBD5E1] rounded-xl p-4 space-y-2">
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <div>
-                      <p className="font-semibold text-sm text-[#143326]">{g.displayTitle}</p>
-                      <p className="text-xs text-[#4A5A50]">
+                      <p className="font-semibold text-sm text-[#0B1F3A]">{g.displayTitle}</p>
+                      <p className="text-xs text-[#475569]">
                         {g.categoryLabel} · {g.estimatedMinutes} min · {g.sourceAttribution}
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => setExpandedGuideId(expanded ? null : g.id)}
-                      className="text-xs font-semibold text-[#1B4332] underline cursor-pointer"
+                      className="text-xs font-semibold text-[#0B3D91] underline cursor-pointer"
                     >
                       {expanded ? 'Hide Guide' : 'Read Offline'}
                     </button>
                   </div>
                   {expanded && (
-                    <div className="pt-2 border-t border-[#E2E6DF] text-xs text-[#17201B] space-y-2">
+                    <div className="pt-2 border-t border-[#E2E8F0] text-xs text-[#0F172A] space-y-2">
                       <p className="leading-relaxed">{g.displaySummary}</p>
                       <p className="leading-relaxed whitespace-pre-line">{g.displayBody}</p>
                       {g.displaySteps.length > 0 && (
-                        <ol className="list-decimal list-inside space-y-1 font-medium text-[#143326]">
+                        <ol className="list-decimal list-inside space-y-1 font-medium text-[#0B1F3A]">
                           {g.displaySteps.map((step, idx) => (
                             <li key={idx}>{step}</li>
                           ))}

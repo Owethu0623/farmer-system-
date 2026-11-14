@@ -379,10 +379,10 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Crop Management & Analytics
           </h1>
-          <p className="text-sm text-[#4A5A50] mt-0.5">
+          <p className="text-sm text-[#475569] mt-0.5">
             Track planting quantities, growth stages, irrigation, fertiliser, pests, damage, harvests, and historical snapshots.
           </p>
         </div>
@@ -394,7 +394,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
               setFarmFilter(e.target.value);
               onSelectFarmFilter(e.target.value === 'all' ? null : e.target.value);
             }}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0F172A] min-h-[42px]"
           >
             <option value="all">All Registered Farms</option>
             {farms.map((f) => (
@@ -408,7 +408,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white font-semibold text-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer min-h-[42px]"
             >
               <Plus className="w-4 h-4" />
               <span>Register Crop</span>
@@ -418,13 +418,13 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       </div>
 
       {notice && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#174C3C] rounded-xl px-4 py-3 text-sm">
           {notice}
         </div>
       )}
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}
@@ -432,45 +432,45 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       {/* Crop Analytics Summary KPIs */}
       {analytics && (
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Registered Crops</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Registered Crops</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
               {analytics.totalRegisteredCrops}
             </p>
           </div>
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Cultivated Area</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Cultivated Area</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
               {analytics.totalCultivatedHectares} ha
             </p>
           </div>
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Planted Count</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Planted Count</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
               {analytics.totalPlanted.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Damaged Plants</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#8E2424] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Damaged Plants</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#B91C1C] mt-1">
               {analytics.damagedPlants.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Remaining Plants</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Remaining Plants</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
               {analytics.remainingPlants.toLocaleString()}
             </p>
           </div>
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Harvested Output</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Harvested Output</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
               {analytics.totalHarvestedKg.toLocaleString()} kg
             </p>
           </div>
-          <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-            <p className="text-xs text-[#4A5A50]">Est. Harvest Value</p>
-            <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+          <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+            <p className="text-xs text-[#475569]">Est. Harvest Value</p>
+            <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
               R {analytics.estimatedHarvestValueZar.toLocaleString()}
             </p>
           </div>
@@ -481,15 +481,15 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       {analytics && analytics.byCrop.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Cultivated Area & Value by Crop */}
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Sprout className="w-4 h-4 text-[#1B4332]" />
-                <h2 className="font-display font-bold text-base text-[#143326]">
-                  Cultivated Hectares & Value by Crop
+                <Sprout className="w-4 h-4 text-[#174C3C]" />
+                <h2 className="font-display font-bold text-base text-[#0B1F3A]">
+                  Cultivated Hectares & Est. Value by Crop
                 </h2>
               </div>
-              <span className="text-xs text-[#4A5A50]">Area (ha)</span>
+              <span className="text-xs text-[#475569]">Area (ha)</span>
             </div>
 
             <div className="space-y-3">
@@ -498,16 +498,16 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                 return (
                   <div key={item.id} className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
-                      <span className="font-semibold text-[#143326]">
-                        {item.cropName} · <span className="font-normal text-[#4A5A50]">{item.cropVariety}</span>
+                      <span className="font-semibold text-[#0B1F3A]">
+                        {item.cropName} · <span className="font-normal text-[#475569]">{item.cropVariety}</span>
                       </span>
-                      <span className="font-mono tabular-nums text-[#35443B]">
+                      <span className="font-mono tabular-nums text-[#334155]">
                         {item.cultivatedAreaHectares} ha · R {item.estimatedValueZar.toLocaleString()}
                       </span>
                     </div>
-                    <div className="h-3 w-full bg-[#EFF3EE] rounded-full overflow-hidden">
+                    <div className="h-3 w-full bg-[#F1F5F9] rounded-full overflow-hidden">
                       <div
-                        className="h-full bg-[#2D6A4F] rounded-full"
+                        className="h-full bg-[#174C3C] rounded-full"
                         style={{ width: `${widthPct}%` }}
                       />
                     </div>
@@ -518,38 +518,38 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
           </div>
 
           {/* Crop Performance Over Time */}
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-[#1B4332]" />
-                <h2 className="font-display font-bold text-base text-[#143326]">
+                <TrendingUp className="w-4 h-4 text-[#0B3D91]" />
+                <h2 className="font-display font-bold text-base text-[#0B1F3A]">
                   Crop Performance & Activity Timeline
                 </h2>
               </div>
-              <span className="text-xs text-[#4A5A50]">Monthly Harvest & Logs</span>
+              <span className="text-xs text-[#475569]">Monthly Harvest & Logs</span>
             </div>
 
             {analytics.timeline.length === 0 ? (
-              <p className="text-sm text-[#4A5A50] py-8 text-center">
+              <p className="text-sm text-[#475569] py-8 text-center">
                 Record irrigation, fertiliser, or harvesting activities to view monthly trends.
               </p>
             ) : (
-              <div className="flex items-end gap-4 h-44 pt-4 pb-2 px-2 border-b border-[#E2E6DF]">
+              <div className="flex items-end gap-4 h-44 pt-4 pb-2 px-2 border-b border-[#E2E8F0]">
                 {analytics.timeline.map((pt) => {
                   const metric = pt.harvestKg > 0 ? pt.harvestKg : pt.activitiesCount * 1000;
                   const barH = Math.max(18, Math.round((metric / maxTimelineQty) * 120));
                   return (
                     <div key={pt.month} className="flex-1 flex flex-col items-center gap-1.5">
-                      <span className="font-mono text-[11px] tabular-nums text-[#35443B]">
+                      <span className="font-mono text-[11px] tabular-nums text-[#334155]">
                         {pt.harvestKg > 0
                           ? `${pt.harvestKg.toLocaleString()} kg`
                           : `${pt.activitiesCount} log${pt.activitiesCount === 1 ? '' : 's'}`}
                       </span>
                       <div
-                        className="w-full max-w-[44px] bg-[#1B4332] rounded-t-md"
+                        className="w-full max-w-[44px] bg-[#0B3D91] rounded-t-md"
                         style={{ height: `${barH}px` }}
                       />
-                      <span className="font-mono text-[11px] text-[#4A5A50]">{pt.month}</span>
+                      <span className="font-mono text-[11px] text-[#475569]">{pt.month}</span>
                     </div>
                   );
                 })}
@@ -560,71 +560,71 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       )}
 
       {/* Crops Table */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-        <h2 className="font-display text-lg font-bold text-[#143326]">
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
+        <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
           Registered Crops ({crops.length})
         </h2>
 
         {loading ? (
-          <p className="text-sm text-[#4A5A50]">Loading crop records...</p>
+          <p className="text-sm text-[#475569]">Loading crop records...</p>
         ) : crops.length === 0 ? (
-          <p className="text-sm text-[#4A5A50] py-6">
+          <p className="text-sm text-[#475569] py-6">
             No crops registered yet. Click Register Crop to capture your first planting.
           </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#E2E6DF] text-xs text-[#4A5A50]">
+                <tr className="border-b border-[#E2E8F0] text-xs text-[#475569]">
                   <th className="py-2.5 pr-4 font-semibold">Crop & Variety</th>
                   <th className="py-2.5 pr-4 font-semibold">Farm / Field</th>
                   <th className="py-2.5 pr-4 font-semibold">Stage & Dates</th>
                   <th className="py-2.5 pr-4 font-semibold text-right">Area</th>
                   <th className="py-2.5 pr-4 font-semibold text-right">Remaining Plants</th>
-                  <th className="py-2.5 pr-4 font-semibold text-right">Harvest / Value</th>
+                  <th className="py-2.5 pr-4 font-semibold text-right">Harvest / Est. Value</th>
                   <th className="py-2.5 text-right font-semibold">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E6DF]">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {crops.map((crop) => {
                   const remaining =
                     crop.remainingPlants ?? Math.max(0, crop.plantingQuantity - crop.damagedPlants);
                   return (
-                    <tr key={crop.id} className="hover:bg-[#FAFBF9]">
+                    <tr key={crop.id} className="hover:bg-[#F8FAFC]">
                       <td className="py-3.5 pr-4">
-                        <p className="font-semibold text-[#143326]">{crop.cropName}</p>
-                        <p className="text-xs text-[#4A5A50]">
+                        <p className="font-semibold text-[#0B1F3A]">{crop.cropName}</p>
+                        <p className="text-xs text-[#475569]">
                           {crop.cropVariety} · {crop.irrigationMethod}
                         </p>
                       </td>
-                      <td className="py-3.5 pr-4 text-xs text-[#35443B]">
+                      <td className="py-3.5 pr-4 text-xs text-[#334155]">
                         <p className="font-medium">{crop.farmName}</p>
-                        <p className="text-[#4A5A50]">{crop.fieldName}</p>
+                        <p className="text-[#475569]">{crop.fieldName}</p>
                       </td>
                       <td className="py-3.5 pr-4 text-xs">
-                        <p className="font-semibold text-[#1B4332] capitalize">
+                        <p className="font-semibold text-[#174C3C] capitalize">
                           {crop.growthStage}
                         </p>
-                        <p className="text-[#4A5A50] font-mono tabular-nums">
+                        <p className="text-[#475569] font-mono tabular-nums">
                           Planted {crop.plantingDate} · Exp {crop.expectedHarvestingDate}
                         </p>
                       </td>
-                      <td className="py-3.5 pr-4 text-right font-mono tabular-nums">
+                      <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-[#0F172A]">
                         {crop.cultivatedAreaHectares} ha
                       </td>
                       <td className="py-3.5 pr-4 text-right font-mono tabular-nums">
-                        <p className="font-semibold text-[#143326]">{remaining.toLocaleString()}</p>
+                        <p className="font-semibold text-[#0B1F3A]">{remaining.toLocaleString()}</p>
                         {crop.damagedPlants > 0 && (
-                          <p className="text-[11px] text-[#8E2424]">
+                          <p className="text-[11px] text-[#B91C1C]">
                             -{crop.damagedPlants.toLocaleString()} damaged
                           </p>
                         )}
                       </td>
                       <td className="py-3.5 pr-4 text-right font-mono tabular-nums">
-                        <p className="font-semibold text-[#143326]">
+                        <p className="font-semibold text-[#0B1F3A]">
                           {crop.harvestedQuantityKg.toLocaleString()} kg
                         </p>
-                        <p className="text-[11px] text-[#2D6A4F]">
+                        <p className="text-[11px] text-[#174C3C]">
                           R {crop.estimatedValueZar.toLocaleString()}
                         </p>
                       </td>
@@ -633,7 +633,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                           <button
                             type="button"
                             onClick={() => openActivityModal(crop)}
-                            className="px-2.5 py-1.5 rounded-lg bg-[#EDF5EF] hover:bg-[#DCEBDD] text-[#143326] text-xs font-semibold cursor-pointer"
+                            className="px-2.5 py-1.5 rounded-lg bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#0B3D91] text-xs font-semibold cursor-pointer min-h-[34px]"
                           >
                             Log Activity
                           </button>
@@ -641,7 +641,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                             type="button"
                             onClick={() => openHistory(crop)}
                             title="View historical logs"
-                            className="p-1.5 rounded-lg border border-[#D4DDD2] hover:bg-[#F6F7F4] text-[#35443B] cursor-pointer"
+                            className="p-2 rounded-lg border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#334155] cursor-pointer"
                           >
                             <History className="w-3.5 h-3.5" />
                           </button>
@@ -649,7 +649,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                             type="button"
                             onClick={() => openEditModal(crop)}
                             title="Update crop"
-                            className="p-1.5 rounded-lg border border-[#D4DDD2] hover:bg-[#F6F7F4] text-[#35443B] cursor-pointer"
+                            className="p-2 rounded-lg border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#334155] cursor-pointer"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                           </button>
@@ -657,7 +657,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                             type="button"
                             onClick={() => handleDeleteCrop(crop.id)}
                             title="Remove crop"
-                            className="p-1.5 rounded-lg border border-[#E8B4B4] hover:bg-[#FDF2F2] text-[#8E2424] cursor-pointer"
+                            className="p-2 rounded-lg border border-[#FECACA] hover:bg-[#FEF2F2] text-[#B91C1C] cursor-pointer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
                           </button>
@@ -675,15 +675,15 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       {/* Register / Update Crop Modal */}
       {cropModalMode && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-xl font-bold text-[#143326]">
+              <h3 className="font-display text-xl font-bold text-[#0B1F3A]">
                 {cropModalMode === 'create' ? 'Register Crop Planting' : 'Update Crop Record'}
               </h3>
               <button
                 type="button"
                 onClick={() => setCropModalMode(null)}
-                className="p-2 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-2 rounded-lg hover:bg-[#F1F5F9] text-[#334155] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -700,7 +700,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                       const f = farms.find((x) => x.id === e.target.value);
                       setFormFieldId(f?.fields[0]?.id || '');
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {farms.map((f) => (
                       <option key={f.id} value={f.id}>
@@ -714,7 +714,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                   <select
                     value={formFieldId}
                     onChange={(e) => setFormFieldId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     <option value="">General Farm Block</option>
                     {availableFields.map((fld) => (
@@ -735,7 +735,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     value={cropName}
                     onChange={(e) => setCropName(e.target.value)}
                     placeholder="e.g. Yellow Maize, Tomatoes"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -746,7 +746,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     value={cropVariety}
                     onChange={(e) => setCropVariety(e.target.value)}
                     placeholder="e.g. PAN 6Q-308B, Rodade"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
@@ -759,7 +759,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     required
                     value={plantingDate}
                     onChange={(e) => setPlantingDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                   />
                 </div>
                 <div className="space-y-1">
@@ -769,7 +769,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     required
                     value={expectedHarvestDate}
                     onChange={(e) => setExpectedHarvestDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                   />
                 </div>
                 <div className="space-y-1">
@@ -779,7 +779,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     min={1}
                     value={plantingQuantity}
                     onChange={(e) => setPlantingQuantity(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -790,7 +790,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     step={0.05}
                     value={cultivatedArea}
                     onChange={(e) => setCultivatedArea(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
               </div>
@@ -802,7 +802,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     type="text"
                     value={soilInfo}
                     onChange={(e) => setSoilInfo(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -811,7 +811,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     type="text"
                     value={irrigationMethod}
                     onChange={(e) => setIrrigationMethod(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
@@ -822,7 +822,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                   <select
                     value={growthStage}
                     onChange={(e) => setGrowthStage(e.target.value as CropGrowthStage)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {GROWTH_STAGES.map((s) => (
                       <option key={s.value} value={s.value}>
@@ -838,7 +838,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     min={0}
                     value={estimatedValueZar}
                     onChange={(e) => setEstimatedValueZar(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-1 sm:col-span-1">
@@ -847,7 +847,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     type="text"
                     value={fertiliserInfo}
                     onChange={(e) => setFertiliserInfo(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
@@ -856,14 +856,14 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setCropModalMode(null)}
-                  className="px-4 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer min-h-[40px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingCrop}
-                  className="px-5 py-2.5 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer min-h-[40px]"
                 >
                   {savingCrop ? 'Saving...' : 'Save Crop Record'}
                 </button>
@@ -876,20 +876,20 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       {/* Log Crop Activity / Incident / Harvest Modal */}
       {activityTargetCrop && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-lg font-bold text-[#143326]">
+                <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Log Crop Activity
                 </h3>
-                <p className="text-xs text-[#4A5A50]">
+                <p className="text-xs text-[#475569]">
                   {activityTargetCrop.cropName} ({activityTargetCrop.cropVariety})
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setActivityTargetCrop(null)}
-                className="p-1.5 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -907,7 +907,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                       const hint = ACTIVITY_TYPES.find((a) => a.value === next)?.unitHint || 'kg';
                       setActivityUnit(hint);
                     }}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {ACTIVITY_TYPES.map((a) => (
                       <option key={a.value} value={a.value}>
@@ -923,7 +923,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                     required
                     value={activityDate}
                     onChange={(e) => setActivityDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
               </div>
@@ -934,7 +934,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                   <select
                     value={newStage}
                     onChange={(e) => setNewStage(e.target.value as CropGrowthStage)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {GROWTH_STAGES.map((s) => (
                       <option key={s.value} value={s.value}>
@@ -953,7 +953,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                       step={0.1}
                       value={activityQty}
                       onChange={(e) => setActivityQty(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                      className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                     />
                   </div>
                   <div className="space-y-1">
@@ -962,7 +962,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                       type="text"
                       value={activityUnit}
                       onChange={(e) => setActivityUnit(e.target.value)}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                      className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                     />
                   </div>
                   <div className="space-y-1">
@@ -972,7 +972,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                       min={0}
                       value={activityValZar}
                       onChange={(e) => setActivityValZar(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                      className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                     />
                   </div>
                 </div>
@@ -985,7 +985,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                   value={activityNotes}
                   onChange={(e) => setActivityNotes(e.target.value)}
                   placeholder="Describe observations, application rates, or buyer delivery..."
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
 
@@ -993,14 +993,14 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setActivityTargetCrop(null)}
-                  className="px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer min-h-[40px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingActivity}
-                  className="px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer min-h-[40px]"
                 >
                   {savingActivity ? 'Recording...' : 'Record Activity'}
                 </button>
@@ -1013,49 +1013,49 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       {/* Historical Record Viewer Modal */}
       {historyCrop && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-2xl w-full p-6 space-y-4 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-lg font-bold text-[#143326]">
+                <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Historical Records — {historyCrop.cropName}
                 </h3>
-                <p className="text-xs text-[#4A5A50]">
+                <p className="text-xs text-[#475569]">
                   Complete audit trail of activities, incidents, harvests, and record updates.
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setHistoryCrop(null)}
-                className="p-1.5 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="overflow-y-auto divide-y divide-[#E2E6DF] flex-1">
+            <div className="overflow-y-auto divide-y divide-[#E2E8F0] flex-1">
               {historyLogs.length === 0 ? (
-                <p className="text-sm text-[#4A5A50] py-6">No historical logs recorded yet.</p>
+                <p className="text-sm text-[#475569] py-6">No historical logs recorded yet.</p>
               ) : (
                 historyLogs.map((log) => (
                   <div key={log.id} className="py-3 space-y-1 text-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-[#143326] capitalize">
+                      <span className="font-semibold text-[#0B1F3A] capitalize">
                         {log.activityType.replace(/_/g, ' ')}
                       </span>
-                      <span className="font-mono text-xs tabular-nums text-[#4A5A50] flex items-center gap-1">
+                      <span className="font-mono text-xs tabular-nums text-[#475569] flex items-center gap-1">
                         <Calendar className="w-3.5 h-3.5" />
                         <span>{log.activityDate}</span>
                       </span>
                     </div>
-                    <p className="text-xs text-[#35443B]">{log.notes}</p>
+                    <p className="text-xs text-[#334155]">{log.notes}</p>
                     {(log.quantity > 0 || log.valueZar > 0) && (
-                      <p className="font-mono text-xs tabular-nums text-[#2D6A4F]">
+                      <p className="font-mono text-xs tabular-nums text-[#174C3C]">
                         {log.quantity > 0 ? `${log.quantity.toLocaleString()} ${log.unit}` : ''}{' '}
                         {log.valueZar > 0 ? `· R ${log.valueZar.toLocaleString()}` : ''}
                       </p>
                     )}
                     {log.snapshot && (
-                      <p className="text-[11px] font-mono text-[#4A5A50]">
+                      <p className="text-[11px] font-mono text-[#475569]">
                         Archived prior state: {String(log.snapshot.cropName || '')} (
                         {String(log.snapshot.growthStage || '')},{' '}
                         {String(log.snapshot.cultivatedAreaHectares || '')} ha)

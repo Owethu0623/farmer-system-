@@ -39,6 +39,53 @@ export interface ProspectiveFarmerData {
   farmingGoals: string[];
 }
 
+export type FarmTenureRelationship =
+  | 'owner'
+  | 'manager'
+  | 'lessee'
+  | 'communal_custodian'
+  | 'family_land';
+
+export interface ReadinessAssessmentState {
+  passed: boolean;
+  score: number;
+  totalQuestions: number;
+  answers: Record<string, string>;
+  completedAt: string | null;
+}
+
+export interface FarmerJourneyHistoryEntry {
+  id: string;
+  fromRole: RoleCode;
+  toRole: RoleCode;
+  farmId: string | null;
+  farmName: string | null;
+  note: string;
+  occurredAt: string;
+}
+
+export interface ReadinessQuestion {
+  id: string;
+  question: string;
+  options: { id: string; label: string }[];
+}
+
+export interface LearningReadinessStatus {
+  requiredGuideIds: string[];
+  requiredGuideTitles: { id: string; title: string; completed: boolean }[];
+  requiredGuidesCompleted: number;
+  requiredGuidesTotal: number;
+  requiredGuidesMet: boolean;
+  assessmentPassed: boolean;
+  assessmentScore: number;
+  assessmentTotalQuestions: number;
+  assessmentCompletedAt: string | null;
+  isReady: boolean;
+  completionMessage: string | null;
+  missingRequirements: string[];
+  assessmentQuestions: ReadinessQuestion[];
+}
+
 export interface UserProfile {
   id: string;
   userId: string;
@@ -51,6 +98,8 @@ export interface UserProfile {
   accessibilityAudioGuidance: boolean;
   accessibilityVoiceInput: boolean;
   prospectiveData: ProspectiveFarmerData | null;
+  readinessAssessment?: ReadinessAssessmentState | null;
+  journeyHistory?: FarmerJourneyHistoryEntry[];
   bio: string;
 }
 
@@ -75,7 +124,11 @@ export interface GeoJsonPolygon {
   coordinates: number[][][];
 }
 
-export type LocationSource = 'gps' | 'manual_map_pin' | 'municipal_center';
+export type LocationSource =
+  | 'gps'
+  | 'manual_map_pin'
+  | 'geocoded_search'
+  | 'municipal_center';
 
 export interface FarmLocation {
   id: string;
@@ -84,6 +137,8 @@ export interface FarmLocation {
   districtMunicipality: string;
   localMunicipality: string;
   townOrVillage: string;
+  locationDescription?: string;
+  locationConfirmed?: boolean;
   latitude: number;
   longitude: number;
   locationSource: LocationSource;
@@ -133,6 +188,9 @@ export interface FarmItem {
   waterAvailability: string;
   existingCrops: string[];
   existingLivestock: string[];
+  tenureType?: FarmTenureRelationship;
+  managementRelationshipNote?: string;
+  linkedBusinessPlanIds?: string[];
   status: string;
   isDemonstration?: boolean;
   createdAt: string;
@@ -630,6 +688,51 @@ export interface WeatherIntelligence {
     avgRelativeHumidityPercent: number | null;
     daysCount: number;
     lastUpdated: string | null;
+  };
+  nasaClimateComparison?: {
+    serviceAvailable: boolean;
+    unavailableReason: string | null;
+    source: string;
+    datasetName: string;
+    coordinatesLabel: string;
+    spatialResolutionNote: string;
+    baselinePeriodLabel: string;
+    recentPeriodLabel: string;
+    retrievedAt: string | null;
+    baselineMetrics: {
+      meanAnnualRainfallMm: number | null;
+      summerDjRainfallMm: number | null;
+      winterJjaRainfallMm: number | null;
+      avgMaxTempC: number | null;
+      avgMinTempC: number | null;
+      avgSolarIrradiance: number | null;
+      avgRelativeHumidityPercent: number | null;
+      yearsCovered: number;
+    } | null;
+    recentMetrics: {
+      meanAnnualRainfallMm: number | null;
+      summerDjRainfallMm: number | null;
+      winterJjaRainfallMm: number | null;
+      avgMaxTempC: number | null;
+      avgMinTempC: number | null;
+      avgSolarIrradiance: number | null;
+      avgRelativeHumidityPercent: number | null;
+      yearsCovered: number;
+    } | null;
+    delta: {
+      annualRainfallChangeMm: number | null;
+      annualRainfallChangePercent: number | null;
+      avgMaxTempChangeC: number | null;
+      avgMinTempChangeC: number | null;
+      solarIrradianceChange: number | null;
+      humidityChangePercent: number | null;
+    } | null;
+    localInterpretation: {
+      summary: string;
+      soilAndMoistureNote: string;
+      cropPlanningNote: string;
+      dataLimitations: string;
+    };
   };
   seasonalCalendar?: {
     regime: string;
@@ -1212,7 +1315,78 @@ export interface LearningCentrePayload {
     savedCount: number;
     overallPercent: number;
   };
+  learningReadiness?: LearningReadinessStatus;
   officialGuidanceNotice: string;
+}
+
+export interface CropRotationCatalogOption {
+  id: string;
+  name: string;
+  botanicalFamily: string;
+  familyGroupLabel: string;
+  preferredSeason: 'Main Summer' | 'Cool / Transition' | 'Year-round';
+  waterNeed: 'Low' | 'Moderate' | 'High';
+  idealPhRange: [number, number];
+  typicalCycleDays: string;
+  nitrogenRole: 'Nitrogen-fixing legume' | 'Heavy nitrogen feeder' | 'Moderate feeder' | 'Deep-rooting scavenger';
+  summary: string;
+}
+
+export interface CropRotationSeasonPlan {
+  seasonNumber: number;
+  seasonLabel: string;
+  plantingWindow: string;
+  recommendedCropId: string;
+  recommendedCropName: string;
+  botanicalFamily: string;
+  nitrogenRole: string;
+  suitabilityLevel: 'Strong Fit' | 'Conditional Fit' | 'Caution';
+  suitabilityReasons: string[];
+  benefits: string[];
+  risks: string[];
+  plantingChecklist: string[];
+}
+
+export interface CropRotationAnalysisPayload {
+  generatedAt: string;
+  siteContext: {
+    label: string;
+    province: string;
+    rainfallRegime: string;
+    farmSizeHectares: number;
+    waterAvailability: string;
+    soilType: string;
+    soilPh: number;
+    soilDataSource: string;
+    farmerPriority: string;
+  };
+  climateSource: {
+    provider: string;
+    available: boolean;
+    note: string;
+    recentAnnualRainfallMm: number | null;
+    baselineAnnualRainfallMm: number | null;
+    avgMaxTempC: number | null;
+    avgSolarIrradiance: number | null;
+  };
+  comparedCrops: {
+    cropId: string;
+    cropName: string;
+    botanicalFamily: string;
+    waterNeed: string;
+    idealPhRange: [number, number];
+    suitabilityScoreLabel: 'High Fit' | 'Moderate Fit' | 'Marginal Fit';
+    suitabilityReason: string;
+    keyBenefits: string[];
+    keyRisks: string[];
+    plantingChecklist: string[];
+  }[];
+  threeSeasonRotation: CropRotationSeasonPlan[];
+  soilHealthImplications: string[];
+  climateAndMoistureAlignment: string;
+  assumptions: string[];
+  limitations: string[];
+  disclaimer: string;
 }
 
 export interface AiInsightItem {
@@ -1464,9 +1638,10 @@ export interface ProspectiveDashboardPayload {
     title: string;
     detail: string;
     completed: boolean;
-    actionTab: 'planner' | 'learning' | 'advisor';
+    actionTab: 'planner' | 'learning' | 'advisor' | 'soil' | 'weather';
     actionLabel: string;
   }[];
+  learningReadiness?: LearningReadinessStatus;
   recentAiInsights: AiInsightItem[];
   announcements: SystemAnnouncementItem[];
 }
@@ -1668,6 +1843,11 @@ export type ExpertSpecialisation =
   | 'soil_specialist'
   | 'livestock_specialist'
   | 'veterinarian'
+  | 'irrigation_water_specialist'
+  | 'agricultural_economist'
+  | 'pest_disease_specialist'
+  | 'extension_officer'
+  | 'horticultural_specialist'
   | 'agricultural_consultant';
 
 export interface ExpertProfileItem {
@@ -1676,12 +1856,36 @@ export interface ExpertProfileItem {
   secondarySpecialisations: ExpertSpecialisation[];
   qualifications: string;
   professionalBodyNumber: string;
+  verificationStatus?: 'demo_unverified' | 'pending_verification' | 'verified';
+  regulatedService?: boolean;
+  regulatoryBodyName?: string;
+  verificationNote?: string;
+  isDemonstration?: boolean;
   yearsExperience: number;
   provincesServed: string[];
   languagesSpoken: LanguageCode[];
   bio: string;
   availabilityStatus: 'available' | 'limited' | 'unavailable';
   updatedAt: string;
+}
+
+export interface ConsultationRequestItem {
+  id: string;
+  farmId: string;
+  farmName?: string;
+  farmerUserId: string;
+  farmerName?: string;
+  expertUserId: string;
+  expertName?: string;
+  specialistCategory: ExpertSpecialisation;
+  subject: string;
+  description: string;
+  urgency: 'routine' | 'priority' | 'urgent';
+  status: 'requested' | 'assigned' | 'in_review' | 'responded' | 'closed';
+  recommendationSummary: string;
+  requestedAt: string;
+  updatedAt: string;
+  isDemonstration?: boolean;
 }
 
 export interface FarmAccessScopes {
@@ -1721,6 +1925,10 @@ export interface CollaborationDirectoryPayload {
     qualifications: string;
     yearsExperience: number;
     availabilityStatus: string;
+    verificationStatus?: string;
+    regulatedService?: boolean;
+    regulatoryBodyName?: string;
+    isDemonstration?: boolean;
   }[];
   organisations: {
     id: string;
@@ -1729,6 +1937,7 @@ export interface CollaborationDirectoryPayload {
     province: string;
     district: string;
     primaryFocus: string;
+    isDemonstration?: boolean;
   }[];
 }
 
@@ -1759,6 +1968,7 @@ export interface ExpertFeedbackItem {
   recommendations: string[];
   status: 'pending_review' | 'in_progress' | 'completed';
   farmerAcknowledged: boolean;
+  isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1808,6 +2018,7 @@ export interface ExpertOverviewPayload {
   }[];
   openConcerns: ExpertConcernQueueItem[];
   recentFeedback: ExpertFeedbackItem[];
+  consultations?: ConsultationRequestItem[];
   activityRecords: AuditLogItem[];
 }
 
@@ -1843,6 +2054,7 @@ export interface OrganisationProfileItem {
   contactPhone: string;
   description: string;
   ownerUserId: string;
+  isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1858,10 +2070,109 @@ export interface OrganisationMemberView {
   joinedAt: string;
 }
 
+export interface OrganisationProjectItem {
+  id: string;
+  organisationId: string;
+  title: string;
+  programmeCode: string;
+  province: string;
+  focusArea: string;
+  status: 'planning' | 'active' | 'completed';
+  startDate: string;
+  targetEndDate: string;
+  targetFarmsCount: number;
+  targetHectares: number;
+  budgetAllocatedZar: number;
+  budgetSpentZar: number;
+  leadSpecialistUserId: string | null;
+  summary: string;
+  isDemonstration?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationProgrammeActivityItem {
+  id: string;
+  organisationId: string;
+  projectId: string | null;
+  title: string;
+  activityType:
+    | 'training_workshop'
+    | 'field_day'
+    | 'soil_sampling_drive'
+    | 'vaccination_campaign'
+    | 'input_distribution'
+    | 'advisory_visit';
+  activityDate: string;
+  province: string;
+  district: string;
+  participantsCount: number;
+  farmsReachedCount: number;
+  costZar: number;
+  facilitatorName: string;
+  outcomesSummary: string;
+  isDemonstration?: boolean;
+  createdAt: string;
+}
+
+export interface OrganisationSpecialistAssignmentItem {
+  id: string;
+  organisationId: string;
+  projectId: string | null;
+  expertUserId: string;
+  expertName: string;
+  specialisation: ExpertSpecialisation;
+  assignedRegion: string;
+  status: 'active' | 'completed';
+  assignedAt: string;
+  isDemonstration?: boolean;
+}
+
+export interface PublicDatasetRecord {
+  id: string;
+  sourceName: string;
+  sourceUrl: string;
+  datasetOrApiName: string;
+  category:
+    | 'weather'
+    | 'climate_agromet'
+    | 'soil'
+    | 'elevation_terrain'
+    | 'geographical_boundaries'
+    | 'statistics';
+  retrievedAt: string;
+  geographicCoverage: string;
+  units: string;
+  licenceAndTerms: string;
+  limitations: string;
+  integrationMode: 'live_api' | 'portal_reference' | 'optional_env_adapter';
+  status: 'active' | 'rate_limited_or_slow' | 'reference_only' | 'unconfigured';
+}
+
+export interface CalculationTransparencyMeta {
+  formula: string;
+  assumptions: string[];
+  units: string;
+  limitations: string;
+  disclaimer: string;
+}
+
 export interface OrganisationOverviewPayload {
   organisation: OrganisationProfileItem | null;
   privacyNotice: string;
   members: OrganisationMemberView[];
+  projects?: OrganisationProjectItem[];
+  programmeActivities?: OrganisationProgrammeActivityItem[];
+  assignedSpecialists?: OrganisationSpecialistAssignmentItem[];
+  financialSummary?: {
+    financialScopedFarmsCount: number;
+    totalAuthorisedFarmsCount: number;
+    recordedFarmExpensesZar: number;
+    estimatedCropAndStockValueZar: number;
+    programmeBudgetAllocatedZar: number;
+    programmeBudgetSpentZar: number;
+    scopeNote: string;
+  };
   kpis: {
     totalAuthorisedFarms: number;
     totalHectares: number;
@@ -1870,6 +2181,8 @@ export interface OrganisationOverviewPayload {
     totalLivestockHead: number;
     totalHarvestedKg: number;
     openIncidentsCount: number;
+    activeProjectsCount?: number;
+    programmeParticipantsCount?: number;
   };
   authorisedFarms: {
     farmId: string;
@@ -1885,6 +2198,7 @@ export interface OrganisationOverviewPayload {
     livestockHead: number;
     activeIncidentsCount: number;
     authorisedBasis: string;
+    isDemonstration?: boolean;
   }[];
   farmingCategoriesSummary: { category: string; farmCount: number; hectares: number }[];
   provincialDistribution: {
@@ -1917,13 +2231,6 @@ export interface OrganisationOverviewPayload {
 export interface NotificationFeedPayload {
   notifications: NotificationItem[];
   unreadCount: number;
-  deliveries: NotificationDeliveryItem[];
-  integrationReadiness: {
-    channel: 'in_app' | 'email' | 'sms' | 'push';
-    configured: boolean;
-    providerLabel: string;
-    detail: string;
-  }[];
 }
 
 export interface OfflineWeatherSnapshot {

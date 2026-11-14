@@ -2,6 +2,7 @@ import crypto from 'node:crypto';
 import { dispatchNotification } from './notifications.ts';
 import { store } from './store.ts';
 import {
+  ConsultationRequest,
   ExpertConcernCategory,
   ExpertFeedbackRecord,
   ExpertProfile,
@@ -13,24 +14,58 @@ import {
 } from './types.ts';
 
 export const EXPERT_SPECIALISATION_LABELS: Record<ExpertSpecialisation, string> = {
-  agronomist: 'Agronomist',
-  soil_specialist: 'Soil Specialist',
-  livestock_specialist: 'Livestock Specialist',
-  veterinarian: 'Veterinarian',
+  agronomist: 'Agronomist / Crop Production Specialist',
+  soil_specialist: 'Soil Scientist',
+  livestock_specialist: 'Livestock Production Specialist',
+  veterinarian: 'Veterinary Professional',
+  irrigation_water_specialist: 'Irrigation & Water Management Specialist',
+  agricultural_economist: 'Agricultural Economist / Business Advisor',
+  pest_disease_specialist: 'Pest & Disease Management Specialist',
+  extension_officer: 'Agricultural Extension Officer',
+  horticultural_specialist: 'Horticultural Specialist',
   agricultural_consultant: 'Agricultural Consultant',
 };
+
+const VALID_EXPERT_SPECIALISATIONS: ExpertSpecialisation[] = [
+  'agronomist',
+  'soil_specialist',
+  'livestock_specialist',
+  'veterinarian',
+  'irrigation_water_specialist',
+  'agricultural_economist',
+  'pest_disease_specialist',
+  'extension_officer',
+  'horticultural_specialist',
+  'agricultural_consultant',
+];
+
+const REGULATED_SPECIALISATIONS = new Set<ExpertSpecialisation>([
+  'veterinarian',
+  'soil_specialist',
+  'agronomist',
+  'pest_disease_specialist',
+  'irrigation_water_specialist',
+]);
 
 export function getOrCreateExpertProfile(userId: string): ExpertProfile {
   const existing = store.db.expertProfiles.find((ep) => ep.userId === userId);
   if (existing) return existing;
 
+  const user = store.db.users.find((u) => u.id === userId);
   const userProf = store.db.userProfiles.find((p) => p.userId === userId);
   const created: ExpertProfile = {
     userId,
     specialisation: 'agricultural_consultant',
     secondarySpecialisations: [],
-    qualifications: 'Registered Agricultural Advisor',
+    qualifications: 'Agricultural Advisory Profile',
     professionalBodyNumber: '',
+    verificationStatus: user?.isDemonstration ? 'demo_unverified' : 'pending_verification',
+    regulatedService: false,
+    regulatoryBodyName: '',
+    verificationNote: user?.isDemonstration
+      ? 'DEMONSTRATION DATA — Unverified demonstration specialist profile.'
+      : 'Pending statutory credential verification.',
+    isDemonstration: Boolean(user?.isDemonstration),
     yearsExperience: userProf?.farmerExperienceYears || 2,
     provincesServed: userProf?.province ? [userProf.province] : ['KwaZulu-Natal'],
     languagesSpoken: ['en'],
@@ -55,19 +90,15 @@ export function updateExpertProfile(
     languagesSpoken?: LanguageCode[];
     bio?: string;
     availabilityStatus?: 'available' | 'limited' | 'unavailable';
+    regulatoryBodyName?: string;
   }
 ): ExpertProfile {
   const profile = getOrCreateExpertProfile(userId);
-  const validSpecs: ExpertSpecialisation[] = [
-    'agronomist',
-    'soil_specialist',
-    'livestock_specialist',
-    'veterinarian',
-    'agricultural_consultant',
-  ];
+  const validSpecs = VALID_EXPERT_SPECIALISATIONS;
 
   if (payload.specialisation && validSpecs.includes(payload.specialisation)) {
     profile.specialisation = payload.specialisation;
+    profile.regulatedService = REGULATED_SPECIALISATIONS.has(payload.specialisation);
   }
   if (Array.isArray(payload.secondarySpecialisations)) {
     profile.secondarySpecialisations = payload.secondarySpecialisations.filter(
@@ -77,8 +108,14 @@ export function updateExpertProfile(
   if (typeof payload.qualifications === 'string') {
     profile.qualifications = payload.qualifications.trim();
   }
-  if (typeof payload.professionalBodyNumber === 'string') {
+  if (typeof payload.professionalBodyNumber === 'string' && !profile.isDemonstration) {
     profile.professionalBodyNumber = payload.professionalBodyNumber.trim();
+    if (profile.professionalBodyNumber && profile.verificationStatus !== 'verified') {
+      profile.verificationStatus = 'pending_verification';
+    }
+  }
+  if (typeof payload.regulatoryBodyName === 'string' && !profile.isDemonstration) {
+    profile.regulatoryBodyName = payload.regulatoryBodyName.trim();
   }
   if (payload.yearsExperience !== undefined && Number.isFinite(Number(payload.yearsExperience))) {
     profile.yearsExperience = Math.max(0, Math.min(70, Number(payload.yearsExperience)));
@@ -129,6 +166,10 @@ export function getCollaborationDirectory() {
         qualifications: ep.qualifications,
         yearsExperience: ep.yearsExperience,
         availabilityStatus: ep.availabilityStatus,
+        verificationStatus: ep.verificationStatus || 'demo_unverified',
+        regulatedService: Boolean(ep.regulatedService),
+        regulatoryBodyName: ep.regulatoryBodyName || '',
+        isDemonstration: Boolean(u.isDemonstration || ep.isDemonstration),
       };
     });
 
@@ -139,6 +180,7 @@ export function getCollaborationDirectory() {
     province: org.province,
     district: org.district,
     primaryFocus: org.primaryFocus,
+    isDemonstration: Boolean(org.isDemonstration),
   }));
 
   return { experts, organisations };
@@ -534,6 +576,20 @@ export function buildExpertOverview(expertUser: SanitizedUser) {
     .filter((a) => a.actorUserId === expertUser.id)
     .slice(0, 30);
 
+  const consultations = (store.db.consultationRequests || [])
+    .filter((c) => c.expertUserId === expertUser.id)
+    .map((c) => {
+      const farm = store.db.farms.find((f) => f.id === c.farmId);
+      const farmerProf = store.db.userProfiles.find((p) => p.userId === c.farmerUserId);
+      return {
+        ...c,
+        farmName: farm?.name || 'Authorised Farm',
+        farmerName: farmerProf?.fullName || 'Farmer',
+        expertName: expertUser.profile?.fullName || expertUser.email,
+      };
+    })
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+
   return {
     profile,
     stats: {
@@ -547,8 +603,120 @@ export function buildExpertOverview(expertUser: SanitizedUser) {
     assignedFarms,
     openConcerns: openConcerns.sort((a, b) => b.createdAt.localeCompare(a.createdAt)),
     recentFeedback,
+    consultations,
     activityRecords,
   };
+}
+
+export function listConsultationsForUser(user: SanitizedUser) {
+  const items = (store.db.consultationRequests || []).filter((c) => {
+    if (user.roleCode === 'system_administrator') return true;
+    if (user.roleCode === 'agricultural_expert') return c.expertUserId === user.id;
+    return c.farmerUserId === user.id;
+  });
+  return items
+    .map((c) => {
+      const farm = store.db.farms.find((f) => f.id === c.farmId);
+      const farmerProf = store.db.userProfiles.find((p) => p.userId === c.farmerUserId);
+      const expertProf = store.db.userProfiles.find((p) => p.userId === c.expertUserId);
+      return {
+        ...c,
+        farmName: farm?.name || 'Farm',
+        farmerName: farmerProf?.fullName || 'Farmer',
+        expertName: expertProf?.fullName || 'Agricultural Specialist',
+      };
+    })
+    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+}
+
+export function createConsultationRequest(params: {
+  farmerUser: SanitizedUser;
+  farmId: string;
+  expertUserId: string;
+  subject: string;
+  description: string;
+  urgency?: 'routine' | 'priority' | 'urgent';
+}): ConsultationRequest {
+  const farm = store.db.farms.find((f) => f.id === params.farmId);
+  if (!farm) throw new Error('Farm not found.');
+  if (farm.ownerId !== params.farmerUser.id && params.farmerUser.roleCode !== 'system_administrator') {
+    throw new Error('Only the farm owner can request consultations for this farm.');
+  }
+  const ep = getOrCreateExpertProfile(params.expertUserId);
+  const now = new Date().toISOString();
+  const reqItem: ConsultationRequest = {
+    id: `cons-${crypto.randomUUID()}`,
+    farmId: farm.id,
+    farmerUserId: params.farmerUser.id,
+    expertUserId: params.expertUserId,
+    specialistCategory: ep.specialisation,
+    subject: params.subject.trim(),
+    description: params.description.trim(),
+    urgency: params.urgency || 'routine',
+    status: 'requested',
+    recommendationSummary: '',
+    requestedAt: now.slice(0, 10),
+    updatedAt: now,
+    isDemonstration: Boolean(params.farmerUser.isDemonstration || farm.isDemonstration),
+  };
+  store.db.consultationRequests.unshift(reqItem);
+  store.logAudit(
+    params.farmerUser.id,
+    'CONSULTATION_REQUESTED',
+    'ConsultationRequest',
+    reqItem.id,
+    { farmId: farm.id, expertUserId: params.expertUserId, category: ep.specialisation },
+    '127.0.0.1'
+  );
+  store.save();
+  dispatchNotification({
+    userId: params.expertUserId,
+    category: 'expert_feedback',
+    title: `New Consultation Request: ${reqItem.subject}`,
+    message: `${params.farmerUser.profile?.fullName || 'Farmer'} requested a ${EXPERT_SPECIALISATION_LABELS[ep.specialisation]} review on ${farm.name}.`,
+    priority: reqItem.urgency === 'urgent' ? 'high' : 'normal',
+    actionUrl: 'dashboard',
+    relatedEntityType: 'ConsultationRequest',
+    relatedEntityId: reqItem.id,
+  });
+  return reqItem;
+}
+
+export function respondToConsultation(params: {
+  expertUser: SanitizedUser;
+  consultationId: string;
+  status: 'in_review' | 'responded' | 'closed';
+  recommendationSummary: string;
+}): ConsultationRequest {
+  const cons = (store.db.consultationRequests || []).find((c) => c.id === params.consultationId);
+  if (!cons) throw new Error('Consultation request not found.');
+  if (cons.expertUserId !== params.expertUser.id && params.expertUser.roleCode !== 'system_administrator') {
+    throw new Error('Only the assigned specialist can update this consultation.');
+  }
+  cons.status = params.status;
+  if (params.recommendationSummary?.trim()) {
+    cons.recommendationSummary = params.recommendationSummary.trim();
+  }
+  cons.updatedAt = new Date().toISOString();
+  store.logAudit(
+    params.expertUser.id,
+    'CONSULTATION_UPDATED',
+    'ConsultationRequest',
+    cons.id,
+    { status: cons.status },
+    '127.0.0.1'
+  );
+  store.save();
+  dispatchNotification({
+    userId: cons.farmerUserId,
+    category: 'expert_feedback',
+    title: `Consultation Update: ${cons.subject}`,
+    message: cons.recommendationSummary || `Status updated to ${cons.status}.`,
+    actionUrl: 'farms',
+    relatedEntityType: 'ConsultationRequest',
+    relatedEntityId: cons.id,
+  });
+  return cons;
 }
 
 export function buildExpertFarmReview(expertUser: SanitizedUser, farmId: string) {

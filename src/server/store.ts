@@ -42,24 +42,20 @@ import {
   polygonToWkt,
 } from './spatial.ts';
 
+import {
+  ALL_DEMO_FARM_IDS,
+  ALL_DEMO_USER_IDS,
+  applyDemoSeedFoundation,
+  DEMO_SEED_VERSION,
+  resetDemonstrationRecordsPreservingReal,
+} from './demoFoundation.ts';
+
 const DATA_FILE_PATH =
   process.env.DATA_FILE_PATH || path.resolve(process.cwd(), 'data', 'fieldshift-db.json');
 
-export const DEMO_SEEDED_USER_IDS = new Set([
-  'user-prospective-1',
-  'user-existing-1',
-  'user-existing-demo-2',
-  'user-expert-1',
-  'user-org-1',
-  'user-admin-1',
-]);
+export const DEMO_SEEDED_USER_IDS = ALL_DEMO_USER_IDS;
 
-export const DEMO_SEEDED_FARM_IDS = new Set([
-  'farm-umgeni-1',
-  'farm-mkhambathini-2',
-  'farm-bethlehem-demo-3',
-  'farm-winelands-demo-4',
-]);
+export const DEMO_SEEDED_FARM_IDS = ALL_DEMO_FARM_IDS;
 
 export function hashPassword(password: string, existingSalt?: string): { hash: string; salt: string } {
   const salt = existingSalt || crypto.randomBytes(16).toString('hex');
@@ -86,8 +82,6 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, string[]> = {
     'suitability:explore',
     'business:plan',
     'learning:access',
-    'reports:generate',
-    'reports:export',
     'ai:advise',
   ],
   existing_farmer: [
@@ -1706,7 +1700,8 @@ function createInitialSeed(): DatabaseSchema {
     notificationDeliveries,
   } = createSeedPortalsAndNotifications();
 
-  return {
+  const baseSeed: DatabaseSchema = {
+    demoSeedVersion: DEMO_SEED_VERSION,
     roles,
     languages,
     users,
@@ -1739,10 +1734,14 @@ function createInitialSeed(): DatabaseSchema {
     systemConfig: createDefaultSystemConfig(),
     systemAnnouncements: createSeedSystemAnnouncements(),
     expertProfiles,
+    consultationRequests: [],
     farmAccessGrants,
     expertFeedbacks,
     organisations,
     organisationMemberships,
+    organisationProjects: [],
+    organisationProgrammeActivities: [],
+    organisationSpecialistAssignments: [],
     notifications,
     notificationPreferences,
     notificationDeliveries,
@@ -1751,6 +1750,8 @@ function createInitialSeed(): DatabaseSchema {
     passwordResetTokens: [],
     processedSyncIds: [],
   };
+  applyDemoSeedFoundation(baseSeed, ROLE_PERMISSION_MAP, (pw) => hashPassword(pw));
+  return baseSeed;
 }
 
 function createSeedPortalsAndNotifications(): {
@@ -1769,12 +1770,18 @@ function createSeedPortalsAndNotifications(): {
       userId: 'user-expert-1',
       specialisation: 'agronomist',
       secondarySpecialisations: ['soil_specialist'],
-      qualifications: 'Ph.D. Agronomy & Soil Fertility (Stellenbosch University)',
-      professionalBodyNumber: 'SACNASP Pr.Sci.Nat. 400218/08',
+      qualifications: 'Ph.D. Agronomy & Soil Fertility Reference (Demonstration Academic Profile)',
+      professionalBodyNumber: '',
+      verificationStatus: 'demo_unverified',
+      regulatedService: true,
+      regulatoryBodyName: 'SACNASP / Extension Advisory Reference (Demonstration Unverified)',
+      verificationNote:
+        'DEMONSTRATION DATA — Demonstration specialist account without statutory registration or accreditation.',
+      isDemonstration: true,
       yearsExperience: 18,
       provincesServed: ['Western Cape', 'KwaZulu-Natal', 'Free State'],
       languagesSpoken: ['af', 'en', 'zu'],
-      bio: 'Senior soil fertility, contour drainage, and dryland grain agronomist advising smallholder and commercial producers across South Africa.',
+      bio: 'DEMONSTRATION SPECIALIST: Soil fertility, contour drainage, and dryland grain agronomist supporting demonstration producers.',
       availabilityStatus: 'available',
       updatedAt: now,
     },
@@ -2388,6 +2395,11 @@ class FieldShiftStore {
           }
 
           const full = parsed as DatabaseSchema;
+          if ((full.demoSeedVersion || 0) < DEMO_SEED_VERSION || !Array.isArray(full.consultationRequests)) {
+            if (applyDemoSeedFoundation(full, ROLE_PERMISSION_MAP, (pw) => hashPassword(pw))) {
+              migrated = true;
+            }
+          }
           if (migrated) {
             this.persist(full);
           }
@@ -2449,6 +2461,25 @@ class FieldShiftStore {
       this.data.auditLogs = this.data.auditLogs.slice(0, 500);
     }
     this.save();
+  }
+
+  public resetDemonstrationData(actorUserId: string | null, ipAddress = '127.0.0.1') {
+    const summary = resetDemonstrationRecordsPreservingReal(
+      this.data,
+      createInitialSeed,
+      ROLE_PERMISSION_MAP,
+      (pw) => hashPassword(pw)
+    );
+    this.logAudit(
+      actorUserId,
+      'DEMO_DATA_RESET',
+      'System',
+      'demo-foundation',
+      summary,
+      ipAddress
+    );
+    this.save();
+    return summary;
   }
 }
 

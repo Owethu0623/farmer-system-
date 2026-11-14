@@ -8,7 +8,6 @@ import {
   Mail,
   MessageSquare,
   RefreshCw,
-  Send,
   ShieldAlert,
   Sliders,
   Smartphone,
@@ -18,7 +17,6 @@ import {
   AuthUser,
   LanguageCode,
   NotificationCategory,
-  NotificationDeliveryItem,
   NotificationFeedPayload,
   NotificationItem,
   NotificationPreferenceItem,
@@ -55,7 +53,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
   onNavigateTab,
   onNotificationsChanged,
 }) => {
-  const [subTab, setSubTab] = useState<'inbox' | 'preferences' | 'integrations'>('inbox');
+  const [subTab, setSubTab] = useState<'inbox' | 'preferences'>('inbox');
   const [loading, setLoading] = useState(true);
   const [feed, setFeed] = useState<NotificationFeedPayload | null>(null);
   const [preferences, setPreferences] = useState<NotificationPreferenceItem | null>(null);
@@ -235,10 +233,10 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Central Notification & Communication Centre
           </h1>
-          <p className="text-sm text-[#4A5A50] mt-0.5">
+          <p className="text-sm text-[#475569] mt-0.5">
             Role-aware alerts in <span className="font-semibold uppercase">{user.preferredLanguageCode}</span> ·
             Strict preference enforcement except mandatory account security notices.
           </p>
@@ -249,7 +247,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
             type="button"
             disabled={checkingReminders}
             onClick={handleCheckDueReminders}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] whitespace-nowrap shrink-0 cursor-pointer"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${checkingReminders ? 'animate-spin' : ''}`} />
             <span>{checkingReminders ? 'Checking...' : 'Check Activity & Weather Reminders'}</span>
@@ -258,7 +256,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
             <button
               type="button"
               onClick={handleMarkAllRead}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
             >
               <CheckCheck className="w-3.5 h-3.5" />
               <span>Mark All Read</span>
@@ -268,54 +266,47 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
       </div>
 
       {/* KPI Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Unread Alerts</p>
-          <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Unread Alerts</p>
+          <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
             {feed?.unreadCount ?? 0}
           </p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Total History</p>
-          <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+        <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Total History</p>
+          <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
             {feed?.notifications.length ?? 0}
           </p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Enabled Categories</p>
-          <p className="font-mono text-2xl font-bold tabular-nums text-[#1B4332] mt-1">
+        <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Enabled Categories</p>
+          <p className="font-mono text-2xl font-bold tabular-nums text-[#174C3C] mt-1">
             {preferences
               ? Object.values(preferences.categories).filter(Boolean).length
               : 10}{' '}
             / 10
           </p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Delivery Attempts Logged</p>
-          <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
-            {feed?.deliveries.length ?? 0}
-          </p>
-        </div>
       </div>
 
       {feedbackBanner && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm font-medium">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#174C3C] rounded-xl px-4 py-3 text-sm font-medium">
           {feedbackBanner}
         </div>
       )}
 
       {errorBanner && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {errorBanner}
         </div>
       )}
 
       {/* Segmented Sub-Navigation */}
-      <div className="inline-flex items-center gap-1 p-1 bg-[#EAECE6] rounded-xl">
+      <div className="inline-flex items-center gap-1 p-1 bg-[#F1F5F9] rounded-xl">
         {[
           { id: 'inbox' as const, label: 'Notification History', icon: <Bell className="w-4 h-4" /> },
           { id: 'preferences' as const, label: 'Preferences & Consent', icon: <Sliders className="w-4 h-4" /> },
-          { id: 'integrations' as const, label: 'Channel Readiness & Log', icon: <Send className="w-4 h-4" /> },
         ].map((tab) => (
           <button
             key={tab.id}
@@ -323,8 +314,8 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
             onClick={() => setSubTab(tab.id)}
             className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
               subTab === tab.id
-                ? 'bg-white text-[#143326] shadow-sm'
-                : 'text-[#4A5A50] hover:text-[#143326]'
+                ? 'bg-[#0B3D91] text-white'
+                : 'text-[#475569] hover:text-[#0B1F3A]'
             }`}
           >
             {tab.icon}
@@ -334,17 +325,17 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
       </div>
 
       {loading ? (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-sm text-[#4A5A50]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-sm text-[#475569]">
           Loading notification centre...
         </div>
       ) : subTab === 'inbox' ? (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="flex flex-wrap items-center gap-2">
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="px-3.5 py-2 rounded-lg border border-[#D4DDD2] bg-white text-xs font-semibold text-[#143326]"
+                className="px-3.5 py-2 rounded-lg border border-[#CBD5E1] bg-white text-xs font-semibold text-[#0B1F3A]"
               >
                 <option value="all">All Categories</option>
                 {categoriesMeta.map((c) => (
@@ -353,30 +344,30 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                   </option>
                 ))}
               </select>
-              <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#35443B] cursor-pointer px-2">
+              <label className="inline-flex items-center gap-2 text-xs font-semibold text-[#334155] cursor-pointer px-2">
                 <input
                   type="checkbox"
                   checked={unreadOnly}
                   onChange={(e) => setUnreadOnly(e.target.checked)}
-                  className="w-4 h-4 accent-[#1B4332]"
+                  className="w-4 h-4 accent-[#0B3D91]"
                 />
                 <span>Unread only</span>
               </label>
             </div>
-            <span className="text-xs text-[#4A5A50] font-mono tabular-nums">
+            <span className="text-xs text-[#475569] font-mono tabular-nums">
               Showing {filteredNotifications.length} item(s)
             </span>
           </div>
 
           {filteredNotifications.length === 0 ? (
             <div className="py-10 text-center space-y-2">
-              <p className="font-semibold text-[#143326]">No notifications match this filter</p>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="font-semibold text-[#0B1F3A]">No notifications match this filter</p>
+              <p className="text-xs text-[#475569]">
                 Try clearing filters or click “Check Activity & Weather Reminders” above.
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#E2E6DF]">
+            <div className="divide-y divide-[#E2E8F0]">
               {filteredNotifications.map((n: NotificationItem) => {
                 const targetTab = resolveActionTab(n.actionUrl);
                 return (
@@ -387,8 +378,8 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                     }`}
                   >
                     <div className="space-y-1.5 max-w-2xl">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#4A5A50]">
-                        <span className="font-semibold text-[#1B4332]">
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#475569]">
+                        <span className="font-semibold text-[#0B3D91]">
                           {CATEGORY_LABELS[n.category] || n.category}
                         </span>
                         <span aria-hidden="true">·</span>
@@ -404,7 +395,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                         {n.isMandatorySecurity && (
                           <>
                             <span aria-hidden="true">·</span>
-                            <span className="text-[#8E2424] font-semibold inline-flex items-center gap-1">
+                            <span className="text-[#B91C1C] font-semibold inline-flex items-center gap-1">
                               <Lock className="w-3 h-3" />
                               Mandatory Security
                             </span>
@@ -413,12 +404,12 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                         {!n.isRead && (
                           <>
                             <span aria-hidden="true">·</span>
-                            <span className="font-semibold text-[#D97706]">Unread</span>
+                            <span className="font-semibold text-[#92400E]">Unread</span>
                           </>
                         )}
                       </div>
-                      <p className="font-semibold text-sm text-[#143326]">{n.title}</p>
-                      <p className="text-sm text-[#35443B]">{n.message}</p>
+                      <p className="font-semibold text-sm text-[#0B1F3A]">{n.title}</p>
+                      <p className="text-sm text-[#334155]">{n.message}</p>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
@@ -426,7 +417,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                         <button
                           type="button"
                           onClick={() => onNavigateTab(targetTab)}
-                          className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] whitespace-nowrap cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] whitespace-nowrap cursor-pointer"
                         >
                           Open Module
                         </button>
@@ -435,7 +426,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleMarkRead(n.id)}
-                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#EDF5EF] hover:bg-[#DCEBDD] text-xs font-semibold text-[#1B4332] whitespace-nowrap cursor-pointer"
+                          className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-[#ECF5F2] border border-[#A7D7C5] hover:bg-[#D1FAE5] text-xs font-semibold text-[#174C3C] whitespace-nowrap cursor-pointer"
                         >
                           <Check className="w-3.5 h-3.5" />
                           <span>Mark read</span>
@@ -450,17 +441,17 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
         </div>
       ) : subTab === 'preferences' && preferences ? (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-8 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+          <div className="lg:col-span-8 bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-5">
             <div>
-              <h2 className="font-display text-lg font-bold text-[#143326]">
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Category Consent & Preferences
               </h2>
-              <p className="text-xs text-[#4A5A50] mt-0.5">
+              <p className="text-xs text-[#475569] mt-0.5">
                 Disabled categories are strictly suppressed on the server. Mandatory account and security notices cannot be turned off.
               </p>
             </div>
 
-            <div className="divide-y divide-[#E2E6DF]">
+            <div className="divide-y divide-[#E2E8F0]">
               {categoriesMeta.map((meta) => {
                 const checked = meta.mandatorySecurity
                   ? true
@@ -473,15 +464,15 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                     }`}
                   >
                     <div className="space-y-0.5">
-                      <p className="text-sm font-semibold text-[#143326] flex items-center gap-2">
+                      <p className="text-sm font-semibold text-[#0B1F3A] flex items-center gap-2">
                         <span>{meta.label}</span>
                         {meta.mandatorySecurity && (
-                          <span className="text-xs font-normal text-[#8E2424] inline-flex items-center gap-1">
+                          <span className="text-xs font-normal text-[#B91C1C] inline-flex items-center gap-1">
                             <ShieldAlert className="w-3.5 h-3.5" /> Required
                           </span>
                         )}
                       </p>
-                      <p className="text-xs text-[#4A5A50]">{meta.description}</p>
+                      <p className="text-xs text-[#475569]">{meta.description}</p>
                     </div>
                     <input
                       type="checkbox"
@@ -497,15 +488,15 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                           },
                         });
                       }}
-                      className="w-5 h-5 accent-[#1B4332] shrink-0 mt-0.5"
+                      className="w-5 h-5 accent-[#0B3D91] shrink-0 mt-0.5"
                     />
                   </label>
                 );
               })}
             </div>
 
-            <div className="pt-4 border-t border-[#E2E6DF] flex flex-wrap items-center justify-between gap-4">
-              <div className="flex items-center gap-3 text-xs text-[#35443B]">
+            <div className="pt-4 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3 text-xs text-[#334155]">
                 <span>Quiet hours:</span>
                 <input
                   type="time"
@@ -513,7 +504,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                   onChange={(e) =>
                     setPreferences({ ...preferences, quietHoursStart: e.target.value })
                   }
-                  className="px-2.5 py-1.5 rounded-lg border border-[#D4DDD2] font-mono"
+                  className="px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] font-mono"
                 />
                 <span>to</span>
                 <input
@@ -522,7 +513,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                   onChange={(e) =>
                     setPreferences({ ...preferences, quietHoursEnd: e.target.value })
                   }
-                  className="px-2.5 py-1.5 rounded-lg border border-[#D4DDD2] font-mono"
+                  className="px-2.5 py-1.5 rounded-lg border border-[#CBD5E1] font-mono"
                 />
               </div>
 
@@ -530,7 +521,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                 type="button"
                 disabled={savingPrefs}
                 onClick={handleSavePreferences}
-                className="px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+                className="px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold whitespace-nowrap shrink-0 cursor-pointer"
               >
                 {savingPrefs ? 'Saving...' : 'Save Preferences'}
               </button>
@@ -538,19 +529,19 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
           </div>
 
           <div className="lg:col-span-4 space-y-6">
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-              <h3 className="font-display text-base font-bold text-[#143326]">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
+              <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                 Delivery Channels
               </h3>
               <div className="space-y-3 text-sm">
                 {[
-                  { key: 'inApp' as const, label: 'In-App Notification Centre', icon: <Bell className="w-4 h-4 text-[#1B4332]" /> },
-                  { key: 'email' as const, label: 'Email Digests & Warnings', icon: <Mail className="w-4 h-4 text-[#1B4332]" /> },
-                  { key: 'sms' as const, label: 'Rural SMS Alerts', icon: <MessageSquare className="w-4 h-4 text-[#1B4332]" /> },
-                  { key: 'push' as const, label: 'Browser / Mobile Push', icon: <Smartphone className="w-4 h-4 text-[#1B4332]" /> },
+                  { key: 'inApp' as const, label: 'In-App Notification Centre', icon: <Bell className="w-4 h-4 text-[#0B3D91]" /> },
+                  { key: 'email' as const, label: 'Email Digests & Warnings', icon: <Mail className="w-4 h-4 text-[#0B3D91]" /> },
+                  { key: 'sms' as const, label: 'Rural SMS Alerts', icon: <MessageSquare className="w-4 h-4 text-[#0B3D91]" /> },
+                  { key: 'push' as const, label: 'Browser / Mobile Push', icon: <Smartphone className="w-4 h-4 text-[#0B3D91]" /> },
                 ].map((ch) => (
                   <label key={ch.key} className="flex items-center justify-between gap-2 cursor-pointer">
-                    <span className="inline-flex items-center gap-2 font-medium text-[#17201B]">
+                    <span className="inline-flex items-center gap-2 font-medium text-[#0F172A]">
                       {ch.icon}
                       <span>{ch.label}</span>
                     </span>
@@ -563,30 +554,30 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
                           channels: { ...preferences.channels, [ch.key]: e.target.checked },
                         })
                       }
-                      className="w-4 h-4 accent-[#1B4332]"
+                      className="w-4 h-4 accent-[#0B3D91]"
                     />
                   </label>
                 ))}
               </div>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 Language used for notifications:{' '}
-                <span className="font-semibold text-[#143326] inline-flex items-center gap-1">
+                <span className="font-semibold text-[#0B1F3A] inline-flex items-center gap-1">
                   <Globe className="w-3 h-3" /> {user.preferredLanguageCode.toUpperCase()}
                 </span>
               </p>
             </div>
 
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-3">
-              <h3 className="font-display text-base font-bold text-[#143326]">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-3">
+              <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                 Verify Preference Enforcement
               </h3>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 Save your preferences first, then test any category to confirm disabled categories are blocked while security alerts always deliver.
               </p>
               <select
                 value={testCategory}
                 onChange={(e) => setTestCategory(e.target.value as NotificationPreferenceKey)}
-                className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-xs font-medium"
+                className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-xs font-medium text-[#0B1F3A]"
               >
                 {categoriesMeta.map((c) => (
                   <option key={c.key} value={c.key}>
@@ -597,79 +588,14 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
               <button
                 type="button"
                 onClick={handleDispatchTest}
-                className="w-full py-2 px-4 rounded-lg border border-[#1B4332] text-[#1B4332] hover:bg-[#EDF5EF] text-xs font-semibold cursor-pointer"
+                className="w-full py-2 px-4 rounded-lg border border-[#0B3D91] text-[#0B3D91] hover:bg-[#EFF6FF] text-xs font-semibold cursor-pointer"
               >
                 Test Category Dispatch
               </button>
             </div>
           </div>
         </div>
-      ) : (
-        <div className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {(feed?.integrationReadiness || []).map((ir) => (
-              <div key={ir.channel} className="bg-white border border-[#E2E6DF] rounded-xl p-5 space-y-1.5">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="font-display font-bold text-sm text-[#143326] uppercase">
-                    {ir.channel.replace('_', '-')} Channel
-                  </p>
-                  <span
-                    className={`text-xs font-semibold ${
-                      ir.configured ? 'text-[#16A34A]' : 'text-[#D97706]'
-                    }`}
-                  >
-                    {ir.configured ? 'Connected' : 'Hook Ready'}
-                  </span>
-                </div>
-                <p className="text-sm font-semibold text-[#17201B]">{ir.providerLabel}</p>
-                <p className="text-xs text-[#4A5A50]">{ir.detail}</p>
-              </div>
-            ))}
-          </div>
-
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-            <h2 className="font-display text-lg font-bold text-[#143326]">
-              Recent Dispatch & Consent Audit Log
-            </h2>
-            {(feed?.deliveries || []).length === 0 ? (
-              <p className="text-sm text-[#4A5A50]">
-                No channel dispatch attempts recorded yet for your account.
-              </p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
-                  <thead>
-                    <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
-                      <th className="py-2 pr-4">Timestamp</th>
-                      <th className="py-2 pr-4">Category</th>
-                      <th className="py-2 pr-4">Channel</th>
-                      <th className="py-2 pr-4">Outcome</th>
-                      <th className="py-2 pr-4">Target</th>
-                      <th className="py-2">Detail</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-[#E2E6DF]">
-                    {(feed?.deliveries || []).map((d: NotificationDeliveryItem) => (
-                      <tr key={d.id}>
-                        <td className="py-2.5 pr-4 font-mono tabular-nums whitespace-nowrap">
-                          {new Date(d.createdAt).toLocaleString()}
-                        </td>
-                        <td className="py-2.5 pr-4">{CATEGORY_LABELS[d.category] || d.category}</td>
-                        <td className="py-2.5 pr-4 uppercase font-mono">{d.channel}</td>
-                        <td className="py-2.5 pr-4 font-semibold text-[#143326]">
-                          {d.status.replace(/_/g, ' ')}
-                        </td>
-                        <td className="py-2.5 pr-4 font-mono">{d.targetMasked}</td>
-                        <td className="py-2.5 text-[#4A5A50]">{d.providerNote}</td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 };

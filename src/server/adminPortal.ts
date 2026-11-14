@@ -274,3 +274,56 @@ export function getExternalIntegrationStatuses() {
     },
   ];
 }
+
+export function buildAdminEntitiesDirectory() {
+  const organisations = store.db.organisations.map((org) => {
+    const membersCount = store.db.organisationMemberships.filter(
+      (m) => m.organisationId === org.id && m.status === 'active'
+    ).length;
+    const grantsCount = store.db.farmAccessGrants.filter(
+      (g) => g.organisationId === org.id && g.status === 'active'
+    ).length;
+    const projectsCount = (store.db.organisationProjects || []).filter(
+      (p) => p.organisationId === org.id
+    ).length;
+    return {
+      ...org,
+      membersCount,
+      authorisedFarmsCount: grantsCount,
+      projectsCount,
+    };
+  });
+
+  const expertRole = store.db.roles.find((r) => r.code === 'agricultural_expert');
+  const specialists = store.db.users
+    .filter((u) => u.roleId === expertRole?.id)
+    .map((u) => {
+      const up = store.db.userProfiles.find((p) => p.userId === u.id);
+      const ep = store.db.expertProfiles.find((x) => x.userId === u.id);
+      const activeFarmGrantsCount = store.db.farmAccessGrants.filter(
+        (g) => g.granteeUserId === u.id && g.status === 'active'
+      ).length;
+      const consultationsCount = (store.db.consultationRequests || []).filter(
+        (c) => c.expertUserId === u.id
+      ).length;
+      return {
+        userId: u.id,
+        fullName: up?.fullName || u.email,
+        email: u.email,
+        isActive: u.isActive,
+        isDemonstration: Boolean(u.isDemonstration || ep?.isDemonstration),
+        specialisation: ep?.specialisation || 'agricultural_consultant',
+        qualifications: ep?.qualifications || 'Unrecorded',
+        professionalBodyNumber: ep?.professionalBodyNumber || '',
+        verificationStatus: ep?.verificationStatus || 'demo_unverified',
+        regulatedService: Boolean(ep?.regulatedService),
+        regulatoryBodyName: ep?.regulatoryBodyName || '',
+        provincesServed: ep?.provincesServed || [],
+        availabilityStatus: ep?.availabilityStatus || 'available',
+        activeFarmGrantsCount,
+        consultationsCount,
+      };
+    });
+
+  return { organisations, specialists };
+}

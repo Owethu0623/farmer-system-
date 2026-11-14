@@ -528,10 +528,10 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
 
     if (isBroken || !imgSrc) {
       return (
-        <div className="w-full h-56 rounded-xl bg-[#EDF5EF] border border-[#D4DDD2] flex flex-col items-center justify-center p-6 text-center">
-          <BookOpen className="w-10 h-10 text-[#1B4332] mb-2" />
-          <p className="font-display font-bold text-[#143326]">{mat.categoryLabel}</p>
-          <p className="text-xs text-[#4A5A50] mt-1">{asset.alt}</p>
+        <div className="w-full h-56 rounded-xl bg-[#ECF5F2] border border-[#CBD5E1] flex flex-col items-center justify-center p-6 text-center">
+          <BookOpen className="w-10 h-10 text-[#0B3D91] mb-2" />
+          <p className="font-display font-bold text-[#0B1F3A]">{mat.categoryLabel}</p>
+          <p className="text-xs text-[#475569] mt-1">{asset.alt}</p>
         </div>
       );
     }
@@ -542,9 +542,9 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
           src={imgSrc}
           alt={asset.alt}
           onError={() => setBrokenImages((prev) => ({ ...prev, [mat.id]: true }))}
-          className="w-full h-56 sm:h-64 object-cover rounded-xl border border-[#E2E6DF]"
+          className="w-full h-56 sm:h-64 object-cover rounded-xl border border-[#E2E8F0]"
         />
-        <figcaption className="text-xs text-[#4A5A50]">{asset.alt}</figcaption>
+        <figcaption className="text-xs text-[#475569]">{asset.alt}</figcaption>
       </figure>
     );
   };
@@ -556,39 +556,39 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Learner Progress Overview */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-1 max-w-2xl">
-            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#2D6A4F]">
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#0B3D91]">
               <BookOpen className="w-4 h-4" />
               <span>Agricultural Learning Centre · Beginner to Experienced</span>
             </div>
-            <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#143326]">
+            <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#0B1F3A]">
               Practical Farming Guides & Training
             </h1>
-            <p className="text-sm text-[#4A5A50]">
+            <p className="text-sm text-[#475569]">
               Step-by-step field instructions, illustrations, video lessons, and audio playback across all 14 core farming disciplines.
             </p>
           </div>
 
           {/* Learner Progress Strip */}
           {payload && (
-            <div className="grid grid-cols-3 gap-3 bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl px-4 py-3 text-center">
+            <div className="grid grid-cols-3 gap-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-4 py-3 text-center">
               <div>
-                <p className="text-[11px] text-[#4A5A50]">Completed</p>
-                <p className="font-mono text-lg font-bold tabular-nums text-[#1B4332]">
+                <p className="text-[11px] text-[#475569]">Completed</p>
+                <p className="font-mono text-lg font-bold tabular-nums text-[#174C3C]">
                   {payload.learnerStats.completedCount}/{payload.learnerStats.totalPublished}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-[#4A5A50]">Saved</p>
-                <p className="font-mono text-lg font-bold tabular-nums text-[#143326]">
+                <p className="text-[11px] text-[#475569]">Saved</p>
+                <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A]">
                   {payload.learnerStats.savedCount}
                 </p>
               </div>
               <div>
-                <p className="text-[11px] text-[#4A5A50]">Progress</p>
-                <p className="font-mono text-lg font-bold tabular-nums text-[#143326]">
+                <p className="text-[11px] text-[#475569]">Progress</p>
+                <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A]">
                   {payload.learnerStats.overallPercent}%
                 </p>
               </div>
@@ -597,7 +597,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
         </div>
 
         {/* Navigation Sub-tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#E2E6DF]">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#E2E8F0]">
           <div className="flex flex-wrap gap-2">
             {(
               [
@@ -612,8 +612,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                 onClick={() => setViewMode(tab.id)}
                 className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   viewMode === tab.id
-                    ? 'bg-[#1B4332] text-white'
-                    : 'bg-[#F6F7F4] text-[#35443B] border border-[#E2E6DF] hover:border-[#1B4332]'
+                    ? 'bg-[#0B3D91] text-white'
+                    : 'bg-[#F8FAFC] text-[#334155] border border-[#CBD5E1] hover:border-[#0B3D91]'
                 }`}
               >
                 {tab.label}
@@ -625,8 +625,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                 onClick={() => setViewMode('admin')}
                 className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   viewMode === 'admin'
-                    ? 'bg-[#143326] text-white'
-                    : 'bg-[#EDF5EF] text-[#1B4332] border border-[#BFD6C5] hover:bg-[#DCECE1]'
+                    ? 'bg-[#0B1F3A] text-white'
+                    : 'bg-[#EFF6FF] text-[#0B3D91] border border-[#BFDBFE] hover:bg-[#DBEAFE]'
                 }`}
               >
                 <Edit3 className="w-3.5 h-3.5" />
@@ -635,18 +635,18 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
             )}
           </div>
 
-          <p className="text-xs text-[#4A5A50] flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-[#1B4332]" />
+          <p className="text-xs text-[#475569] flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-[#0B3D91]" />
             <span>
-              Language: <strong className="text-[#143326]">{langMeta?.nativeName || languageCode}</strong> (shows reviewed translations where available)
+              Language: <strong className="text-[#0B1F3A]">{langMeta?.nativeName || languageCode}</strong> (shows reviewed translations where available)
             </span>
           </p>
         </div>
       </div>
 
       {/* Official Verification Disclaimer */}
-      <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#143326] flex items-start gap-2.5">
-        <ShieldCheck className="w-4 h-4 text-[#1B4332] shrink-0 mt-0.5" />
+      <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#0B1F3A] flex items-start gap-2.5">
+        <ShieldCheck className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />
         <span>
           {payload?.officialGuidanceNotice ||
             'Published learning materials follow reviewed South African agricultural extension references. Consult a qualified agronomist or veterinarian for site-specific diagnosis or treatment.'}
@@ -657,8 +657,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
         <div
           className={`rounded-xl border px-4 py-3 text-xs sm:text-sm ${
             isCacheStale
-              ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
-              : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#35443B]'
+              ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
+              : 'bg-[#F8FAFC] border-[#CBD5E1] text-[#334155]'
           }`}
         >
           <span className="font-semibold">
@@ -672,12 +672,12 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       )}
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#174C3C] rounded-xl px-4 py-3 text-sm">
           {notice}
         </div>
       )}
@@ -689,17 +689,17 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
             {/* Create / Edit Form */}
             <form
               onSubmit={handleSaveAdminMaterial}
-              className="lg:col-span-7 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4"
+              className="lg:col-span-7 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4"
             >
               <div className="flex items-center justify-between gap-2">
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   {editingId ? 'Edit Learning Material' : 'Create Learning Material'}
                 </h2>
                 {editingId && (
                   <button
                     type="button"
                     onClick={handleStartNewAdminItem}
-                    className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                   >
                     + Create New Instead
                   </button>
@@ -708,7 +708,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Category (14 Official Disciplines)
                   </label>
                   <select
@@ -719,7 +719,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         category: e.target.value as LearningCategoryCode,
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {payload.categories.map((cat) => (
                       <option key={cat.code} value={cat.code}>
@@ -729,7 +729,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Format Type
                   </label>
                   <select
@@ -740,7 +740,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         contentType: e.target.value as LearningContentType,
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {Object.entries(CONTENT_TYPE_LABELS).map(([k, v]) => (
                       <option key={k} value={k}>
@@ -751,7 +751,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Difficulty Level
                   </label>
                   <select
@@ -762,7 +762,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         difficulty: e.target.value as LearningDifficulty,
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="beginner">Beginner</option>
                     <option value="intermediate">Intermediate</option>
@@ -770,7 +770,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Illustration Asset
                   </label>
                   <select
@@ -778,7 +778,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                     onChange={(e) =>
                       setAdminForm((p) => ({ ...p, illustrationKey: e.target.value }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="soil_crops">Soil Profile & Seedlings</option>
                     <option value="pest_disease">Crop Pest & Disease Scouting</option>
@@ -789,7 +789,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Publish Status
                   </label>
                   <select
@@ -800,7 +800,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         status: e.target.value as 'published' | 'draft' | 'archived',
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="draft">Draft (Unpublished)</option>
                     <option value="published">Published (Live)</option>
@@ -808,7 +808,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Estimated Study Minutes
                   </label>
                   <input
@@ -821,12 +821,12 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         estimatedMinutes: Math.max(1, Number(e.target.value) || 5),
                       }))
                     }
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Verified Source Attribution (Required for Official Accuracy)
                   </label>
                   <input
@@ -836,12 +836,12 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       setAdminForm((p) => ({ ...p, sourceAttribution: e.target.value }))
                     }
                     placeholder="e.g. ARC-Vegetable & Ornamental Plants Extension Bulletin"
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
 
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     English Base Title
                   </label>
                   <input
@@ -849,11 +849,11 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                     required
                     value={adminForm.title}
                     onChange={(e) => setAdminForm((p) => ({ ...p, title: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Summary
                   </label>
                   <input
@@ -861,11 +861,11 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                     required
                     value={adminForm.summary}
                     onChange={(e) => setAdminForm((p) => ({ ...p, summary: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Instructional Body
                   </label>
                   <textarea
@@ -873,22 +873,22 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                     required
                     value={adminForm.body}
                     onChange={(e) => setAdminForm((p) => ({ ...p, body: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Step-by-Step Instructions (one practical step per line)
                   </label>
                   <textarea
                     rows={3}
                     value={adminForm.stepsText}
                     onChange={(e) => setAdminForm((p) => ({ ...p, stepsText: e.target.value }))}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="sm:col-span-2">
-                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
                     Tags (comma-separated) & Optional Video URL
                   </label>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -897,20 +897,20 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       value={adminForm.tags}
                       onChange={(e) => setAdminForm((p) => ({ ...p, tags: e.target.value }))}
                       placeholder="soil, irrigation, maize"
-                      className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                     />
                     <input
                       type="url"
                       value={adminForm.videoUrl}
                       onChange={(e) => setAdminForm((p) => ({ ...p, videoUrl: e.target.value }))}
                       placeholder="https://... (optional video link)"
-                      className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                     />
                   </div>
                 </div>
               </div>
 
-              <div className="flex flex-wrap gap-5 pt-1 text-xs text-[#17201B]">
+              <div className="flex flex-wrap gap-5 pt-1 text-xs text-[#0F172A]">
                 <label className="inline-flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -938,7 +938,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
 
               <button
                 type="submit"
-                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold cursor-pointer"
+                className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
                 <span>{editingId ? 'Save Changes' : 'Create Learning Material'}</span>
@@ -947,25 +947,25 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
 
             {/* Existing Materials Table + Language Version Manager */}
             <div className="lg:col-span-5 space-y-5">
-              <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-3">
-                <h2 className="font-display text-base font-bold text-[#143326]">
+              <div className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-3">
+                <h2 className="font-display text-base font-bold text-[#0B1F3A]">
                   Manage Catalog ({payload.materials.length})
                 </h2>
-                <div className="divide-y divide-[#E2E6DF] max-h-96 overflow-y-auto pr-1">
+                <div className="divide-y divide-[#E2E8F0] max-h-96 overflow-y-auto pr-1">
                   {payload.materials.map((m) => (
                     <div key={m.id} className="py-3 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="text-sm font-semibold text-[#143326] truncate">
+                          <p className="text-sm font-semibold text-[#0B1F3A] truncate">
                             {m.displayTitle}
                           </p>
-                          <p className="text-[11px] text-[#4A5A50]">
+                          <p className="text-[11px] text-[#475569]">
                             {m.categoryLabel} ·{' '}
                             <span
                               className={
                                 m.status === 'published'
-                                  ? 'text-[#1B4332] font-semibold'
-                                  : 'text-[#9B6A16] font-semibold'
+                                  ? 'text-[#174C3C] font-semibold'
+                                  : 'text-[#92400E] font-semibold'
                               }
                             >
                               {m.status.toUpperCase()}
@@ -978,21 +978,21 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleEditAdminItem(m)}
-                          className="px-2.5 py-1 rounded-lg border border-[#D4DDD2] hover:bg-[#EDF2EC] font-semibold text-[#143326] cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg border border-[#CBD5E1] hover:bg-[#F8FAFC] font-semibold text-[#0B1F3A] cursor-pointer"
                         >
                           Edit
                         </button>
                         <button
                           type="button"
                           onClick={() => handleOpenTranslationEditor(m)}
-                          className="px-2.5 py-1 rounded-lg border border-[#D4DDD2] hover:bg-[#EDF2EC] font-semibold text-[#1B4332] cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg border border-[#CBD5E1] hover:bg-[#EFF6FF] font-semibold text-[#0B3D91] cursor-pointer"
                         >
                           Translations ({m.availableReviewedLanguages.length}/12)
                         </button>
                         <button
                           type="button"
                           onClick={() => handlePublishToggle(m)}
-                          className="px-2.5 py-1 rounded-lg border border-[#D4DDD2] hover:bg-[#EDF2EC] font-semibold text-[#35443B] cursor-pointer"
+                          className="px-2.5 py-1 rounded-lg border border-[#CBD5E1] hover:bg-[#F8FAFC] font-semibold text-[#334155] cursor-pointer"
                         >
                           {m.status === 'published' ? 'Unpublish' : 'Publish'}
                         </button>
@@ -1000,7 +1000,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                           type="button"
                           onClick={() => handleDeleteAdminItem(m)}
                           aria-label={`Delete ${m.displayTitle}`}
-                          className="px-2 py-1 rounded-lg border border-[#E8B4B4] text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                          className="px-2 py-1 rounded-lg border border-[#FECACA] text-[#DC2626] hover:bg-[#FEF2F2] cursor-pointer"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>
@@ -1014,16 +1014,16 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
               {translationTargetMaterial && (
                 <form
                   onSubmit={handleSaveTranslation}
-                  className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-3"
+                  className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-3"
                 >
                   <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-display text-sm font-bold text-[#143326]">
+                    <h3 className="font-display text-sm font-bold text-[#0B1F3A]">
                       Language Version: {translationTargetMaterial.displayTitle}
                     </h3>
                     <button
                       type="button"
                       onClick={() => setTranslationTargetId(null)}
-                      className="text-xs text-[#4A5A50] hover:underline cursor-pointer"
+                      className="text-xs text-[#475569] hover:underline cursor-pointer"
                     >
                       Close
                     </button>
@@ -1032,7 +1032,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   <select
                     value={translationLang}
                     onChange={(e) => handleTranslationLangSwitch(e.target.value as LanguageCode)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {LANGUAGE_LIST.map((l) => (
                       <option key={l.code} value={l.code}>
@@ -1049,7 +1049,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       setTranslationForm((p) => ({ ...p, title: e.target.value }))
                     }
                     placeholder="Translated title..."
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                   <input
                     type="text"
@@ -1059,7 +1059,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       setTranslationForm((p) => ({ ...p, summary: e.target.value }))
                     }
                     placeholder="Translated summary..."
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                   <textarea
                     rows={3}
@@ -1069,7 +1069,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       setTranslationForm((p) => ({ ...p, body: e.target.value }))
                     }
                     placeholder="Translated guide body..."
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                   <textarea
                     rows={3}
@@ -1078,9 +1078,9 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       setTranslationForm((p) => ({ ...p, stepsText: e.target.value }))
                     }
                     placeholder="Translated steps (one per line)..."
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
-                  <label className="flex items-center gap-2 text-xs text-[#17201B] cursor-pointer">
+                  <label className="flex items-center gap-2 text-xs text-[#0F172A] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={translationForm.reviewed}
@@ -1092,7 +1092,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   </label>
                   <button
                     type="submit"
-                    className="w-full py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-semibold cursor-pointer"
+                    className="w-full py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer"
                   >
                     Save {translationLang.toUpperCase()} Version
                   </button>
@@ -1107,16 +1107,16 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       {viewMode !== 'admin' && (
         <>
           {/* Filter Toolbar */}
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">
               <div className="md:col-span-5 relative">
-                <Search className="w-4 h-4 text-[#4A5A50] absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <Search className="w-4 h-4 text-[#475569] absolute left-3.5 top-1/2 -translate-y-1/2" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Search soil, maize, irrigation, housing, tractor..."
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
 
@@ -1127,7 +1127,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   onChange={(e) =>
                     setSelectedCategory(e.target.value as 'all' | LearningCategoryCode)
                   }
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="all">All 14 Categories</option>
                   {(payload?.categories || []).map((cat: LearningCategoryMeta) => (
@@ -1145,7 +1145,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   onChange={(e) =>
                     setSelectedDifficulty(e.target.value as 'all' | LearningDifficulty)
                   }
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="all">All Levels</option>
                   <option value="beginner">Beginner</option>
@@ -1161,7 +1161,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   onChange={(e) =>
                     setSelectedType(e.target.value as 'all' | LearningContentType)
                   }
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="all">All Formats</option>
                   {Object.entries(CONTENT_TYPE_LABELS).map(([k, v]) => (
@@ -1174,14 +1174,14 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
             </div>
 
             {/* 14 Category Selector Grid */}
-            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[#E2E6DF]">
+            <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[#E2E8F0]">
               <button
                 type="button"
                 onClick={() => setSelectedCategory('all')}
                 className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
                   selectedCategory === 'all'
-                    ? 'bg-[#143326] text-white'
-                    : 'bg-[#F6F7F4] text-[#35443B] hover:bg-[#EDF2EC]'
+                    ? 'bg-[#0B3D91] text-white'
+                    : 'bg-[#F8FAFC] text-[#334155] border border-[#E2E8F0] hover:border-[#0B3D91]'
                 }`}
               >
                 All Categories
@@ -1193,8 +1193,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   onClick={() => setSelectedCategory(cat.code)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold cursor-pointer ${
                     selectedCategory === cat.code
-                      ? 'bg-[#143326] text-white'
-                      : 'bg-[#F6F7F4] text-[#35443B] hover:bg-[#EDF2EC]'
+                      ? 'bg-[#0B3D91] text-white'
+                      : 'bg-[#F8FAFC] text-[#334155] border border-[#E2E8F0] hover:border-[#0B3D91]'
                   }`}
                 >
                   {cat.label}
@@ -1208,13 +1208,13 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
             {/* Left List */}
             <aside className="lg:col-span-5 space-y-3">
               {loading && (
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 text-sm text-[#4A5A50]">
+                <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 text-sm text-[#475569]">
                   Loading learning materials...
                 </div>
               )}
 
               {!loading && filteredMaterials.length === 0 && (
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 text-sm text-[#4A5A50]">
+                <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 text-sm text-[#475569]">
                   No guides match your current search or filters.
                 </div>
               )}
@@ -1228,30 +1228,30 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                     onClick={() => setSelectedMaterialId(mat.id)}
                     className={`w-full text-left rounded-2xl p-4 border transition-colors cursor-pointer space-y-2 ${
                       isActive
-                        ? 'bg-[#EDF5EF] border-[#1B4332]'
-                        : 'bg-white border-[#E2E6DF] hover:border-[#BFD6C5]'
+                        ? 'bg-[#EFF6FF] border-[#0B3D91]'
+                        : 'bg-white border-[#CBD5E1] hover:border-[#0B3D91]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="text-xs font-medium text-[#2D6A4F]">
+                      <p className="text-xs font-medium text-[#0B3D91]">
                         {mat.categoryLabel} · {CONTENT_TYPE_LABELS[mat.contentType]} ·{' '}
                         {DIFFICULTY_LABELS[mat.difficulty]}
                       </p>
                       {mat.userProgress.isSaved && (
-                        <Bookmark className="w-4 h-4 text-[#1B4332] fill-[#1B4332] shrink-0" />
+                        <Bookmark className="w-4 h-4 text-[#0B3D91] fill-[#0B3D91] shrink-0" />
                       )}
                     </div>
-                    <h3 className="font-display text-base font-bold text-[#143326]">
+                    <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                       {mat.displayTitle}
                     </h3>
                     <p
-                      className={`text-[#415047] line-clamp-2 ${
+                      className={`text-[#334155] line-clamp-2 ${
                         largeMode ? 'text-sm leading-relaxed' : 'text-xs'
                       }`}
                     >
                       {mat.displaySummary}
                     </p>
-                    <div className="flex items-center justify-between text-[11px] text-[#4A5A50] pt-1">
+                    <div className="flex items-center justify-between text-[11px] text-[#475569] pt-1">
                       <span className="inline-flex items-center gap-1 font-mono tabular-nums">
                         <Clock className="w-3 h-3" />
                         {mat.estimatedMinutes} min
@@ -1260,10 +1260,10 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                       <span
                         className={`font-semibold ${
                           mat.userProgress.status === 'completed'
-                            ? 'text-[#1B4332]'
+                            ? 'text-[#174C3C]'
                             : mat.userProgress.status === 'in_progress'
-                            ? 'text-[#9B6A16]'
-                            : 'text-[#4A5A50]'
+                            ? 'text-[#92400E]'
+                            : 'text-[#475569]'
                         }`}
                       >
                         {mat.userProgress.status === 'completed'
@@ -1281,18 +1281,18 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
             {/* Right Detail Reader */}
             <article className="lg:col-span-7">
               {activeMaterial ? (
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+                <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
                   {/* Top Meta + Actions */}
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div className="space-y-1">
-                      <p className="text-xs font-medium text-[#2D6A4F]">
+                      <p className="text-xs font-medium text-[#0B3D91]">
                         {activeMaterial.categoryLabel} ·{' '}
                         {CONTENT_TYPE_LABELS[activeMaterial.contentType]} ·{' '}
                         {DIFFICULTY_LABELS[activeMaterial.difficulty]} ·{' '}
                         <span className="font-mono">{activeMaterial.estimatedMinutes} min</span>
                       </p>
                       <h2
-                        className={`font-display font-bold text-[#143326] ${
+                        className={`font-display font-bold text-[#0B1F3A] ${
                           largeMode ? 'text-2xl sm:text-3xl' : 'text-xl sm:text-2xl'
                         }`}
                       >
@@ -1315,14 +1315,14 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         onClick={() => handleToggleSave(activeMaterial)}
                         className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border text-sm font-semibold whitespace-nowrap shrink-0 cursor-pointer ${
                           activeMaterial.userProgress.isSaved
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326]'
-                            : 'bg-white border-[#D4DDD2] text-[#17201B] hover:bg-[#EDF2EC]'
+                            ? 'bg-[#EFF6FF] border-[#0B3D91] text-[#0B1F3A]'
+                            : 'bg-white border-[#CBD5E1] text-[#0F172A] hover:bg-[#F8FAFC]'
                         }`}
                       >
                         <Bookmark
                           className={`w-4 h-4 ${
                             activeMaterial.userProgress.isSaved
-                              ? 'fill-[#1B4332] text-[#1B4332]'
+                              ? 'fill-[#0B3D91] text-[#0B3D91]'
                               : ''
                           }`}
                         />
@@ -1332,7 +1332,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   </div>
 
                   {/* Reviewed Language Resolution Status */}
-                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl px-3.5 py-2.5 text-xs text-[#35443B] flex flex-wrap items-center justify-between gap-2">
+                  <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3.5 py-2.5 text-xs text-[#334155] flex flex-wrap items-center justify-between gap-2">
                     <span>
                       {activeMaterial.isExactLanguageReviewed ? (
                         <>
@@ -1347,8 +1347,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         </>
                       )}
                     </span>
-                    <span className="text-[#4A5A50]">
-                      Source: <strong className="text-[#143326]">{activeMaterial.sourceAttribution}</strong>
+                    <span className="text-[#475569]">
+                      Source: <strong className="text-[#0B1F3A]">{activeMaterial.sourceAttribution}</strong>
                     </span>
                   </div>
 
@@ -1357,7 +1357,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
 
                   {/* Educational Video or Interactive Storyboard Player */}
                   {activeMaterial.videoUrl && (
-                    <div className="rounded-xl overflow-hidden border border-[#E2E6DF] bg-[#143326]">
+                    <div className="rounded-xl overflow-hidden border border-[#CBD5E1] bg-[#0B1F3A]">
                       <video
                         controls
                         src={activeMaterial.videoUrl}
@@ -1369,9 +1369,9 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   )}
 
                   {activeMaterial.videoSlides && activeMaterial.videoSlides.length > 0 && (
-                    <section className="bg-[#143326] text-white rounded-2xl p-5 space-y-4">
+                    <section className="bg-[#0B1F3A] text-white rounded-2xl p-5 space-y-4">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">
+                        <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#93C5FD]">
                           <Film className="w-4 h-4" />
                           <span>
                             Interactive Video Lesson{' '}
@@ -1384,7 +1384,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                           <button
                             type="button"
                             onClick={() => setVideoPlaying((p) => !p)}
-                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#143326] text-xs font-semibold cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white text-[#0B1F3A] text-xs font-semibold cursor-pointer"
                           >
                             {videoPlaying ? (
                               <>
@@ -1405,7 +1405,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                                 (i) => (i + 1) % activeMaterial.videoSlides!.length
                               )
                             }
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#2D6A4F] text-white text-xs font-semibold cursor-pointer"
+                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer"
                           >
                             <SkipForward className="w-3.5 h-3.5" />
                             <span>Next Slide</span>
@@ -1418,13 +1418,13 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                           activeMaterial.videoSlides[activeSlideIndex] ||
                           activeMaterial.videoSlides[0];
                         return (
-                          <div className="bg-[#1B4332] rounded-xl p-4 space-y-2 border border-[#2D6A4F]">
-                            <p className="text-xs font-mono text-[#B7DEC4]">
+                          <div className="bg-[#163055] rounded-xl p-4 space-y-2 border border-[#254B7C]">
+                            <p className="text-xs font-mono text-[#93C5FD]">
                               Slide {activeSlideIndex + 1} of {activeMaterial.videoSlides.length} ·
                               Visual: {slide.visualCue}
                             </p>
                             <h3 className="font-display text-lg font-bold">{slide.heading}</h3>
-                            <p className="text-sm text-[#DCE8DF] leading-relaxed">
+                            <p className="text-sm text-[#CBD5E1] leading-relaxed">
                               {slide.caption}
                             </p>
                           </div>
@@ -1439,8 +1439,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                             onClick={() => setActiveSlideIndex(idx)}
                             className={`px-2.5 py-1 rounded-lg text-xs font-mono cursor-pointer ${
                               idx === activeSlideIndex
-                                ? 'bg-white text-[#143326] font-bold'
-                                : 'bg-[#1B4332] text-[#DCE8DF]'
+                                ? 'bg-white text-[#0B1F3A] font-bold'
+                                : 'bg-[#163055] text-[#CBD5E1]'
                             }`}
                           >
                             {idx + 1}
@@ -1452,22 +1452,22 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
 
                   {/* Body Text */}
                   <div
-                    className={`text-[#17201B] leading-relaxed space-y-3 ${
+                    className={`text-[#0F172A] leading-relaxed space-y-3 ${
                       largeMode ? 'text-base sm:text-lg' : 'text-sm sm:text-base'
                     }`}
                   >
-                    <p className="font-medium text-[#143326]">{activeMaterial.displaySummary}</p>
+                    <p className="font-medium text-[#0B1F3A]">{activeMaterial.displaySummary}</p>
                     <p>{activeMaterial.displayBody}</p>
                   </div>
 
                   {/* Step-by-Step Interactive Checklist */}
                   {activeMaterial.displaySteps.length > 0 && (
-                    <section className="pt-4 border-t border-[#E2E6DF] space-y-3">
+                    <section className="pt-4 border-t border-[#E2E8F0] space-y-3">
                       <div className="flex items-center justify-between gap-2">
-                        <h3 className="font-display text-base font-bold text-[#143326]">
+                        <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                           Practical Step-by-Step Checklist
                         </h3>
-                        <span className="font-mono text-xs font-semibold tabular-nums text-[#2D6A4F]">
+                        <span className="font-mono text-xs font-semibold tabular-nums text-[#174C3C]">
                           {activeMaterial.userProgress.progressPercent}% Complete
                         </span>
                       </div>
@@ -1482,13 +1482,13 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                               onClick={() => handleToggleStep(activeMaterial, idx)}
                               className={`w-full text-left p-3.5 rounded-xl border flex items-start gap-3 transition-colors cursor-pointer ${
                                 done
-                                  ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326]'
-                                  : 'bg-[#F6F7F4] border-[#E2E6DF] text-[#17201B] hover:border-[#BFD6C5]'
+                                  ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A]'
+                                  : 'bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] hover:border-[#0B3D91]'
                               } ${largeMode ? 'text-base' : 'text-sm'}`}
                             >
                               <CheckCircle2
                                 className={`w-5 h-5 shrink-0 mt-0.5 ${
-                                  done ? 'text-[#1B4332]' : 'text-[#9AA89F]'
+                                  done ? 'text-[#174C3C]' : 'text-[#94A3B8]'
                                 }`}
                               />
                               <span>
@@ -1503,10 +1503,10 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   )}
 
                   {/* Footer Actions & Completion */}
-                  <div className="pt-4 border-t border-[#E2E6DF] flex flex-wrap items-center justify-between gap-3">
-                    <p className="text-xs text-[#4A5A50]">
+                  <div className="pt-4 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-3">
+                    <p className="text-xs text-[#475569]">
                       Reviewed translations available:{' '}
-                      <span className="font-mono font-semibold text-[#143326]">
+                      <span className="font-mono font-semibold text-[#0B1F3A]">
                         {activeMaterial.availableReviewedLanguages.map((c) => c.toUpperCase()).join(' · ') ||
                           'EN'}
                       </span>
@@ -1517,7 +1517,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleMarkStatus(activeMaterial, 'not_started')}
-                          className="px-4 py-2 rounded-xl border border-[#D4DDD2] bg-white text-xs font-semibold text-[#35443B] hover:bg-[#F6F7F4] cursor-pointer"
+                          className="px-4 py-2 rounded-xl border border-[#CBD5E1] bg-white text-xs font-semibold text-[#334155] hover:bg-[#F8FAFC] cursor-pointer"
                         >
                           Reset Progress
                         </button>
@@ -1525,7 +1525,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleMarkStatus(activeMaterial, 'completed')}
-                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-xs font-semibold text-white cursor-pointer"
+                          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#174C3C] hover:bg-[#113B2E] text-xs font-semibold text-white cursor-pointer"
                         >
                           <CheckCircle2 className="w-4 h-4" />
                           <span>Mark Lesson Complete</span>
@@ -1535,7 +1535,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
                   </div>
                 </div>
               ) : (
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center text-sm text-[#4A5A50]">
+                <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center text-sm text-[#475569]">
                   Select a guide or video lesson from the list to begin learning.
                 </div>
               )}

@@ -125,6 +125,8 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       latitude: d?.center.lat || -29.6006,
       longitude: d?.center.lng || 30.3794,
       locationSource: 'municipal_center',
+      locationDescription: '',
+      locationConfirmed: false,
       gpsLatitude: null,
       gpsLongitude: null,
       gpsAccuracyMeters: null,
@@ -151,6 +153,8 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       latitude: farm.location?.latitude ?? -28.4793,
       longitude: farm.location?.longitude ?? 24.6727,
       locationSource: farm.location?.locationSource || 'municipal_center',
+      locationDescription: farm.location?.locationDescription || '',
+      locationConfirmed: Boolean(farm.location?.locationConfirmed),
       gpsLatitude: farm.location?.gpsLatitude ?? null,
       gpsLongitude: farm.location?.gpsLongitude ?? null,
       gpsAccuracyMeters: farm.location?.gpsAccuracyMeters ?? null,
@@ -177,6 +181,8 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       latitude: modalSpatial?.latitude ?? selectedDistrictObj?.center.lat ?? -28.4793,
       longitude: modalSpatial?.longitude ?? selectedDistrictObj?.center.lng ?? 24.6727,
       locationSource: modalSpatial?.locationSource || 'municipal_center',
+      locationDescription: modalSpatial?.locationDescription || '',
+      locationConfirmed: Boolean(modalSpatial?.locationConfirmed),
       gpsLatitude: modalSpatial?.gpsLatitude ?? null,
       gpsLongitude: modalSpatial?.gpsLongitude ?? null,
       gpsAccuracyMeters: modalSpatial?.gpsAccuracyMeters ?? null,
@@ -334,11 +340,11 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Farms, GPS & Field Mapping
           </h1>
-          <p className="text-sm text-[#4A5A50] mt-0.5">
-            Capture GPS coordinates, adjust OpenStreetMap markers, draw farm and field boundaries, and verify hectare areas.
+          <p className="text-sm text-[#475569] mt-0.5">
+            Search South African locations, capture GPS coordinates, adjust OpenStreetMap pins, draw boundaries, and verify hectare areas.
           </p>
         </div>
 
@@ -346,7 +352,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
           <button
             type="button"
             onClick={openCreateFarm}
-            className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white font-semibold text-sm whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm whitespace-nowrap shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Register New Farm</span>
@@ -355,18 +361,18 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       </div>
 
       {farms.length === 0 ? (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-10 text-center space-y-4">
-          <p className="font-display text-lg font-semibold text-[#143326]">
+        <div className="bg-white border border-[#CBD5E1] rounded-2xl p-10 text-center space-y-4">
+          <p className="font-display text-lg font-semibold text-[#0B1F3A]">
             No farms registered yet
           </p>
-          <p className="text-sm text-[#4A5A50] max-w-md mx-auto">
+          <p className="text-sm text-[#475569] max-w-md mx-auto">
             Add your first South African farm to capture GPS location, draw spatial boundaries, and manage fields.
           </p>
           {canCreateFarm && (
             <button
               type="button"
               onClick={openCreateFarm}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-[#1B4332] text-white font-semibold text-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Register First Farm</span>
@@ -377,7 +383,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
           {/* Farm Listing & Selector */}
           <div className="lg:col-span-4 space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
               Registered Farms ({farms.length})
             </p>
             <div className="space-y-2.5">
@@ -394,22 +400,22 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                     }}
                     className={`w-full text-left p-4 rounded-xl border transition-colors cursor-pointer ${
                       selected
-                        ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                        : 'bg-white text-[#17201B] border-[#E2E6DF] hover:border-[#2D6A4F]'
+                        ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                        : 'bg-white text-[#0F172A] border-[#CBD5E1] hover:border-[#0B3D91]'
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div>
                         <p className="font-display font-bold text-base">{farm.name}</p>
                         {farm.isDemonstration && (
-                          <span className="inline-block mt-0.5 text-[10px] font-mono uppercase tracking-wider opacity-80">
-                            Demonstration Data
+                          <span className="inline-block mt-0.5 text-[10px] font-mono uppercase tracking-wider opacity-85">
+                            DEMONSTRATION DATA
                           </span>
                         )}
                       </div>
                       <span
                         className={`font-mono text-xs tabular-nums shrink-0 ${
-                          selected ? 'text-[#D8E9DC]' : 'text-[#2D6A4F]'
+                          selected ? 'text-[#DBEAFE]' : 'text-[#0B3D91]'
                         }`}
                       >
                         {farm.farmSizeHectares} ha
@@ -417,14 +423,14 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                     </div>
                     <p
                       className={`text-xs mt-1 ${
-                        selected ? 'text-[#DCE8DF]' : 'text-[#4A5A50]'
+                        selected ? 'text-[#DBEAFE]' : 'text-[#475569]'
                       }`}
                     >
                       {farm.location?.townOrVillage} · {farm.location?.province}
                     </p>
                     <p
                       className={`text-xs mt-2 ${
-                        selected ? 'text-[#B7DEC4]' : 'text-[#4A5A50]'
+                        selected ? 'text-[#BFDBFE]' : 'text-[#475569]'
                       }`}
                     >
                       {farm.fields.length} field{farm.fields.length === 1 ? '' : 's'} ·{' '}
@@ -441,19 +447,36 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
           {/* Selected Farm Profile, Interactive Map & Fields */}
           {activeFarm && (
             <div className="lg:col-span-8 space-y-6">
-              <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+              <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <div className="flex items-center gap-2 text-xs text-[#2D6A4F] font-medium">
+                    <div className="flex flex-wrap items-center gap-2 text-xs text-[#0B3D91] font-medium">
                       <MapPin className="w-3.5 h-3.5" />
                       <span>
                         {activeFarm.location?.townOrVillage} · {activeFarm.location?.localMunicipality} ·{' '}
                         {activeFarm.location?.districtMunicipality} · {activeFarm.location?.province}
                       </span>
+                      <span aria-hidden="true">·</span>
+                      <span
+                        className={
+                          activeFarm.location?.locationConfirmed
+                            ? 'text-[#174C3C] font-semibold'
+                            : 'text-[#B91C1C] font-semibold'
+                        }
+                      >
+                        {activeFarm.location?.locationConfirmed
+                          ? 'GPS Location Confirmed'
+                          : 'Location Unconfirmed'}
+                      </span>
                     </div>
-                    <h2 className="font-display text-2xl font-bold text-[#143326] mt-1">
+                    <h2 className="font-display text-2xl font-bold text-[#0B1F3A] mt-1">
                       {activeFarm.name}
                     </h2>
+                    {activeFarm.location?.locationDescription && (
+                      <p className="text-xs text-[#475569] mt-1">
+                        Directions / Landmark: {activeFarm.location.locationDescription}
+                      </p>
+                    )}
                   </div>
 
                   {canModifyActiveFarm && (
@@ -461,7 +484,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                       <button
                         type="button"
                         onClick={() => openEditFarm(activeFarm)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-sm font-semibold text-[#143326] cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-sm font-semibold text-[#0B1F3A] cursor-pointer"
                       >
                         <Edit3 className="w-4 h-4" />
                         <span>Edit Farm</span>
@@ -469,7 +492,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                       <button
                         type="button"
                         onClick={() => setDeleteTargetFarm(activeFarm)}
-                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg border border-[#E8B4B4] bg-[#FDF2F2] hover:bg-[#FADEDE] text-sm font-semibold text-[#8E2424] cursor-pointer"
+                        className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl border border-[#FECACA] bg-[#FEF2F2] hover:bg-[#FEE2E2] text-sm font-semibold text-[#B91C1C] cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
                         <span>Delete</span>
@@ -479,31 +502,31 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                 </div>
 
                 {/* Structured Farm Profile Metrics */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-y border-[#E2E6DF]">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-y border-[#E2E8F0]">
                   <div>
-                    <p className="text-xs text-[#4A5A50]">Declared Farm Size</p>
-                    <p className="font-mono text-lg font-bold tabular-nums text-[#143326]">
+                    <p className="text-xs text-[#475569]">Declared Farm Size</p>
+                    <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A]">
                       {activeFarm.farmSizeHectares} ha
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-[#4A5A50]">Drawn Boundary Area</p>
-                    <p className="font-mono text-lg font-bold tabular-nums text-[#1B4332]">
+                    <p className="text-xs text-[#475569]">Drawn Boundary Area</p>
+                    <p className="font-mono text-lg font-bold tabular-nums text-[#174C3C]">
                       {activeFarm.boundary
                         ? `${activeFarm.boundary.calculatedAreaHectares} ha`
                         : 'Not drawn'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-[#4A5A50]">Water Supply</p>
-                    <p className="text-sm font-semibold text-[#143326] mt-0.5 flex items-center gap-1">
-                      <Droplets className="w-4 h-4 text-[#2D6A4F] shrink-0" />
+                    <p className="text-xs text-[#475569]">Water Supply</p>
+                    <p className="text-sm font-semibold text-[#0B1F3A] mt-0.5 flex items-center gap-1">
+                      <Droplets className="w-4 h-4 text-[#0B3D91] shrink-0" />
                       <span>{activeFarm.waterAvailability}</span>
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs text-[#4A5A50]">Mapped Fields</p>
-                    <p className="font-mono text-lg font-bold tabular-nums text-[#143326]">
+                    <p className="text-xs text-[#475569]">Mapped Fields</p>
+                    <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A]">
                       {activeFarm.fields.length}
                     </p>
                   </div>
@@ -511,20 +534,20 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
                       Existing Crops
                     </p>
-                    <p className="text-[#17201B] mt-1">
+                    <p className="text-[#0F172A] mt-1">
                       {activeFarm.existingCrops.length > 0
                         ? activeFarm.existingCrops.join(' · ')
                         : 'No crops recorded'}
                     </p>
                   </div>
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
                       Existing Livestock
                     </p>
-                    <p className="text-[#17201B] mt-1">
+                    <p className="text-[#0F172A] mt-1">
                       {activeFarm.existingLivestock.length > 0
                         ? activeFarm.existingLivestock.join(' · ')
                         : 'No livestock recorded'}
@@ -537,16 +560,16 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   <div className="space-y-3">
                     {canModifyActiveFarm && (
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="text-xs font-semibold text-[#4A5A50]">
+                        <p className="text-xs font-semibold text-[#475569]">
                           {editingMapInline
-                            ? 'Editing farm GPS pin and boundary vertices directly on OpenStreetMap'
+                            ? 'Editing farm GPS location (Search, Manual Pin, or GPS) and boundary directly on OpenStreetMap'
                             : 'View farm location, GPS coordinates, and saved boundary'}
                         </p>
                         {!editingMapInline ? (
                           <button
                             type="button"
                             onClick={() => setEditingMapInline(true)}
-                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg bg-[#EDF5EF] hover:bg-[#DCEBDD] text-[#143326] text-xs font-semibold cursor-pointer"
+                            className="inline-flex items-center gap-1.5 px-3.5 min-h-[40px] rounded-xl bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#0B3D91] text-xs font-semibold cursor-pointer"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
                             <span>Edit GPS / Draw Boundary on Map</span>
@@ -559,7 +582,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                                 setEditingMapInline(false);
                                 setInlineSpatialDraft(null);
                               }}
-                              className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] text-xs font-semibold cursor-pointer"
+                              className="px-3 min-h-[40px] rounded-xl border border-[#CBD5E1] text-xs font-semibold cursor-pointer"
                             >
                               Cancel
                             </button>
@@ -567,7 +590,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                               type="button"
                               disabled={savingInlineMap || !inlineSpatialDraft}
                               onClick={handleSaveInlineSpatial}
-                              className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-lg bg-[#1B4332] text-white text-xs font-semibold cursor-pointer"
+                              className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
                             >
                               <Save className="w-3.5 h-3.5" />
                               <span>{savingInlineMap ? 'Saving...' : 'Save Spatial Map'}</span>
@@ -581,6 +604,8 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                       latitude={activeFarm.location.latitude}
                       longitude={activeFarm.location.longitude}
                       locationSource={activeFarm.location.locationSource}
+                      locationDescription={activeFarm.location.locationDescription || ''}
+                      locationConfirmed={Boolean(activeFarm.location.locationConfirmed)}
                       gpsLatitude={activeFarm.location.gpsLatitude}
                       gpsLongitude={activeFarm.location.gpsLongitude}
                       gpsAccuracyMeters={activeFarm.location.gpsAccuracyMeters}
@@ -595,11 +620,11 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
               </div>
 
               {/* Field Management Section */}
-              <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-2">
-                    <Layers className="w-5 h-5 text-[#1B4332]" />
-                    <h3 className="font-display text-lg font-bold text-[#143326]">
+                    <Layers className="w-5 h-5 text-[#0B3D91]" />
+                    <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                       Fields & Grazing Camps ({activeFarm.fields.length})
                     </h3>
                   </div>
@@ -607,7 +632,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                     <button
                       type="button"
                       onClick={openCreateField}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-4 min-h-[40px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Add Field</span>
@@ -616,11 +641,11 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                 </div>
 
                 {activeFarm.fields.length === 0 ? (
-                  <p className="text-sm text-[#4A5A50] py-4">
+                  <p className="text-sm text-[#475569] py-4">
                     No fields added to this farm yet. Add individual crop blocks or grazing camps and map their boundaries.
                   </p>
                 ) : (
-                  <div className="divide-y divide-[#E2E6DF]">
+                  <div className="divide-y divide-[#E2E8F0]">
                     {activeFarm.fields.map((fld) => (
                       <div
                         key={fld.id}
@@ -628,18 +653,18 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                       >
                         <div className="space-y-1">
                           <div className="flex items-center gap-2">
-                            <p className="font-semibold text-[#143326]">{fld.name}</p>
-                            <span className="text-xs text-[#2D6A4F] font-medium capitalize">
+                            <p className="font-semibold text-[#0B1F3A]">{fld.name}</p>
+                            <span className="text-xs text-[#174C3C] font-medium capitalize">
                               · {fld.status}
                             </span>
                           </div>
-                          <p className="text-sm text-[#35443B]">{fld.cropOrLivestock}</p>
-                          <p className="text-xs text-[#4A5A50]">
+                          <p className="text-sm text-[#334155]">{fld.cropOrLivestock}</p>
+                          <p className="text-xs text-[#475569]">
                             <span className="font-mono tabular-nums">{fld.areaHectares} ha</span> ·{' '}
                             {fld.soilType} · {fld.irrigationType} ·{' '}
                             {fld.geojson ? 'Spatial boundary saved' : 'No field polygon yet'}
                           </p>
-                          {fld.notes && <p className="text-xs text-[#4A5A50] pt-1">{fld.notes}</p>}
+                          {fld.notes && <p className="text-xs text-[#475569] pt-1">{fld.notes}</p>}
                         </div>
 
                         {canModifyActiveFarm && (
@@ -647,14 +672,14 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                             <button
                               type="button"
                               onClick={() => openEditField(fld)}
-                              className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] text-xs font-semibold hover:bg-[#EDF2EC] cursor-pointer"
+                              className="px-3 min-h-[40px] rounded-xl border border-[#CBD5E1] text-xs font-semibold text-[#0B1F3A] hover:bg-[#F1F5F9] cursor-pointer"
                             >
                               Edit & Map
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteField(fld.id)}
-                              className="px-3 py-1.5 rounded-lg border border-[#E8B4B4] text-xs font-semibold text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                              className="px-3 min-h-[40px] rounded-xl border border-[#FECACA] text-xs font-semibold text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer"
                             >
                               Remove
                             </button>
@@ -678,29 +703,29 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       {/* Create / Edit Farm Modal */}
       {farmModalMode && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-3xl w-full p-6 space-y-5 my-8">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-3xl w-full p-6 space-y-5 my-8 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-xl font-bold text-[#143326]">
+              <h3 className="font-display text-xl font-bold text-[#0B1F3A]">
                 {farmModalMode === 'create' ? 'Register New Farm' : 'Edit Farm Details'}
               </h3>
               <button
                 type="button"
                 onClick={() => setFarmModalMode(null)}
-                className="p-2 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-2 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             {farmError && (
-              <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+              <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
                 {farmError}
               </div>
             )}
 
             <form onSubmit={handleSaveFarm} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="block text-sm font-semibold">Farm Name</label>
+                <label className="block text-sm font-semibold text-[#0B1F3A]">Farm Name</label>
                 <div className="flex gap-2">
                   <input
                     type="text"
@@ -708,7 +733,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                     value={formName}
                     onChange={(e) => setFormName(e.target.value)}
                     placeholder="e.g. Mooi River Dairy & Maize Plot"
-                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="flex-1 px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1]"
                   />
                   <VoiceInputButton
                     languageCode={languageCode}
@@ -721,7 +746,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Province</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Province</label>
                   <select
                     value={formProvince}
                     onChange={(e) => {
@@ -735,6 +760,8 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                           latitude: d.center.lat,
                           longitude: d.center.lng,
                           locationSource: 'municipal_center',
+                          locationDescription: prev?.locationDescription || '',
+                          locationConfirmed: false,
                           gpsLatitude: prev?.gpsLatitude ?? null,
                           gpsLongitude: prev?.gpsLongitude ?? null,
                           gpsAccuracyMeters: prev?.gpsAccuracyMeters ?? null,
@@ -743,7 +770,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                         }));
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {provinces.map((p) => (
                       <option key={p.code} value={p.name}>
@@ -753,7 +780,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">District Municipality</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">District Municipality</label>
                   <select
                     value={formDistrict || selectedDistrictObj?.name || ''}
                     onChange={(e) => {
@@ -765,6 +792,8 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                           latitude: d.center.lat,
                           longitude: d.center.lng,
                           locationSource: 'municipal_center',
+                          locationDescription: prev?.locationDescription || '',
+                          locationConfirmed: false,
                           gpsLatitude: prev?.gpsLatitude ?? null,
                           gpsLongitude: prev?.gpsLongitude ?? null,
                           gpsAccuracyMeters: prev?.gpsAccuracyMeters ?? null,
@@ -773,7 +802,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                         }));
                       }
                     }}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {(selectedProvinceObj?.districts || []).map((d) => (
                       <option key={d.name} value={d.name}>
@@ -783,11 +812,11 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Local Municipality</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Local Municipality</label>
                   <select
                     value={formLocalMuni || selectedDistrictObj?.localMunicipalities[0] || ''}
                     onChange={(e) => setFormLocalMuni(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {(selectedDistrictObj?.localMunicipalities || []).map((m) => (
                       <option key={m} value={m}>
@@ -797,71 +826,71 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   </select>
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Town or Village</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Town or Village</label>
                   <input
                     type="text"
                     required
                     value={formTown}
                     onChange={(e) => setFormTown(e.target.value)}
                     placeholder="e.g. Underberg"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Declared Size (ha)</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Declared Size (ha)</label>
                   <input
                     type="number"
                     min={0.1}
                     step={0.1}
                     value={formSizeHa}
                     onChange={(e) => setFormSizeHa(Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1] font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Experience (yrs)</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Experience (yrs)</label>
                   <input
                     type="number"
                     min={0}
                     value={formExpYears}
                     onChange={(e) => setFormExpYears(Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1] font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Water Source</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Water Source</label>
                   <input
                     type="text"
                     required
                     value={formWater}
                     onChange={(e) => setFormWater(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Existing Crops (comma separated)</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Existing Crops (comma separated)</label>
                   <input
                     type="text"
                     value={formCropsText}
                     onChange={(e) => setFormCropsText(e.target.value)}
                     placeholder="Maize, Spinach, Cabbage"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-semibold">Existing Livestock (comma separated)</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Existing Livestock (comma separated)</label>
                   <input
                     type="text"
                     value={formLivestockText}
                     onChange={(e) => setFormLivestockText(e.target.value)}
                     placeholder="Nguni Cattle, Boer Goats"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 min-h-[44px] rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
@@ -870,27 +899,29 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                 latitude={modalSpatial?.latitude ?? selectedDistrictObj?.center.lat ?? -28.4793}
                 longitude={modalSpatial?.longitude ?? selectedDistrictObj?.center.lng ?? 24.6727}
                 locationSource={modalSpatial?.locationSource || 'municipal_center'}
+                locationDescription={modalSpatial?.locationDescription || ''}
+                locationConfirmed={Boolean(modalSpatial?.locationConfirmed)}
                 gpsLatitude={modalSpatial?.gpsLatitude}
                 gpsLongitude={modalSpatial?.gpsLongitude}
                 gpsAccuracyMeters={modalSpatial?.gpsAccuracyMeters}
                 gpsCapturedAt={modalSpatial?.gpsCapturedAt}
                 boundary={modalSpatial?.boundaryGeojson || null}
                 onSpatialChange={setModalSpatial}
-                title="GPS Location, Manual Pin & Boundary Editor"
+                title="GPS Location, Search & Boundary Editor"
               />
 
               <div className="flex justify-end gap-3 pt-2">
                 <button
                   type="button"
                   onClick={() => setFarmModalMode(null)}
-                  className="px-4 py-2.5 rounded-xl border border-[#D4DDD2] font-semibold text-sm cursor-pointer"
+                  className="px-4 min-h-[44px] rounded-xl border border-[#CBD5E1] font-semibold text-sm text-[#0B1F3A] cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingFarm}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1B4332] text-white font-semibold text-sm cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer"
                 >
                   <Check className="w-4 h-4" />
                   <span>{savingFarm ? 'Saving...' : 'Save Farm'}</span>
@@ -904,18 +935,18 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       {/* Delete Farm Confirmation Modal */}
       {deleteTargetFarm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="font-display text-xl font-bold text-[#8E2424]">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="font-display text-xl font-bold text-[#B91C1C]">
               Confirm Farm Deletion
             </h3>
-            <p className="text-sm text-[#35443B]">
+            <p className="text-sm text-[#334155]">
               Are you sure you want to delete <span className="font-semibold">{deleteTargetFarm.name}</span>? This permanently removes its location, spatial boundary, fields, crops, and livestock records.
             </p>
             <div className="flex justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteTargetFarm(null)}
-                className="px-4 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                className="px-4 min-h-[40px] rounded-xl border border-[#CBD5E1] text-sm font-semibold cursor-pointer"
               >
                 Cancel
               </button>
@@ -923,7 +954,7 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                 type="button"
                 disabled={deletingFarm}
                 onClick={confirmDeleteFarm}
-                className="px-4 py-2.5 rounded-xl bg-[#8E2424] text-white text-sm font-semibold cursor-pointer"
+                className="px-4 min-h-[40px] rounded-xl bg-[#FC3D21] hover:bg-[#DC2626] text-white text-sm font-semibold cursor-pointer"
               >
                 {deletingFarm ? 'Deleting...' : 'Delete Farm'}
               </button>
@@ -935,15 +966,15 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
       {/* Add / Edit Field Modal (with Interactive Field Boundary Drawing) */}
       {fieldModalMode && activeFarm && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8 max-h-[92vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 {fieldModalMode === 'create' ? 'Add New Field' : 'Edit Field & Map Boundary'}
               </h3>
               <button
                 type="button"
                 onClick={() => setFieldModalMode(null)}
-                className="p-1.5 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -952,48 +983,48 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
             <form onSubmit={handleSaveField} className="space-y-4">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold">Field / Camp Name</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Field / Camp Name</label>
                   <input
                     type="text"
                     required
                     value={fieldName}
                     onChange={(e) => setFieldName(e.target.value)}
                     placeholder="e.g. South Pivot Block"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold">Crop or Livestock Enterprise</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Crop or Livestock Enterprise</label>
                   <input
                     type="text"
                     required
                     value={fieldCrop}
                     onChange={(e) => setFieldCrop(e.target.value)}
                     placeholder="e.g. Yellow Maize or Nguni Grazing"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold">Area (ha)</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Area (ha)</label>
                   <input
                     type="number"
                     min={0.1}
                     step={0.1}
                     value={fieldArea}
                     onChange={(e) => setFieldArea(Number(e.target.value))}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] font-mono"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold">Status</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Status</label>
                   <select
                     value={fieldStatus}
                     onChange={(e) =>
                       setFieldStatus(e.target.value as 'active' | 'fallow' | 'preparing')
                     }
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     <option value="active">Active</option>
                     <option value="preparing">Preparing</option>
@@ -1001,31 +1032,31 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   </select>
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold">Soil Type</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Soil Type</label>
                   <input
                     type="text"
                     value={fieldSoil}
                     onChange={(e) => setFieldSoil(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
                 <div className="space-y-1">
-                  <label className="block text-sm font-semibold">Irrigation</label>
+                  <label className="block text-sm font-semibold text-[#0B1F3A]">Irrigation</label>
                   <input
                     type="text"
                     value={fieldIrrigation}
                     onChange={(e) => setFieldIrrigation(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="block text-sm font-semibold">Notes</label>
+                <label className="block text-sm font-semibold text-[#0B1F3A]">Notes</label>
                 <textarea
                   rows={2}
                   value={fieldNotes}
                   onChange={(e) => setFieldNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#CBD5E1]"
                 />
               </div>
 
@@ -1043,14 +1074,14 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                 <button
                   type="button"
                   onClick={() => setFieldModalMode(null)}
-                  className="px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                  className="px-4 min-h-[40px] rounded-xl border border-[#CBD5E1] text-sm font-semibold cursor-pointer"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingField}
-                  className="px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="px-5 min-h-[40px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
                 >
                   {savingField ? 'Saving...' : 'Save Field'}
                 </button>

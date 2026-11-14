@@ -501,12 +501,12 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
   if (farms.length === 0) {
     return (
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center space-y-2">
-        <Camera className="w-8 h-8 text-[#1B4332] mx-auto" />
-        <h2 className="font-display text-xl font-bold text-[#143326]">
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center space-y-2">
+        <Camera className="w-8 h-8 text-[#0B3D91] mx-auto" />
+        <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
           Register a Farm Before Visual Inspection
         </h2>
-        <p className="text-sm text-[#4A5A50]">
+        <p className="text-sm text-[#475569]">
           Visual agricultural analyses are securely linked to your registered farms, fields, and livestock groups.
         </p>
       </div>
@@ -518,20 +518,20 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Visual Agricultural Analysis
           </h1>
-          <p className="text-sm text-[#4A5A50]">
+          <p className="text-sm text-[#475569]">
             Capture or upload field, crop, livestock, equipment, or flood photographs and video frames for AI inspection.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-[#4A5A50]">Farm:</label>
+          <label className="text-xs font-semibold text-[#475569]">Farm:</label>
           <select
             value={activeFarmId}
             onChange={(e) => onSelectFarm(e.target.value)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold text-[#143326]"
+            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A]"
           >
             {farms.map((f) => (
               <option key={f.id} value={f.id}>
@@ -543,10 +543,10 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       </div>
 
       {/* Prominent Clinical / Agronomic Safety Banner */}
-      <div className="bg-[#FDF8EE] border border-[#E5D3A3] rounded-2xl p-4 flex items-start gap-3">
-        <ShieldAlert className="w-5 h-5 text-[#8A5A00] shrink-0 mt-0.5" />
-        <div className="text-sm text-[#4E3500] space-y-1">
-          <p className="font-bold text-[#3D2800]">
+      <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-4 flex items-start gap-3">
+        <ShieldAlert className="w-5 h-5 text-[#92400E] shrink-0 mt-0.5" />
+        <div className="text-sm text-[#92400E] space-y-1">
+          <p className="font-bold text-[#92400E]">
             Preliminary Decision Support Only — Not a Confirmed Medical, Veterinary, or Laboratory Diagnosis
           </p>
           <p className="text-xs leading-relaxed">
@@ -556,7 +556,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       </div>
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] rounded-xl px-4 py-3 text-sm text-[#8E2424] flex items-center justify-between gap-2">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#B91C1C] flex items-center justify-between gap-2">
           <span>{error}</span>
           <button type="button" onClick={() => setError(null)} className="font-bold cursor-pointer">
             <X className="w-4 h-4" />
@@ -565,15 +565,15 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       )}
 
       {successMsg && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl px-4 py-3 text-sm text-[#143326] flex flex-wrap items-center justify-between gap-2">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl px-4 py-3 text-sm text-[#174C3C] flex flex-wrap items-center justify-between gap-2">
           <span className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="w-4 h-4 text-[#1B4332]" />
+            <CheckCircle2 className="w-4 h-4 text-[#174C3C]" />
             {successMsg}
           </span>
           <button
             type="button"
             onClick={onOpenIncidentsView}
-            className="text-xs font-semibold text-[#1B4332] underline cursor-pointer"
+            className="text-xs font-semibold text-[#0B3D91] underline cursor-pointer"
           >
             Open Incident Dashboard
           </button>
@@ -584,18 +584,18 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
         {/* Left: Capture & Submission Workflow */}
         <form
           onSubmit={handleSubmitAnalysis}
-          className="lg:col-span-5 bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-5"
+          className="lg:col-span-5 bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-5"
         >
-          <div className="flex items-center gap-2 pb-3 border-b border-[#E2E6DF]">
-            <Sparkles className="w-5 h-5 text-[#1B4332]" />
-            <h2 className="font-display text-lg font-bold text-[#143326]">
+          <div className="flex items-center gap-2 pb-3 border-b border-[#E2E8F0]">
+            <Sparkles className="w-5 h-5 text-[#0B3D91]" />
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
               New Visual Inspection
             </h2>
           </div>
 
           {/* Target Field / Crop / Livestock Selection */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
               1. Select Field or Livestock Group
             </p>
             <div className="grid grid-cols-3 gap-2">
@@ -610,8 +610,8 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   onClick={() => setTargetType(opt.id)}
                   className={`min-h-[42px] px-3 py-2 rounded-xl border text-xs font-semibold transition-colors cursor-pointer ${
                     targetType === opt.id
-                      ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                      : 'bg-[#F6F7F4] text-[#17201B] border-[#D4DDD2] hover:border-[#1B4332]'
+                      ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                      : 'bg-[#F8FAFC] text-[#0F172A] border-[#CBD5E1] hover:border-[#0B3D91]'
                   }`}
                 >
                   {opt.label}
@@ -622,11 +622,11 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
             {targetType === 'field_crop' && (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Field</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Field</label>
                   <select
                     value={fieldId}
                     onChange={(e) => setFieldId(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="">All / General Fields</option>
                     {(activeFarm?.fields || []).map((fl) => (
@@ -637,11 +637,11 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Crop</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Crop</label>
                   <select
                     value={cropId}
                     onChange={(e) => setCropId(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="">Optional crop link</option>
                     {crops.map((c) => (
@@ -656,13 +656,13 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
             {targetType === 'livestock' && (
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Livestock Group / Herd
                 </label>
                 <select
                   value={livestockGroupId}
                   onChange={(e) => setLivestockGroupId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="">Select herd or flock...</option>
                   {livestock.map((g) => (
@@ -677,13 +677,13 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
           {/* Category */}
           <div className="space-y-2">
-            <label className="block text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-[#475569]">
               2. Analysis Category
             </label>
             <select
               value={category}
               onChange={(e) => setCategory(e.target.value as VisualAnalysisCategory)}
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold text-[#143326]"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A]"
             >
               {ANALYSIS_CATEGORIES.map((cat) => (
                 <option key={cat.value} value={cat.value}>
@@ -691,28 +691,28 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 </option>
               ))}
             </select>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               {ANALYSIS_CATEGORIES.find((c) => c.value === category)?.hint}
             </p>
           </div>
 
           {/* Photo or Video Capture */}
           <div className="space-y-3">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
               3. Capture or Upload Photograph / Video
             </p>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
               <button
                 type="button"
                 onClick={handleOpenCamera}
-                className="min-h-[44px] px-3 py-2 rounded-xl border border-[#1B4332] bg-[#EDF5EF] text-[#143326] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#DCEBDF] cursor-pointer"
+                className="min-h-[44px] px-3 py-2 rounded-xl border border-[#0B3D91] bg-[#EFF6FF] text-[#0B1F3A] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#DBEAFE] cursor-pointer"
               >
-                <Camera className="w-4 h-4" />
+                <Camera className="w-4 h-4 text-[#0B3D91]" />
                 <span>Take Photo</span>
               </button>
 
-              <label className="min-h-[44px] px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-[#17201B] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#F6F7F4] cursor-pointer">
-                <Upload className="w-4 h-4 text-[#1B4332]" />
+              <label className="min-h-[44px] px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#F8FAFC] cursor-pointer">
+                <Upload className="w-4 h-4 text-[#0B3D91]" />
                 <span>Upload Photo</span>
                 <input
                   type="file"
@@ -723,8 +723,8 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 />
               </label>
 
-              <label className="min-h-[44px] px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-[#17201B] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#F6F7F4] cursor-pointer">
-                <Film className="w-4 h-4 text-[#1B4332]" />
+              <label className="min-h-[44px] px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-[#0F172A] text-xs font-semibold flex items-center justify-center gap-1.5 hover:bg-[#F8FAFC] cursor-pointer">
+                <Film className="w-4 h-4 text-[#0B3D91]" />
                 <span>Upload Video</span>
                 <input
                   type="file"
@@ -737,10 +737,10 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
             {/* Video Player + Frame Extractor */}
             {videoObjectUrl && (
-              <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3 space-y-2.5">
-                <div className="flex items-center justify-between text-xs text-[#143326] font-semibold">
+              <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-3 space-y-2.5">
+                <div className="flex items-center justify-between text-xs text-[#0B1F3A] font-semibold">
                   <span className="flex items-center gap-1.5">
-                    <Video className="w-4 h-4 text-[#1B4332]" />
+                    <Video className="w-4 h-4 text-[#0B3D91]" />
                     Video Frame Selector ({mediaFileName})
                   </span>
                   <span className="font-mono">{frames.length}/4 frames</span>
@@ -763,7 +763,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   <button
                     type="button"
                     onClick={handleCaptureVideoFrame}
-                    className="w-full min-h-[42px] px-3 py-2 rounded-xl bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#2D6A4F] cursor-pointer"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-xl bg-[#0B3D91] text-white text-xs font-semibold hover:bg-[#082E70] cursor-pointer"
                   >
                     Capture Frame at Current Position
                   </button>
@@ -771,7 +771,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                     type="button"
                     disabled={extractingFrames}
                     onClick={handleAutoExtractKeyFrames}
-                    className="w-full min-h-[42px] px-3 py-2 rounded-xl border border-[#1B4332] bg-white text-[#143326] text-xs font-semibold hover:bg-[#EDF5EF] disabled:opacity-50 cursor-pointer"
+                    className="w-full min-h-[42px] px-3 py-2 rounded-xl border border-[#0B3D91] bg-white text-[#0B3D91] text-xs font-semibold hover:bg-[#EFF6FF] disabled:opacity-50 cursor-pointer"
                   >
                     {extractingFrames ? 'Extracting Key Frames...' : 'Auto-Extract 3 Key Frames'}
                   </button>
@@ -785,19 +785,19 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 {frames.map((fr, idx) => (
                   <div
                     key={idx}
-                    className="relative border border-[#D4DDD2] rounded-xl overflow-hidden bg-[#F6F7F4]"
+                    className="relative border border-[#CBD5E1] rounded-xl overflow-hidden bg-[#F8FAFC]"
                   >
                     <img
                       src={fr.previewUrl}
                       alt={fr.label}
                       className="w-full h-28 object-cover"
                     />
-                    <div className="px-2 py-1 flex items-center justify-between text-[11px] text-[#35443B] bg-white border-t border-[#E2E6DF]">
+                    <div className="px-2 py-1 flex items-center justify-between text-[11px] text-[#334155] bg-white border-t border-[#E2E8F0]">
                       <span className="truncate font-mono">{fr.label}</span>
                       <button
                         type="button"
                         onClick={() => setFrames((prev) => prev.filter((_, i) => i !== idx))}
-                        className="text-[#8E2424] font-semibold cursor-pointer"
+                        className="text-[#DC2626] font-semibold cursor-pointer"
                         title="Remove frame"
                       >
                         <X className="w-3.5 h-3.5" />
@@ -812,7 +812,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
           {/* Optional Farmer Question */}
           <div className="space-y-2">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-semibold uppercase tracking-wider text-[#4A5A50]">
+              <label className="text-xs font-semibold uppercase tracking-wider text-[#475569]">
                 4. Optional Question
               </label>
               <VoiceInputButton
@@ -831,14 +831,14 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
               value={userQuestion}
               onChange={(e) => setUserQuestion(e.target.value)}
               placeholder="E.g. Are these leaf spots nutrient stress or fungal damage? Should I inspect nearby rows?"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+              className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
             />
           </div>
 
           <button
             type="submit"
             disabled={analyzing || frames.length === 0}
-            className="w-full min-h-[46px] px-4 py-3 rounded-xl bg-[#143326] text-white font-semibold text-sm hover:bg-[#1B4332] disabled:opacity-50 cursor-pointer"
+            className="w-full min-h-[46px] px-4 py-3 rounded-xl bg-[#0B3D91] text-white font-semibold text-sm hover:bg-[#082E70] disabled:opacity-50 cursor-pointer"
           >
             {analyzing ? 'Analysing Visual Media with Gemini AI...' : 'Submit for Visual Agricultural Analysis'}
           </button>
@@ -847,21 +847,21 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
         {/* Right: Results & Analysis History */}
         <div className="lg:col-span-7 space-y-5">
           {activeResult ? (
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
-              <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-[#E2E6DF]">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
+              <div className="flex flex-wrap items-start justify-between gap-3 pb-4 border-b border-[#E2E8F0]">
                 <div>
-                  <p className="text-xs font-mono text-[#4A5A50]">
+                  <p className="text-xs font-mono text-[#475569]">
                     Analysed {new Date(activeResult.analyzedAt).toLocaleString()} ·{' '}
                     {activeResult.mediaType === 'video'
                       ? `Video (${activeResult.analyzedFramesCount} frame${activeResult.analyzedFramesCount === 1 ? '' : 's'})`
                       : 'Photograph'}
                   </p>
-                  <h2 className="font-display text-xl font-bold text-[#143326] mt-0.5">
+                  <h2 className="font-display text-xl font-bold text-[#0B1F3A] mt-0.5">
                     {ANALYSIS_CATEGORIES.find((c) => c.value === activeResult.category)?.label ||
                       activeResult.category}
                   </h2>
-                  <p className="text-xs text-[#4A5A50] mt-0.5">
-                    Farm: <span className="font-semibold text-[#143326]">{activeResult.farmName}</span>
+                  <p className="text-xs text-[#475569] mt-0.5">
+                    Farm: <span className="font-semibold text-[#0B1F3A]">{activeResult.farmName}</span>
                     {activeResult.fieldName ? ` · Field: ${activeResult.fieldName}` : ''}
                     {activeResult.cropName ? ` · Crop: ${activeResult.cropName}` : ''}
                     {activeResult.livestockGroupName
@@ -889,35 +889,35 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                     <img
                       src={activeResult.mediaPreviewDataUrl}
                       alt={activeResult.mediaFileName}
-                      className="w-full h-48 object-cover rounded-xl border border-[#E2E6DF]"
+                      className="w-full h-48 object-cover rounded-xl border border-[#E2E8F0]"
                     />
                   ) : (
-                    <div className="w-full h-48 rounded-xl border border-[#E2E6DF] bg-[#F6F7F4] flex items-center justify-center text-xs text-[#4A5A50]">
+                    <div className="w-full h-48 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-center text-xs text-[#475569]">
                       <ImageIcon className="w-5 h-5 mr-1.5" />
                       {activeResult.mediaFileName}
                     </div>
                   )}
-                  <p className="text-[11px] font-mono text-[#4A5A50] mt-1.5 truncate">
+                  <p className="text-[11px] font-mono text-[#475569] mt-1.5 truncate">
                     File: {activeResult.mediaFileName}
                   </p>
                 </div>
 
                 <div className="sm:col-span-7 space-y-3">
-                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3.5">
+                  <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3.5">
                     <div className="flex items-center justify-between gap-2 text-xs">
-                      <span className="font-semibold text-[#4A5A50]">Visual Confidence</span>
-                      <span className="font-mono font-bold text-[#143326]">
+                      <span className="font-semibold text-[#475569]">Visual Confidence</span>
+                      <span className="font-mono font-bold text-[#0B1F3A]">
                         {activeResult.confidenceLevel}
                       </span>
                     </div>
-                    <p className="text-xs text-[#35443B] mt-1.5 leading-relaxed">
+                    <p className="text-xs text-[#334155] mt-1.5 leading-relaxed">
                       {activeResult.uncertaintyNote}
                     </p>
                   </div>
 
                   {activeResult.userQuestion && (
-                    <div className="text-xs text-[#35443B] bg-white border border-[#E2E6DF] rounded-xl p-3">
-                      <span className="font-semibold text-[#143326]">Question: </span>
+                    <div className="text-xs text-[#334155] bg-white border border-[#E2E8F0] rounded-xl p-3">
+                      <span className="font-semibold text-[#0B1F3A]">Question: </span>
                       {activeResult.userQuestion}
                     </div>
                   )}
@@ -926,28 +926,28 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
               {/* Findings & Causes */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-4 space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#143326]">
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F3A]">
                     Possible Visual Findings
                   </h3>
-                  <ul className="space-y-1.5 text-sm text-[#17201B]">
+                  <ul className="space-y-1.5 text-sm text-[#0F172A]">
                     {activeResult.possibleFindings.map((f, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="font-mono text-xs text-[#2D6A4F] mt-0.5">{i + 1}.</span>
+                        <span className="font-mono text-xs text-[#0B3D91] mt-0.5">{i + 1}.</span>
                         <span>{f}</span>
                       </li>
                     ))}
                   </ul>
                 </div>
 
-                <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-4 space-y-2">
-                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#143326]">
+                <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-4 space-y-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F3A]">
                     Possible Causes
                   </h3>
-                  <ul className="space-y-1.5 text-sm text-[#17201B]">
+                  <ul className="space-y-1.5 text-sm text-[#0F172A]">
                     {activeResult.possibleCauses.map((c, i) => (
                       <li key={i} className="flex items-start gap-2">
-                        <span className="font-mono text-xs text-[#2D6A4F] mt-0.5">•</span>
+                        <span className="font-mono text-xs text-[#0B3D91] mt-0.5">•</span>
                         <span>{c}</span>
                       </li>
                     ))}
@@ -957,21 +957,21 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
               {/* Detailed Explanation */}
               <div className="space-y-1.5">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#143326]">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F3A]">
                   Explanation
                 </h3>
-                <p className="text-sm text-[#17201B] leading-relaxed">{activeResult.explanation}</p>
+                <p className="text-sm text-[#0F172A] leading-relaxed">{activeResult.explanation}</p>
               </div>
 
               {/* Recommended Actions */}
-              <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-4 space-y-2">
-                <h3 className="text-xs font-bold uppercase tracking-wider text-[#143326]">
+              <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-4 space-y-2">
+                <h3 className="text-xs font-bold uppercase tracking-wider text-[#174C3C]">
                   Recommended Next Steps
                 </h3>
-                <ul className="space-y-1.5 text-sm text-[#143326]">
+                <ul className="space-y-1.5 text-sm text-[#0B1F3A]">
                   {activeResult.recommendedActions.map((act, i) => (
                     <li key={i} className="flex items-start gap-2">
-                      <CheckCircle2 className="w-4 h-4 text-[#1B4332] shrink-0 mt-0.5" />
+                      <CheckCircle2 className="w-4 h-4 text-[#174C3C] shrink-0 mt-0.5" />
                       <span>{act}</span>
                     </li>
                   ))}
@@ -979,19 +979,19 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
               </div>
 
               {/* Safety Notice */}
-              <div className="text-xs text-[#6B4A00] bg-[#FDF8EE] border border-[#E5D3A3] rounded-xl px-3.5 py-2.5 flex items-start gap-2">
+              <div className="text-xs text-[#92400E] bg-[#FFFBEB] border border-[#FDE68A] rounded-xl px-3.5 py-2.5 flex items-start gap-2">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>{activeResult.safetyDisclaimer}</span>
               </div>
 
               {/* Convert to Incident or Save as Farm Record */}
-              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E2E6DF]">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-3 border-t border-[#E2E8F0]">
                 <div className="flex flex-wrap gap-2.5">
                   {activeResult.linkedIncidentId ? (
                     <button
                       type="button"
                       onClick={onOpenIncidentsView}
-                      className="min-h-[42px] px-4 py-2 rounded-xl border border-[#1B4332] bg-[#EDF5EF] text-[#143326] text-xs font-semibold cursor-pointer"
+                      className="min-h-[42px] px-4 py-2 rounded-xl border border-[#174C3C] bg-[#ECF5F2] text-[#174C3C] text-xs font-semibold cursor-pointer"
                     >
                       Linked to Farm Incident (View Dashboard)
                     </button>
@@ -999,7 +999,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                     <button
                       type="button"
                       onClick={() => openConvertToIncidentModal(activeResult)}
-                      className="min-h-[42px] px-4 py-2 rounded-xl bg-[#8E2424] text-white text-xs font-semibold hover:bg-[#731C1C] flex items-center gap-1.5 cursor-pointer"
+                      className="min-h-[42px] px-4 py-2 rounded-xl bg-[#FC3D21] text-white text-xs font-semibold hover:bg-[#DC2626] flex items-center gap-1.5 cursor-pointer"
                     >
                       <FileWarning className="w-4 h-4" />
                       <span>Save as Farm Incident</span>
@@ -1007,7 +1007,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   )}
 
                   {activeResult.linkedRecordNote ? (
-                    <span className="min-h-[42px] px-3.5 py-2 rounded-xl border border-[#D4DDD2] bg-[#F6F7F4] text-xs font-semibold text-[#1B4332] inline-flex items-center gap-1.5">
+                    <span className="min-h-[42px] px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] text-xs font-semibold text-[#174C3C] inline-flex items-center gap-1.5">
                       <ClipboardCheck className="w-4 h-4" />
                       {activeResult.linkedRecordNote}
                     </span>
@@ -1016,7 +1016,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                       type="button"
                       disabled={savingActionId === activeResult.id}
                       onClick={() => handleSaveAsFarmRecord(activeResult)}
-                      className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-[#143326] text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
+                      className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-[#0B1F3A] text-xs font-semibold flex items-center gap-1.5 cursor-pointer"
                     >
                       <ClipboardCheck className="w-4 h-4" />
                       <span>Save as Farm Record</span>
@@ -1027,7 +1027,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 <button
                   type="button"
                   onClick={() => handleDeleteAnalysis(activeResult.id)}
-                  className="text-xs text-[#8E2424] hover:underline flex items-center gap-1 cursor-pointer"
+                  className="text-xs text-[#DC2626] hover:underline flex items-center gap-1 cursor-pointer"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                   Remove
@@ -1035,12 +1035,12 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
               </div>
             </section>
           ) : (
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center space-y-2">
-              <Camera className="w-8 h-8 text-[#2D6A4F] mx-auto" />
-              <p className="font-display font-bold text-[#143326]">
+            <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center space-y-2">
+              <Camera className="w-8 h-8 text-[#0B3D91] mx-auto" />
+              <p className="font-display font-bold text-[#0B1F3A]">
                 {loadingHistory ? 'Loading inspection history...' : 'No visual inspections recorded yet'}
               </p>
-              <p className="text-sm text-[#4A5A50]">
+              <p className="text-sm text-[#475569]">
                 Upload or capture a photograph or video frame on the left to inspect crops, soil, livestock, or equipment.
               </p>
             </div>
@@ -1048,11 +1048,11 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
           {/* Secure Inspection History List */}
           {history.length > 0 && (
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-3">
-              <h3 className="font-display text-base font-bold text-[#143326]">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-3">
+              <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                 Saved Visual Analysis History ({history.length})
               </h3>
-              <div className="divide-y divide-[#E2E6DF]">
+              <div className="divide-y divide-[#E2E8F0]">
                 {history.map((item) => {
                   const isSelected = activeResult?.id === item.id;
                   return (
@@ -1061,34 +1061,34 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                       type="button"
                       onClick={() => setSelectedRecordId(item.id)}
                       className={`w-full text-left py-3 px-3 rounded-xl flex items-center gap-3 transition-colors cursor-pointer ${
-                        isSelected ? 'bg-[#EDF5EF]' : 'hover:bg-[#F6F7F4]'
+                        isSelected ? 'bg-[#EFF6FF] border border-[#BFDBFE]' : 'hover:bg-[#F8FAFC]'
                       }`}
                     >
                       {item.mediaPreviewDataUrl ? (
                         <img
                           src={item.mediaPreviewDataUrl}
                           alt={item.mediaFileName}
-                          className="w-14 h-14 rounded-lg object-cover border border-[#E2E6DF] shrink-0"
+                          className="w-14 h-14 rounded-lg object-cover border border-[#E2E8F0] shrink-0"
                         />
                       ) : (
-                        <div className="w-14 h-14 rounded-lg border border-[#E2E6DF] bg-[#F6F7F4] flex items-center justify-center shrink-0">
-                          <ImageIcon className="w-5 h-5 text-[#4A5A50]" />
+                        <div className="w-14 h-14 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-center shrink-0">
+                          <ImageIcon className="w-5 h-5 text-[#475569]" />
                         </div>
                       )}
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center justify-between gap-2">
-                          <p className="text-sm font-bold text-[#143326] truncate">
+                          <p className="text-sm font-bold text-[#0B1F3A] truncate">
                             {ANALYSIS_CATEGORIES.find((c) => c.value === item.category)?.label ||
                               item.category}
                           </p>
-                          <span className="text-xs font-mono tabular-nums text-[#4A5A50] shrink-0">
+                          <span className="text-xs font-mono tabular-nums text-[#475569] shrink-0">
                             {new Date(item.analyzedAt).toLocaleDateString()}
                           </span>
                         </div>
-                        <p className="text-xs text-[#35443B] truncate mt-0.5">
+                        <p className="text-xs text-[#334155] truncate mt-0.5">
                           {item.possibleFindings[0] || item.explanation}
                         </p>
-                        <p className="text-[11px] text-[#4A5A50] mt-0.5 font-mono">
+                        <p className="text-[11px] text-[#475569] mt-0.5 font-mono">
                           {item.farmName} · Confidence: {item.confidenceLevel}
                           {item.linkedIncidentId ? ' · Incident Linked' : ''}
                           {item.linkedRecordNote ? ' · Saved to Record' : ''}
@@ -1106,17 +1106,17 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       {/* Live Camera Modal */}
       {cameraOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-5 space-y-4">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-5 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Capture Field or Livestock Photo
               </h3>
-              <button type="button" onClick={stopCamera} className="p-1.5 text-[#4A5A50] cursor-pointer">
+              <button type="button" onClick={stopCamera} className="p-1.5 text-[#475569] cursor-pointer">
                 <X className="w-5 h-5" />
               </button>
             </div>
             {cameraError ? (
-              <div className="bg-[#FDF2F2] border border-[#E8B4B4] rounded-xl p-3 text-sm text-[#8E2424]">
+              <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl p-3 text-sm text-[#B91C1C]">
                 {cameraError}
               </div>
             ) : (
@@ -1132,7 +1132,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
               <button
                 type="button"
                 onClick={stopCamera}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] hover:bg-[#F8FAFC]"
               >
                 Cancel
               </button>
@@ -1140,7 +1140,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 <button
                   type="button"
                   onClick={handleSnapCameraPhoto}
-                  className="min-h-[42px] px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="min-h-[42px] px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
                 >
                   Snap Photograph
                 </button>
@@ -1155,30 +1155,30 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleConfirmConvertToIncident}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4"
+            className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Save Visual Inspection as Farm Incident
               </h3>
               <button
                 type="button"
                 onClick={() => setIncidentModalItem(null)}
-                className="text-[#4A5A50] cursor-pointer"
+                className="text-[#475569] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               If this issue damaged plants or livestock, enter the affected quantity below so crop/livestock remaining stock updates automatically while preserving original counts.
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Incident Type</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Incident Type</label>
                 <select
                   value={incType}
                   onChange={(e) => setIncType(e.target.value as IncidentType)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="crop_disease">Crop disease</option>
                   <option value="pest_outbreak">Pest outbreak</option>
@@ -1193,18 +1193,18 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Incident Title</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Incident Title</label>
                 <input
                   type="text"
                   required
                   value={incTitle}
                   onChange={(e) => setIncTitle(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Affected Quantity
                   </label>
                   <input
@@ -1213,16 +1213,16 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                     step="1"
                     value={incAffectedQty}
                     onChange={(e) => setIncAffectedQty(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Unit</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Unit</label>
                   <input
                     type="text"
                     value={incAffectedUnit}
                     onChange={(e) => setIncAffectedUnit(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
@@ -1232,7 +1232,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                 const beforeRem = Math.max(0, linkedCrop.plantingQuantity - linkedCrop.damagedPlants);
                 const applied = Math.min(beforeRem, Math.max(0, Number(incAffectedQty) || 0));
                 return (
-                  <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 text-xs text-[#143326]">
+                  <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3 text-xs text-[#174C3C]">
                     <p className="font-bold">Stock Impact Preview ({linkedCrop.cropName})</p>
                     <p className="font-mono tabular-nums mt-0.5">
                       Original: {linkedCrop.plantingQuantity.toLocaleString()} · New Damage: {applied.toLocaleString()} · Remaining After: {Math.max(0, beforeRem - applied).toLocaleString()}
@@ -1247,7 +1247,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   ? Math.min(linkedGrp.quantity, Math.max(0, Math.round(Number(incAffectedQty) || 0)))
                   : 0;
                 return (
-                  <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 text-xs text-[#143326]">
+                  <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3 text-xs text-[#174C3C]">
                     <p className="font-bold">Livestock Stock Preview ({linkedGrp.groupName})</p>
                     <p className="font-mono tabular-nums mt-0.5">
                       Current Head: {linkedGrp.quantity} · Loss: {appliedLoss} · Remaining After: {Math.max(0, linkedGrp.quantity - appliedLoss)}
@@ -1257,7 +1257,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
               })()}
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Affected Area (ha)
                   </label>
                   <input
@@ -1266,11 +1266,11 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                     step="0.01"
                     value={incAffectedAreaHa}
                     onChange={(e) => setIncAffectedAreaHa(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Est. Financial Impact (ZAR)
                   </label>
                   <input
@@ -1279,7 +1279,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                     step="1"
                     value={incImpactZar}
                     onChange={(e) => setIncImpactZar(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
               </div>
@@ -1288,14 +1288,14 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
               <button
                 type="button"
                 onClick={() => setIncidentModalItem(null)}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] hover:bg-[#F8FAFC]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={savingActionId === incidentModalItem.id}
-                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#8E2424] text-white text-sm font-semibold cursor-pointer"
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#FC3D21] hover:bg-[#DC2626] text-white text-sm font-semibold cursor-pointer"
               >
                 Record Farm Incident
               </button>

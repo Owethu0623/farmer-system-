@@ -65,6 +65,31 @@ export interface ProspectiveFarmerData {
   notes?: string;
 }
 
+export type FarmTenureRelationship =
+  | 'owner'
+  | 'manager'
+  | 'lessee'
+  | 'communal_custodian'
+  | 'family_land';
+
+export interface ReadinessAssessmentState {
+  passed: boolean;
+  score: number;
+  totalQuestions: number;
+  answers: Record<string, string>;
+  completedAt: string | null;
+}
+
+export interface FarmerJourneyHistoryEntry {
+  id: string;
+  fromRole: RoleCode;
+  toRole: RoleCode;
+  farmId: string | null;
+  farmName: string | null;
+  note: string;
+  occurredAt: string;
+}
+
 export interface UserProfile {
   id: string;
   userId: string;
@@ -77,6 +102,8 @@ export interface UserProfile {
   accessibilityAudioGuidance: boolean;
   accessibilityVoiceInput: boolean;
   prospectiveData: ProspectiveFarmerData | null;
+  readinessAssessment?: ReadinessAssessmentState | null;
+  journeyHistory?: FarmerJourneyHistoryEntry[];
   bio: string;
   createdAt: string;
   updatedAt: string;
@@ -109,13 +136,20 @@ export interface Farm {
   waterAvailability: string;
   existingCrops: string[];
   existingLivestock: string[];
+  tenureType?: FarmTenureRelationship;
+  managementRelationshipNote?: string;
+  linkedBusinessPlanIds?: string[];
   status: 'active' | 'archived';
   isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
 }
 
-export type LocationSource = 'gps' | 'manual_map_pin' | 'municipal_center';
+export type LocationSource =
+  | 'gps'
+  | 'manual_map_pin'
+  | 'geocoded_search'
+  | 'municipal_center';
 
 export interface FarmLocation {
   id: string;
@@ -124,6 +158,8 @@ export interface FarmLocation {
   districtMunicipality: string;
   localMunicipality: string;
   townOrVillage: string;
+  locationDescription?: string;
+  locationConfirmed?: boolean;
   latitude: number;
   longitude: number;
   locationSource: LocationSource;
@@ -383,6 +419,11 @@ export type ExpertSpecialisation =
   | 'soil_specialist'
   | 'livestock_specialist'
   | 'veterinarian'
+  | 'irrigation_water_specialist'
+  | 'agricultural_economist'
+  | 'pest_disease_specialist'
+  | 'extension_officer'
+  | 'horticultural_specialist'
   | 'agricultural_consultant';
 
 export interface ExpertProfile {
@@ -391,12 +432,33 @@ export interface ExpertProfile {
   secondarySpecialisations: ExpertSpecialisation[];
   qualifications: string;
   professionalBodyNumber: string;
+  verificationStatus?: 'demo_unverified' | 'pending_verification' | 'verified';
+  regulatedService?: boolean;
+  regulatoryBodyName?: string;
+  verificationNote?: string;
+  isDemonstration?: boolean;
   yearsExperience: number;
   provincesServed: string[];
   languagesSpoken: LanguageCode[];
   bio: string;
   availabilityStatus: 'available' | 'limited' | 'unavailable';
   updatedAt: string;
+}
+
+export interface ConsultationRequest {
+  id: string;
+  farmId: string;
+  farmerUserId: string;
+  expertUserId: string;
+  specialistCategory: ExpertSpecialisation;
+  subject: string;
+  description: string;
+  urgency: 'routine' | 'priority' | 'urgent';
+  status: 'requested' | 'assigned' | 'in_review' | 'responded' | 'closed';
+  recommendationSummary: string;
+  requestedAt: string;
+  updatedAt: string;
+  isDemonstration?: boolean;
 }
 
 export interface FarmAccessScopes {
@@ -451,6 +513,7 @@ export interface ExpertFeedbackRecord {
   recommendations: string[];
   status: 'pending_review' | 'in_progress' | 'completed';
   farmerAcknowledged: boolean;
+  isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -473,6 +536,7 @@ export interface OrganisationProfile {
   contactPhone: string;
   description: string;
   ownerUserId: string;
+  isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -486,6 +550,93 @@ export interface OrganisationMembership {
   orgRole: OrganisationMemberRole;
   status: 'active' | 'inactive';
   joinedAt: string;
+}
+
+export interface OrganisationProject {
+  id: string;
+  organisationId: string;
+  title: string;
+  programmeCode: string;
+  province: string;
+  focusArea: string;
+  status: 'planning' | 'active' | 'completed';
+  startDate: string;
+  targetEndDate: string;
+  targetFarmsCount: number;
+  targetHectares: number;
+  budgetAllocatedZar: number;
+  budgetSpentZar: number;
+  leadSpecialistUserId: string | null;
+  summary: string;
+  isDemonstration?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface OrganisationProgrammeActivity {
+  id: string;
+  organisationId: string;
+  projectId: string | null;
+  title: string;
+  activityType:
+    | 'training_workshop'
+    | 'field_day'
+    | 'soil_sampling_drive'
+    | 'vaccination_campaign'
+    | 'input_distribution'
+    | 'advisory_visit';
+  activityDate: string;
+  province: string;
+  district: string;
+  participantsCount: number;
+  farmsReachedCount: number;
+  costZar: number;
+  facilitatorName: string;
+  outcomesSummary: string;
+  isDemonstration?: boolean;
+  createdAt: string;
+}
+
+export interface OrganisationSpecialistAssignment {
+  id: string;
+  organisationId: string;
+  projectId: string | null;
+  expertUserId: string;
+  expertName: string;
+  specialisation: ExpertSpecialisation;
+  assignedRegion: string;
+  status: 'active' | 'completed';
+  assignedAt: string;
+  isDemonstration?: boolean;
+}
+
+export interface PublicDatasetRecord {
+  id: string;
+  sourceName: string;
+  sourceUrl: string;
+  datasetOrApiName: string;
+  category:
+    | 'weather'
+    | 'climate_agromet'
+    | 'soil'
+    | 'elevation_terrain'
+    | 'geographical_boundaries'
+    | 'statistics';
+  retrievedAt: string;
+  geographicCoverage: string;
+  units: string;
+  licenceAndTerms: string;
+  limitations: string;
+  integrationMode: 'live_api' | 'portal_reference' | 'optional_env_adapter';
+  status: 'active' | 'rate_limited_or_slow' | 'reference_only' | 'unconfigured';
+}
+
+export interface CalculationTransparencyMeta {
+  formula: string;
+  assumptions: string[];
+  units: string;
+  limitations: string;
+  disclaimer: string;
 }
 
 export interface AuditLog {
@@ -960,6 +1111,7 @@ export interface SystemConfig {
 }
 
 export interface DatabaseSchema {
+  demoSeedVersion?: number;
   roles: Role[];
   languages: Language[];
   users: User[];
@@ -992,10 +1144,14 @@ export interface DatabaseSchema {
   systemConfig: SystemConfig;
   systemAnnouncements: SystemAnnouncement[];
   expertProfiles: ExpertProfile[];
+  consultationRequests: ConsultationRequest[];
   farmAccessGrants: FarmAccessGrant[];
   expertFeedbacks: ExpertFeedbackRecord[];
   organisations: OrganisationProfile[];
   organisationMemberships: OrganisationMembership[];
+  organisationProjects: OrganisationProject[];
+  organisationProgrammeActivities: OrganisationProgrammeActivity[];
+  organisationSpecialistAssignments: OrganisationSpecialistAssignment[];
   notifications: Notification[];
   notificationPreferences: NotificationPreference[];
   notificationDeliveries: NotificationDeliveryAttempt[];

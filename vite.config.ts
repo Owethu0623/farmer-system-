@@ -24,6 +24,14 @@ export default defineConfig(() => {
               .replace(
                 'setupForwardConsoleHandler(transport, forwardConsole);',
                 '/* forwardConsole disabled */'
+              )
+              .replace(
+                'else throw new SendBeforeConnectError("send was called before connect");',
+                'else return;'
+              )
+              .replace(
+                'else throw new SendBeforeConnectError("invoke was called before connect");',
+                'else return;'
               );
           }
           return null;
@@ -38,8 +46,8 @@ export default defineConfig(() => {
           short_name: 'Field Shift',
           description:
             'South African agricultural intelligence, spatial farm mapping, offline field capture, and multilingual guidance across all 12 official languages.',
-          theme_color: '#1B4332',
-          background_color: '#F6F7F4',
+          theme_color: '#0B1F3A',
+          background_color: '#F1F5F9',
           display: 'standalone',
           start_url: '/',
           scope: '/',

@@ -758,6 +758,153 @@ export function resolveMaterialForUser(
   };
 }
 
+export const REQUIRED_STARTER_GUIDE_IDS = [
+  'learn-beginner-1',
+  'learn-soil-1',
+  'learn-business-1',
+];
+
+export const READINESS_COMPLETION_MESSAGE =
+  "Congratulations! You're ready to take the next step towards starting your farming journey.";
+
+export interface ReadinessQuestionDef {
+  id: string;
+  question: string;
+  options: { id: string; label: string }[];
+  correctOptionId: string;
+}
+
+export const READINESS_QUESTIONS: ReadinessQuestionDef[] = [
+  {
+    id: 'rq-water',
+    question:
+      'What must you verify first before deciding how many hectares to plant in an upcoming season?',
+    options: [
+      { id: 'a', label: 'Dry-season water availability, borehole yield, or municipal allocation' },
+      { id: 'b', label: 'Buying maximum tractor capacity regardless of irrigated area' },
+      { id: 'c', label: 'Applying limestone without testing topsoil pH' },
+    ],
+    correctOptionId: 'a',
+  },
+  {
+    id: 'rq-soil',
+    question:
+      'How should a composite 0–20 cm soil sample be collected before applying fertiliser or agricultural lime?',
+    options: [
+      { id: 'a', label: 'Take one handful from the farm gate in a rusty tin bucket' },
+      { id: 'b', label: 'Mix 10–15 cores across each uniform block in a clean plastic bucket and send to an accredited lab' },
+      { id: 'c', label: 'Skip lab testing and copy a neighbour’s fertiliser bag dosage' },
+    ],
+    correctOptionId: 'b',
+  },
+  {
+    id: 'rq-market',
+    question:
+      'Before purchasing seed for perishable crops, what market check reduces post-harvest loss risk?',
+    options: [
+      { id: 'a', label: 'Wait until harvest day to locate any buyer' },
+      { id: 'b', label: 'Confirm grade, pack size, and delivery schedule with potential local buyers first' },
+      { id: 'c', label: 'Plant the entire farm on the same day with one cultivar' },
+    ],
+    correctOptionId: 'b',
+  },
+  {
+    id: 'rq-budget',
+    question:
+      'Why should a starter agricultural budget separate capital equipment from seasonal operating costs?',
+    options: [
+      { id: 'a', label: 'So ongoing cash needs for seed, feed, water, and labour are covered during the season' },
+      { id: 'b', label: 'Because operating expenses do not repeat after harvest' },
+      { id: 'c', label: 'To guarantee a fixed profit regardless of weather or market prices' },
+    ],
+    correctOptionId: 'a',
+  },
+  {
+    id: 'rq-rotation',
+    question:
+      'What is the core agronomic reason for rotating across different botanical crop families (e.g., maize followed by dry beans)?',
+    options: [
+      { id: 'a', label: 'It eliminates the need to monitor pests or weather forecasts' },
+      { id: 'b', label: 'It helps break shared pest/disease cycles and balances soil nitrogen use' },
+      { id: 'c', label: 'It keeps soil identical across every season so soil tests are never needed' },
+    ],
+    correctOptionId: 'b',
+  },
+];
+
+export function gradeReadinessAssessment(answers: Record<string, string>): {
+  score: number;
+  totalQuestions: number;
+  passed: boolean;
+} {
+  let score = 0;
+  for (const q of READINESS_QUESTIONS) {
+    if (answers[q.id] && answers[q.id] === q.correctOptionId) {
+      score += 1;
+    }
+  }
+  const totalQuestions = READINESS_QUESTIONS.length;
+  const passed = score >= 4;
+  return { score, totalQuestions, passed };
+}
+
+export function computeLearningReadiness(user: SanitizedUser) {
+  const requiredMaterials = REQUIRED_STARTER_GUIDE_IDS.map((id) => {
+    const mat = store.db.learningMaterials.find((m) => m.id === id);
+    const prog = store.db.learningProgress.find(
+      (p) => p.userId === user.id && p.materialId === id
+    );
+    const completed = prog?.status === 'completed';
+    const title = mat?.translations?.en?.title || id;
+    return { id, title, completed };
+  });
+
+  const requiredGuidesCompleted = requiredMaterials.filter((m) => m.completed).length;
+  const requiredGuidesTotal = requiredMaterials.length;
+  const requiredGuidesMet =
+    requiredGuidesTotal > 0 && requiredGuidesCompleted >= requiredGuidesTotal;
+
+  const profile = store.db.userProfiles.find((p) => p.userId === user.id);
+  const assessment = profile?.readinessAssessment || null;
+  const assessmentPassed = Boolean(assessment?.passed);
+  const assessmentScore = assessment?.score || 0;
+  const assessmentTotalQuestions = assessment?.totalQuestions || READINESS_QUESTIONS.length;
+
+  const missingRequirements: string[] = [];
+  for (const item of requiredMaterials) {
+    if (!item.completed) {
+      missingRequirements.push(`Complete foundational guide: "${item.title}"`);
+    }
+  }
+  if (!assessmentPassed) {
+    missingRequirements.push(
+      `Pass the Practical Readiness Check (${READINESS_QUESTIONS.length} questions, minimum 4/5 required)`
+    );
+  }
+
+  const isReady = requiredGuidesMet && assessmentPassed;
+
+  return {
+    requiredGuideIds: REQUIRED_STARTER_GUIDE_IDS,
+    requiredGuideTitles: requiredMaterials,
+    requiredGuidesCompleted,
+    requiredGuidesTotal,
+    requiredGuidesMet,
+    assessmentPassed,
+    assessmentScore,
+    assessmentTotalQuestions,
+    assessmentCompletedAt: assessment?.completedAt || null,
+    isReady,
+    completionMessage: isReady ? READINESS_COMPLETION_MESSAGE : null,
+    missingRequirements,
+    assessmentQuestions: READINESS_QUESTIONS.map((q) => ({
+      id: q.id,
+      question: q.question,
+      options: q.options,
+    })),
+  };
+}
+
 export function buildLearningCentrePayload(params: {
   user: SanitizedUser;
   languageCode?: LanguageCode;
@@ -779,6 +926,8 @@ export function buildLearningCentrePayload(params: {
   const overallPercent =
     publishedItems.length > 0 ? Math.round((completedCount / publishedItems.length) * 100) : 0;
 
+  const learningReadiness = computeLearningReadiness(params.user);
+
   return {
     categories: LEARNING_CATEGORIES,
     materials: resolved,
@@ -790,6 +939,7 @@ export function buildLearningCentrePayload(params: {
       savedCount,
       overallPercent,
     },
+    learningReadiness,
     officialGuidanceNotice: OFFICIAL_GUIDANCE_NOTICE,
   };
 }

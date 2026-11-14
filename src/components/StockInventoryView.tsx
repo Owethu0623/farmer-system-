@@ -384,20 +384,20 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Agricultural Stock & Inventory Valuation
           </h1>
-          <p className="text-sm text-[#4A5A50]">
+          <p className="text-sm text-[#475569]">
             Track standing plants, damaged stock, stored harvest, sales, livestock movements, and farmer-entered valuations.
           </p>
         </div>
 
         <div className="flex items-center gap-2">
-          <label className="text-xs font-semibold text-[#4A5A50]">Filter Farm:</label>
+          <label className="text-xs font-semibold text-[#475569]">Filter Farm:</label>
           <select
             value={selectedFarmId || ''}
             onChange={(e) => onSelectFarm(e.target.value || null)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold text-[#143326]"
+            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0F172A] min-h-[42px]"
           >
             <option value="">All Accessible Farms</option>
             {farms.map((f) => (
@@ -414,8 +414,8 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
         <div
           className={`rounded-2xl border px-4 py-3 text-xs ${
             isCacheStale
-              ? 'bg-[#FFF6EB] border-[#E6C98A] text-[#7A4A0B]'
-              : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+              ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
+              : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
           }`}
         >
           <strong>Offline Cached Stock Snapshot ({isCacheStale ? 'Outdated Cache' : 'Saved Locally'}):</strong>{' '}
@@ -423,30 +423,30 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
         </div>
       )}
       {overview && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-2xl p-4 flex flex-wrap items-start justify-between gap-3 text-xs text-[#143326]">
+        <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl p-4 flex flex-wrap items-start justify-between gap-3 text-xs text-[#0B1F3A]">
           <div className="flex items-start gap-2.5 max-w-3xl">
-            <Info className="w-4 h-4 text-[#1B4332] shrink-0 mt-0.5" />
+            <Info className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold">Transparent Farmer-Entered Valuation</p>
-              <p className="text-[#2D4B3B] mt-0.5 leading-relaxed">{overview.pricingDisclaimer}</p>
+              <p className="font-bold">Transparent Farmer-Entered Valuation (Estimated Values vs Recorded Movements)</p>
+              <p className="text-[#334155] mt-0.5 leading-relaxed">{overview.pricingDisclaimer}</p>
             </div>
           </div>
-          <span className="font-mono tabular-nums text-[#1B4332] font-semibold">
+          <span className="font-mono tabular-nums text-[#0B3D91] font-semibold">
             Valuation Date: {new Date(overview.valuationDate).toLocaleString()}
           </span>
         </div>
       )}
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] rounded-xl px-4 py-3 text-sm text-[#8E2424]">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#B91C1C]">
           {error}
         </div>
       )}
 
       {successMsg && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl px-4 py-3 text-sm text-[#143326] flex items-center justify-between gap-2">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl px-4 py-3 text-sm text-[#174C3C] flex items-center justify-between gap-2">
           <span className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="w-4 h-4 text-[#1B4332]" />
+            <CheckCircle2 className="w-4 h-4 text-[#174C3C]" />
             {successMsg}
           </span>
           <button type="button" onClick={() => setSuccessMsg(null)} className="cursor-pointer">
@@ -456,63 +456,63 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       )}
 
       {loading || !overview ? (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center text-sm text-[#4A5A50]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center text-sm text-[#475569]">
           Calculating crop, harvest, and livestock inventory valuations...
         </div>
       ) : (
         <>
           {/* KPI Strip */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Remaining Stock Value</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Est. Remaining Stock Value</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 R{overview.totals.totalRemainingStockValueZar.toLocaleString()}
               </p>
-              <p className="text-[11px] font-mono tabular-nums text-[#4A5A50] mt-1">
+              <p className="text-[11px] font-mono tabular-nums text-[#475569] mt-1">
                 Crops + Stored + Livestock
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Crop Stock Value</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Est. Crop Stock Value</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
                 R{overview.totals.totalCropStockValueZar.toLocaleString()}
               </p>
-              <p className="text-[11px] font-mono tabular-nums text-[#4A5A50] mt-1">
+              <p className="text-[11px] font-mono tabular-nums text-[#475569] mt-1">
                 {overview.totals.totalRemainingUnits.toLocaleString()} plants left
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Livestock Stock Value</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Est. Livestock Value</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
                 R{overview.totals.totalLivestockValueZar.toLocaleString()}
               </p>
-              <p className="text-[11px] font-mono tabular-nums text-[#4A5A50] mt-1">
+              <p className="text-[11px] font-mono tabular-nums text-[#475569] mt-1">
                 {overview.totals.totalLivestockHead.toLocaleString()} total head
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Est. Harvest Value</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Est. Harvest Value</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 R{overview.totals.totalHarvestValueZar.toLocaleString()}
               </p>
-              <p className="text-[11px] font-mono tabular-nums text-[#4A5A50] mt-1">
+              <p className="text-[11px] font-mono tabular-nums text-[#475569] mt-1">
                 Stored: R{overview.totals.totalStoredProductionValueZar.toLocaleString()}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Damaged / Loss Value</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#8E2424] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Damaged / Loss Value</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#B91C1C] mt-1">
                 R{overview.totals.totalDamagedStockValueZar.toLocaleString()}
               </p>
-              <p className="text-[11px] font-mono tabular-nums text-[#8E2424] mt-1">
+              <p className="text-[11px] font-mono tabular-nums text-[#B91C1C] mt-1">
                 {overview.totals.totalDamagedUnits.toLocaleString()} damaged plants
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Net Value Change</p>
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Net Value Change</p>
               <p
                 className={`font-mono text-xl font-bold tabular-nums mt-1 flex items-center gap-1 ${
-                  overview.totals.netStockValueChangeZar >= 0 ? 'text-[#1B4332]' : 'text-[#8E2424]'
+                  overview.totals.netStockValueChangeZar >= 0 ? 'text-[#174C3C]' : 'text-[#B91C1C]'
                 }`}
               >
                 {overview.totals.netStockValueChangeZar >= 0 ? (
@@ -525,34 +525,34 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   {overview.totals.netStockValueChangeZar.toLocaleString()}
                 </span>
               </p>
-              <p className="text-[11px] text-[#4A5A50] mt-1">From initial stock baseline</p>
+              <p className="text-[11px] text-[#475569] mt-1">From initial stock baseline</p>
             </div>
           </div>
 
           {/* Crop Stock Valuation & Quantities */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Sprout className="w-5 h-5 text-[#1B4332]" />
-              <h2 className="font-display text-lg font-bold text-[#143326]">
+              <Sprout className="w-5 h-5 text-[#174C3C]" />
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Crop Stock, Harvest Storage & Valuation ({overview.cropStocks.length})
               </h2>
             </div>
 
             {overview.cropStocks.length === 0 ? (
-              <p className="text-sm text-[#4A5A50]">No crops registered under this filter yet.</p>
+              <p className="text-sm text-[#475569]">No crops registered under this filter yet.</p>
             ) : (
               <div className="space-y-4">
                 {overview.cropStocks.map((row) => (
                   <div
                     key={row.cropId}
-                    className="border border-[#E2E6DF] rounded-xl p-4 space-y-3 bg-[#FAFBFA]"
+                    className="border border-[#E2E8F0] rounded-xl p-4 space-y-3 bg-[#F8FAFC]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-display font-bold text-[#143326]">
+                        <h3 className="font-display font-bold text-[#0B1F3A]">
                           {row.cropName} ({row.cropVariety})
                         </h3>
-                        <p className="text-xs text-[#4A5A50]">
+                        <p className="text-xs text-[#475569]">
                           {row.farmName} · {row.fieldName} · Stage: {row.growthStage}
                         </p>
                       </div>
@@ -560,7 +560,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         <button
                           type="button"
                           onClick={() => openEditPriceForCrop(row, 'crop_plant')}
-                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1 cursor-pointer"
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] flex items-center gap-1 cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Plant Price (R{row.plantUnitPriceZar.toFixed(2)})</span>
@@ -568,7 +568,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         <button
                           type="button"
                           onClick={() => openEditPriceForCrop(row, 'crop_harvest')}
-                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1 cursor-pointer"
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] flex items-center gap-1 cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Harvest Price (R{row.harvestUnitPriceZar.toFixed(2)}/kg)</span>
@@ -576,7 +576,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenCropMovement(row, 'sale')}
-                          className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#1B4332] text-white hover:bg-[#2D6A4F] text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#0B3D91] text-white hover:bg-[#082E70] text-xs font-semibold flex items-center gap-1 cursor-pointer"
                         >
                           <ArrowDownUp className="w-3.5 h-3.5" />
                           <span>Record Movement</span>
@@ -585,93 +585,93 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                     </div>
 
                     {/* Quantity & Value Grid */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2 border-t border-[#E2E6DF] text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2 border-t border-[#E2E8F0] text-xs">
                       <div>
-                        <p className="text-[#4A5A50]">Original Planted</p>
-                        <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                        <p className="text-[#475569]">Original Planted</p>
+                        <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                           {row.originalPlantedQty.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Damaged Plants</p>
-                        <p className="font-mono font-bold tabular-nums text-[#8E2424] mt-0.5">
+                        <p className="text-[#475569]">Damaged Plants</p>
+                        <p className="font-mono font-bold tabular-nums text-[#B91C1C] mt-0.5">
                           {row.damagedPlants.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Remaining Plants</p>
-                        <p className="font-mono font-bold tabular-nums text-[#1B4332] mt-0.5">
+                        <p className="text-[#475569]">Remaining Plants</p>
+                        <p className="font-mono font-bold tabular-nums text-[#174C3C] mt-0.5">
                           {row.remainingPlants.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Harvested / Stored</p>
-                        <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                        <p className="text-[#475569]">Harvested / Stored</p>
+                        <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                           {row.harvestedKg.toLocaleString()} / {row.storedProductionKg.toLocaleString()} kg
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Sold Qty & Revenue</p>
-                        <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                        <p className="text-[#475569]">Sold Qty & Revenue</p>
+                        <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                           {row.soldKg.toLocaleString()} kg (R{row.salesValueZar.toLocaleString()})
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Remaining + Stored Val</p>
-                        <p className="font-mono font-bold tabular-nums text-[#1B4332] mt-0.5">
+                        <p className="text-[#475569]">Est. Remaining + Stored</p>
+                        <p className="font-mono font-bold tabular-nums text-[#174C3C] mt-0.5">
                           R{(row.remainingStandingValueZar + row.storedStockValueZar).toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Damaged Loss Val</p>
-                        <p className="font-mono font-bold tabular-nums text-[#8E2424] mt-0.5">
+                        <p className="text-[#475569]">Est. Damaged Loss</p>
+                        <p className="font-mono font-bold tabular-nums text-[#B91C1C] mt-0.5">
                           R{row.damagedStockValueZar.toLocaleString()}
                         </p>
                       </div>
                     </div>
 
                     {/* Explicit Valuation Breakdown (Quantity, Unit Price, Total Value, Valuation Date) */}
-                    <div className="bg-white border border-[#E2E6DF] rounded-lg p-3 overflow-x-auto">
+                    <div className="bg-white border border-[#E2E8F0] rounded-lg p-3 overflow-x-auto">
                       <table className="w-full text-left text-[11px]">
                         <thead>
-                          <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                          <tr className="border-b border-[#E2E8F0] text-[#475569]">
                             <th className="py-1 pr-3 font-semibold">Valuation Component</th>
                             <th className="py-1 pr-3 font-semibold">Quantity</th>
                             <th className="py-1 pr-3 font-semibold">Unit Price</th>
-                            <th className="py-1 pr-3 font-semibold">Total Value</th>
+                            <th className="py-1 pr-3 font-semibold">Estimated Total Value</th>
                             <th className="py-1 font-semibold">Valuation Date</th>
                           </tr>
                         </thead>
-                        <tbody className="divide-y divide-[#E2E6DF] font-mono tabular-nums text-[#143326]">
+                        <tbody className="divide-y divide-[#E2E8F0] font-mono tabular-nums text-[#0F172A]">
                           <tr>
                             <td className="py-1.5 pr-3 font-sans font-medium">Standing Crop Stock</td>
                             <td className="py-1.5 pr-3">{row.remainingPlants.toLocaleString()} plants</td>
                             <td className="py-1.5 pr-3">R{row.plantUnitPriceZar.toFixed(2)} / plant</td>
-                            <td className="py-1.5 pr-3 font-bold text-[#1B4332]">R{row.remainingStandingValueZar.toLocaleString()}</td>
-                            <td className="py-1.5 text-[#4A5A50]">{new Date(row.valuationDate).toLocaleDateString()}</td>
+                            <td className="py-1.5 pr-3 font-bold text-[#174C3C]">R{row.remainingStandingValueZar.toLocaleString()}</td>
+                            <td className="py-1.5 text-[#475569]">{new Date(row.valuationDate).toLocaleDateString()}</td>
                           </tr>
                           <tr>
                             <td className="py-1.5 pr-3 font-sans font-medium">Stored Production</td>
                             <td className="py-1.5 pr-3">{row.storedProductionKg.toLocaleString()} kg</td>
                             <td className="py-1.5 pr-3">R{row.harvestUnitPriceZar.toFixed(2)} / kg</td>
-                            <td className="py-1.5 pr-3 font-bold text-[#1B4332]">R{row.storedStockValueZar.toLocaleString()}</td>
-                            <td className="py-1.5 text-[#4A5A50]">{new Date(row.valuationDate).toLocaleDateString()}</td>
+                            <td className="py-1.5 pr-3 font-bold text-[#174C3C]">R{row.storedStockValueZar.toLocaleString()}</td>
+                            <td className="py-1.5 text-[#475569]">{new Date(row.valuationDate).toLocaleDateString()}</td>
                           </tr>
                           <tr>
                             <td className="py-1.5 pr-3 font-sans font-medium">Damaged Stock Loss</td>
                             <td className="py-1.5 pr-3">{row.damagedPlants.toLocaleString()} plants</td>
                             <td className="py-1.5 pr-3">R{row.plantUnitPriceZar.toFixed(2)} / plant</td>
-                            <td className="py-1.5 pr-3 font-bold text-[#8E2424]">R{row.damagedStockValueZar.toLocaleString()}</td>
-                            <td className="py-1.5 text-[#4A5A50]">{new Date(row.valuationDate).toLocaleDateString()}</td>
+                            <td className="py-1.5 pr-3 font-bold text-[#B91C1C]">R{row.damagedStockValueZar.toLocaleString()}</td>
+                            <td className="py-1.5 text-[#475569]">{new Date(row.valuationDate).toLocaleDateString()}</td>
                           </tr>
                         </tbody>
                       </table>
                     </div>
 
                     {/* Calculation Assumptions & Price Source */}
-                    <div className="text-[11px] text-[#4A5A50] flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E2E6DF]">
+                    <div className="text-[11px] text-[#475569] flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E2E8F0]">
                       <span className="flex items-center gap-1.5">
-                        <Calculator className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
+                        <Calculator className="w-3.5 h-3.5 text-[#0B3D91] shrink-0" />
                         <span>{row.calculationAssumption}</span>
                       </span>
                       <span className="font-mono">Price source: {row.priceSource}</span>
@@ -683,29 +683,29 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
           </section>
 
           {/* Livestock Stock & Valuation */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Beef className="w-5 h-5 text-[#1B4332]" />
-              <h2 className="font-display text-lg font-bold text-[#143326]">
+              <Beef className="w-5 h-5 text-[#174C3C]" />
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Livestock Herd, Flock & Production Valuation ({overview.livestockStocks.length})
               </h2>
             </div>
 
             {overview.livestockStocks.length === 0 ? (
-              <p className="text-sm text-[#4A5A50]">No livestock groups registered under this filter.</p>
+              <p className="text-sm text-[#475569]">No livestock groups registered under this filter.</p>
             ) : (
               <div className="space-y-4">
                 {overview.livestockStocks.map((row) => (
                   <div
                     key={row.livestockGroupId}
-                    className="border border-[#E2E6DF] rounded-xl p-4 space-y-3 bg-[#FAFBFA]"
+                    className="border border-[#E2E8F0] rounded-xl p-4 space-y-3 bg-[#F8FAFC]"
                   >
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <h3 className="font-display font-bold text-[#143326]">
+                        <h3 className="font-display font-bold text-[#0B1F3A]">
                           {row.groupName} — {row.animalType} ({row.breed})
                         </h3>
-                        <p className="text-xs text-[#4A5A50]">
+                        <p className="text-xs text-[#475569]">
                           {row.farmName} {row.fieldName ? `· ${row.fieldName}` : ''} · Health: {row.healthStatus}
                         </p>
                       </div>
@@ -713,7 +713,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         <button
                           type="button"
                           onClick={() => openEditPriceForLivestock(row)}
-                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1 cursor-pointer"
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] flex items-center gap-1 cursor-pointer"
                         >
                           <Edit3 className="w-3.5 h-3.5" />
                           <span>Edit Unit Price (R{row.unitPriceZar.toLocaleString()}/head)</span>
@@ -721,7 +721,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleOpenLivestockMovement(row)}
-                          className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#1B4332] text-white hover:bg-[#2D6A4F] text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#0B3D91] text-white hover:bg-[#082E70] text-xs font-semibold flex items-center gap-1 cursor-pointer"
                         >
                           <ArrowDownUp className="w-3.5 h-3.5" />
                           <span>Record Movement</span>
@@ -729,48 +729,48 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2 border-t border-[#E2E6DF] text-xs">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2 border-t border-[#E2E8F0] text-xs">
                       <div>
-                        <p className="text-[#4A5A50]">Current Herd/Flock</p>
-                        <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                        <p className="text-[#475569]">Current Herd/Flock</p>
+                        <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                           {row.currentQuantity.toLocaleString()} head
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Births / Purchases</p>
-                        <p className="font-mono font-bold tabular-nums text-[#1B4332] mt-0.5">
+                        <p className="text-[#475569]">Births / Purchases</p>
+                        <p className="font-mono font-bold tabular-nums text-[#174C3C] mt-0.5">
                           +{row.births} / +{row.purchases}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Deaths / Sales</p>
-                        <p className="font-mono font-bold tabular-nums text-[#8E2424] mt-0.5">
+                        <p className="text-[#475569]">Deaths / Sales</p>
+                        <p className="font-mono font-bold tabular-nums text-[#B91C1C] mt-0.5">
                           -{row.deaths} / -{row.sales}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Production Logged</p>
-                        <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                        <p className="text-[#475569]">Production Logged</p>
+                        <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                           {row.productionTotal.toLocaleString()} {row.productionUnit}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Unit Price / Total</p>
-                        <p className="font-mono font-bold tabular-nums text-[#1B4332] mt-0.5">
+                        <p className="text-[#475569]">Unit Price / Est. Total</p>
+                        <p className="font-mono font-bold tabular-nums text-[#174C3C] mt-0.5">
                           R{row.unitPriceZar.toLocaleString()} · R{row.remainingValueZar.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Mortality Loss Val</p>
-                        <p className="font-mono font-bold tabular-nums text-[#8E2424] mt-0.5">
+                        <p className="text-[#475569]">Mortality Loss Val</p>
+                        <p className="font-mono font-bold tabular-nums text-[#B91C1C] mt-0.5">
                           R{row.deathLossValueZar.toLocaleString()}
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Net Value Change</p>
+                        <p className="text-[#475569]">Net Value Change</p>
                         <p
                           className={`font-mono font-bold tabular-nums mt-0.5 ${
-                            row.netValueChangeZar >= 0 ? 'text-[#1B4332]' : 'text-[#8E2424]'
+                            row.netValueChangeZar >= 0 ? 'text-[#174C3C]' : 'text-[#B91C1C]'
                           }`}
                         >
                           {row.netValueChangeZar >= 0 ? '+' : ''}R{row.netValueChangeZar.toLocaleString()}
@@ -778,9 +778,9 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       </div>
                     </div>
 
-                    <div className="text-[11px] text-[#4A5A50] pt-2 border-t border-[#E2E6DF] flex flex-wrap items-center justify-between gap-2">
+                    <div className="text-[11px] text-[#475569] pt-2 border-t border-[#E2E8F0] flex flex-wrap items-center justify-between gap-2">
                       <span className="flex items-center gap-1.5">
-                        <Calculator className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
+                        <Calculator className="w-3.5 h-3.5 text-[#0B3D91] shrink-0" />
                         <span>{row.calculationAssumption}</span>
                       </span>
                       <span className="font-mono">
@@ -794,11 +794,11 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
           </section>
 
           {/* Historical Stock Movements Ledger */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <History className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Immutable Historical Stock Movements
                 </h2>
               </div>
@@ -808,8 +808,8 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   onClick={() => setLedgerTab('crops')}
                   className={`min-h-[38px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer ${
                     ledgerTab === 'crops'
-                      ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                      : 'bg-white text-[#17201B] border-[#D4DDD2]'
+                      ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                      : 'bg-white text-[#0F172A] border-[#CBD5E1]'
                   }`}
                 >
                   Crop Movements ({overview.cropMovements.length})
@@ -819,8 +819,8 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   onClick={() => setLedgerTab('livestock')}
                   className={`min-h-[38px] px-3.5 py-1.5 rounded-xl border text-xs font-semibold cursor-pointer ${
                     ledgerTab === 'livestock'
-                      ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                      : 'bg-white text-[#17201B] border-[#D4DDD2]'
+                      ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                      : 'bg-white text-[#0F172A] border-[#CBD5E1]'
                   }`}
                 >
                   Livestock Movements ({overview.livestockMovements.length})
@@ -832,7 +832,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                    <tr className="border-b border-[#E2E8F0] text-[#475569]">
                       <th className="py-2 pr-3 font-semibold">Date</th>
                       <th className="py-2 pr-3 font-semibold">Crop / Farm</th>
                       <th className="py-2 pr-3 font-semibold">Movement</th>
@@ -842,37 +842,37 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       <th className="py-2 font-semibold">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E6DF]">
+                  <tbody className="divide-y divide-[#E2E8F0]">
                     {overview.cropMovements.map((m) => (
                       <tr key={m.id}>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#4A5A50]">
+                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#475569]">
                           {m.movementDate}
                         </td>
                         <td className="py-2.5 pr-3">
-                          <p className="font-semibold text-[#143326]">{m.cropName}</p>
-                          <p className="text-[11px] text-[#4A5A50]">{m.farmName}</p>
+                          <p className="font-semibold text-[#0B1F3A]">{m.cropName}</p>
+                          <p className="text-[11px] text-[#475569]">{m.farmName}</p>
                         </td>
-                        <td className="py-2.5 pr-3 font-semibold text-[#17201B] capitalize">
+                        <td className="py-2.5 pr-3 font-semibold text-[#0F172A] capitalize">
                           {m.movementType.replace('_', ' ')}
                         </td>
                         <td
                           className={`py-2.5 pr-3 font-mono font-bold tabular-nums ${
-                            m.quantityDelta < 0 ? 'text-[#8E2424]' : 'text-[#1B4332]'
+                            m.quantityDelta < 0 ? 'text-[#B91C1C]' : 'text-[#174C3C]'
                           }`}
                         >
                           {m.quantityDelta > 0 ? '+' : ''}
                           {m.quantityDelta.toLocaleString()} {m.unit}
                         </td>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#143326]">
+                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#0B1F3A]">
                           R{m.unitPriceZar.toFixed(2)} · R{m.totalValueZar.toLocaleString()}
                         </td>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#35443B]">
+                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#334155]">
                           {m.resultingRemainingPlants !== null
                             ? `${m.resultingRemainingPlants.toLocaleString()} plants`
                             : '—'}{' '}
                           / {m.resultingStoredKg !== null ? `${m.resultingStoredKg.toLocaleString()} kg` : '—'}
                         </td>
-                        <td className="py-2.5 text-[#35443B]">{m.notes}</td>
+                        <td className="py-2.5 text-[#334155]">{m.notes}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -882,7 +882,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                    <tr className="border-b border-[#E2E8F0] text-[#475569]">
                       <th className="py-2 pr-3 font-semibold">Date</th>
                       <th className="py-2 pr-3 font-semibold">Group / Farm</th>
                       <th className="py-2 pr-3 font-semibold">Type</th>
@@ -892,20 +892,20 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       <th className="py-2 font-semibold">Notes</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E6DF]">
+                  <tbody className="divide-y divide-[#E2E8F0]">
                     {overview.livestockMovements.map((r) => (
                       <tr key={r.id}>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#4A5A50]">
+                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#475569]">
                           {r.recordDate}
                         </td>
                         <td className="py-2.5 pr-3">
-                          <p className="font-semibold text-[#143326]">{r.groupName}</p>
-                          <p className="text-[11px] text-[#4A5A50]">{r.farmName}</p>
+                          <p className="font-semibold text-[#0B1F3A]">{r.groupName}</p>
+                          <p className="text-[11px] text-[#475569]">{r.farmName}</p>
                         </td>
-                        <td className="py-2.5 pr-3 font-semibold text-[#17201B]">{r.recordType}</td>
+                        <td className="py-2.5 pr-3 font-semibold text-[#0F172A]">{r.recordType}</td>
                         <td
                           className={`py-2.5 pr-3 font-mono font-bold tabular-nums ${
-                            r.quantityChange < 0 ? 'text-[#8E2424]' : 'text-[#1B4332]'
+                            r.quantityChange < 0 ? 'text-[#B91C1C]' : 'text-[#174C3C]'
                           }`}
                         >
                           {r.quantityChange > 0 ? `+${r.quantityChange}` : r.quantityChange}
@@ -913,10 +913,10 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         <td className="py-2.5 pr-3 font-mono tabular-nums">
                           {r.productionAmount > 0 ? `${r.productionAmount} ${r.productionUnit}` : '—'}
                         </td>
-                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#143326]">
+                        <td className="py-2.5 pr-3 font-mono tabular-nums text-[#0B1F3A]">
                           R{r.valueZar.toLocaleString()}
                         </td>
-                        <td className="py-2.5 text-[#35443B]">{r.notes}</td>
+                        <td className="py-2.5 text-[#334155]">{r.notes}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -932,20 +932,20 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleSubmitPrice}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-md w-full p-6 space-y-4"
+            className="bg-white border border-[#CBD5E1] rounded-2xl max-w-md w-full p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Set Farmer Unit Price
               </h3>
               <button type="button" onClick={() => setPriceModal(null)} className="cursor-pointer">
-                <X className="w-5 h-5 text-[#4A5A50]" />
+                <X className="w-5 h-5 text-[#475569]" />
               </button>
             </div>
-            <p className="text-xs text-[#4A5A50]">{priceModal.title}</p>
+            <p className="text-xs text-[#475569]">{priceModal.title}</p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Unit Price (ZAR per {priceModal.unitLabel})
                 </label>
                 <input
@@ -955,11 +955,11 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   required
                   value={priceInput}
                   onChange={(e) => setPriceInput(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Price Basis / Buyer Note
                 </label>
                 <input
@@ -967,7 +967,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   value={priceSourceInput}
                   onChange={(e) => setPriceSourceInput(e.target.value)}
                   placeholder="E.g. Farmer local abattoir quote / packhouse buyer contract"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
             </div>
@@ -975,14 +975,14 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setPriceModal(null)}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
               >
                 Save Unit Price
               </button>
@@ -996,30 +996,30 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleSubmitMovement}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4"
+            className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326] flex items-center gap-2">
-                <Package className="w-5 h-5 text-[#1B4332]" />
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A] flex items-center gap-2">
+                <Package className="w-5 h-5 text-[#0B3D91]" />
                 <span>Record Crop Stock Movement</span>
               </h3>
               <button type="button" onClick={() => setMoveCrop(null)} className="cursor-pointer">
-                <X className="w-5 h-5 text-[#4A5A50]" />
+                <X className="w-5 h-5 text-[#475569]" />
               </button>
             </div>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               {moveCrop.cropName} ({moveCrop.cropVariety}) · Remaining plants:{' '}
-              <span className="font-mono font-bold text-[#143326]">
+              <span className="font-mono font-bold text-[#0B1F3A]">
                 {moveCrop.remainingPlants.toLocaleString()}
               </span>{' '}
               · Stored kg:{' '}
-              <span className="font-mono font-bold text-[#143326]">
+              <span className="font-mono font-bold text-[#0B1F3A]">
                 {moveCrop.storedProductionKg.toLocaleString()} kg
               </span>
             </p>
             <div className="space-y-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Movement Type
                 </label>
                 <select
@@ -1033,7 +1033,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       String(isPlant ? moveCrop.plantUnitPriceZar : moveCrop.harvestUnitPriceZar)
                     );
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold"
                 >
                   {(Object.keys(MOVEMENT_TYPE_LABELS) as CropStockMovementType[]).map((mt) => (
                     <option key={mt} value={mt}>
@@ -1044,17 +1044,17 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Date</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Date</label>
                   <input
                     type="date"
                     required
                     value={moveDate}
                     onChange={(e) => setMoveDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Quantity
                   </label>
                   <input
@@ -1064,22 +1064,22 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                     required
                     value={moveQty}
                     onChange={(e) => setMoveQty(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Unit</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Unit</label>
                   <input
                     type="text"
                     required
                     value={moveUnit}
                     onChange={(e) => setMoveUnit(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Unit Price (ZAR per {moveUnit})
                 </label>
                 <input
@@ -1088,18 +1088,18 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   step="0.01"
                   value={movePrice}
                   onChange={(e) => setMovePrice(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Notes</label>
                 <input
                   type="text"
                   required
                   value={moveNotes}
                   onChange={(e) => setMoveNotes(e.target.value)}
                   placeholder="Buyer name, storage shed, or field block reference..."
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
             </div>
@@ -1107,14 +1107,14 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setMoveCrop(null)}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
               >
                 Record Movement
               </button>
@@ -1128,27 +1128,27 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleSubmitLivestockMovement}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4"
+            className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326] flex items-center gap-2">
-                <Beef className="w-5 h-5 text-[#1B4332]" />
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A] flex items-center gap-2">
+                <Beef className="w-5 h-5 text-[#174C3C]" />
                 <span>Record Livestock Stock Movement</span>
               </h3>
               <button type="button" onClick={() => setMoveLivestock(null)} className="cursor-pointer">
-                <X className="w-5 h-5 text-[#4A5A50]" />
+                <X className="w-5 h-5 text-[#475569]" />
               </button>
             </div>
-            <p className="text-xs text-[#4A5A50]">
+            <p className="text-xs text-[#475569]">
               {moveLivestock.groupName} ({moveLivestock.animalType} · {moveLivestock.breed}) · Current Herd:{' '}
-              <span className="font-mono font-bold text-[#143326]">
+              <span className="font-mono font-bold text-[#0B1F3A]">
                 {moveLivestock.currentQuantity.toLocaleString()} head
               </span>
             </p>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Movement Type
                   </label>
                   <select
@@ -1163,7 +1163,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         setLvkValueZar(String(moveLivestock.unitPriceZar));
                       }
                     }}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold"
                   >
                     <option value="Birth">Birth (+head)</option>
                     <option value="Purchase">Purchase (+head)</option>
@@ -1177,20 +1177,20 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Date</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Date</label>
                   <input
                     type="date"
                     required
                     value={lvkRecDate}
                     onChange={(e) => setLvkRecDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Head Count
                   </label>
                   <input
@@ -1205,11 +1205,11 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         setLvkValueZar(String(c * moveLivestock.unitPriceZar));
                       }
                     }}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Production Qty
                   </label>
                   <input
@@ -1218,24 +1218,24 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                     step="0.1"
                     value={lvkProdAmount}
                     onChange={(e) => setLvkProdAmount(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Prod. Unit
                   </label>
                   <input
                     type="text"
                     value={lvkProdUnit}
                     onChange={(e) => setLvkProdUnit(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Total Value / Cost (ZAR)
                 </label>
                 <input
@@ -1244,19 +1244,19 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   step="1"
                   value={lvkValueZar}
                   onChange={(e) => setLvkValueZar(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Notes</label>
                 <input
                   type="text"
                   required
                   value={lvkNotes}
                   onChange={(e) => setLvkNotes(e.target.value)}
                   placeholder="Auction buyer, newborn tag IDs, vet reference, or daily yield..."
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
             </div>
@@ -1264,14 +1264,14 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setMoveLivestock(null)}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
               >
                 Record Movement
               </button>

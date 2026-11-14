@@ -52,6 +52,7 @@ interface RoleDashboardProps {
   onOpenLearningView: () => void;
   onOpenAdvisorView: () => void;
   onOpenReportsView?: () => void;
+  onOpenFarmTransition?: () => void;
   refreshKey: number;
   provinces: ProvinceInfo[];
   languageCode: LanguageCode;
@@ -95,6 +96,7 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
   onOpenLearningView,
   onOpenAdvisorView,
   onOpenReportsView,
+  onOpenFarmTransition,
   refreshKey,
   provinces,
   languageCode,
@@ -583,8 +585,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 key={a.id}
                 className={`rounded-xl border px-4 py-3 text-sm ${
                   a.severity === 'warning'
-                    ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
-                    : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+                    ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+                    : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
                 }`}
               >
                 <span className="font-semibold">{a.title}:</span> {a.message}
@@ -593,22 +595,22 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
           </div>
         )}
 
-        <div className="bg-[#143326] text-white rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6">
+        <div className="bg-[#0B1F3A] text-white rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6 border border-[#163055]">
           <div className="space-y-2 max-w-2xl">
             <div className="flex flex-wrap items-center gap-2">
-              <p className="text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">
+              <p className="text-xs font-mono uppercase tracking-wider text-[#93C5FD]">
                 Prospective Farmer · {user.profile?.province || 'South Africa'}
               </p>
               {user.isDemonstration && (
-                <span className="px-2 py-0.5 rounded bg-[#2D6A4F] text-[#E4F0E7] text-[10px] font-mono uppercase tracking-wider">
-                  Demonstration Account
+                <span className="px-2 py-0.5 rounded bg-[#163055] border border-[#3B82F6]/40 text-[#E2E8F0] text-[10px] font-mono uppercase tracking-wider">
+                  DEMONSTRATION DATA
                 </span>
               )}
             </div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold">
               Welcome, {user.profile?.fullName}
             </h1>
-            <p className="text-sm text-[#DCE8DF]">
+            <p className="text-sm text-[#CBD5E1]">
               Planning {pd?.intendedLandSizeHectares || 2} ha in{' '}
               {pd?.preferredFarmingType || 'Mixed Horticulture'} ·{' '}
               {pd?.landAccessStatus || 'Exploring land options'}
@@ -630,33 +632,47 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             <button
               type="button"
               onClick={onOpenPlannerView}
-              className="px-4 py-2.5 rounded-xl bg-white text-[#143326] font-semibold text-sm hover:bg-[#EDF2EC] cursor-pointer whitespace-nowrap"
+              className="px-4 py-2.5 rounded-xl bg-white text-[#0B1F3A] font-semibold text-sm hover:bg-[#F8FAFC] cursor-pointer whitespace-nowrap min-h-[40px]"
             >
               Business Planner
             </button>
             <button
               type="button"
+              onClick={onOpenSoilLandView}
+              className="px-4 py-2.5 rounded-xl bg-[#0B3D91] text-white font-semibold text-sm hover:bg-[#082E70] cursor-pointer whitespace-nowrap min-h-[40px]"
+            >
+              Land Suitability
+            </button>
+            <button
+              type="button"
+              onClick={onOpenWeatherView}
+              className="px-4 py-2.5 rounded-xl bg-[#0B3D91] text-white font-semibold text-sm hover:bg-[#082E70] cursor-pointer whitespace-nowrap min-h-[40px]"
+            >
+              Weather & NASA Climate
+            </button>
+            <button
+              type="button"
               onClick={onOpenLearningView}
-              className="px-4 py-2.5 rounded-xl bg-[#2D6A4F] text-white font-semibold text-sm hover:bg-[#40916C] cursor-pointer whitespace-nowrap"
+              className="px-4 py-2.5 rounded-xl bg-[#0B3D91] text-white font-semibold text-sm hover:bg-[#082E70] cursor-pointer whitespace-nowrap min-h-[40px]"
             >
               Learning Centre
             </button>
-            {onOpenReportsView && (
-              <button
-                type="button"
-                onClick={onOpenReportsView}
-                className="px-4 py-2.5 rounded-xl bg-[#2D6A4F] text-white font-semibold text-sm hover:bg-[#40916C] cursor-pointer whitespace-nowrap"
-              >
-                Reports
-              </button>
-            )}
             <button
               type="button"
               onClick={onOpenAdvisorView}
-              className="px-4 py-2.5 rounded-xl border border-[#8EB89D] text-white font-semibold text-sm hover:bg-[#1B4332] cursor-pointer whitespace-nowrap"
+              className="px-4 py-2.5 rounded-xl border border-[#3B82F6]/50 text-white font-semibold text-sm hover:bg-[#163055] cursor-pointer whitespace-nowrap min-h-[40px]"
             >
               AI Advisor
             </button>
+            {onOpenFarmTransition && (
+              <button
+                type="button"
+                onClick={onOpenFarmTransition}
+                className="px-4 py-2.5 rounded-xl bg-[#174C3C] hover:bg-[#113A2E] border border-emerald-400/50 text-white font-semibold text-sm cursor-pointer whitespace-nowrap min-h-[40px]"
+              >
+                Register My Farm
+              </button>
+            )}
           </div>
         </div>
 
@@ -664,8 +680,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
           <div
             className={`rounded-xl border px-4 py-3 text-xs sm:text-sm ${
               isCacheStale
-                ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
-                : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#35443B]'
+                ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+                : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
             }`}
           >
             <span className="font-semibold">
@@ -677,47 +693,107 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
         )}
 
         {error && (
-          <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+          <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
             {error}
+          </div>
+        )}
+
+        {/* Farming Readiness & Transition Banner */}
+        {data?.learningReadiness && (
+          <div
+            className={`rounded-2xl border p-5 flex flex-wrap items-center justify-between gap-4 ${
+              data.learningReadiness.isReady
+                ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
+                : 'bg-white border-[#CBD5E1] text-[#0B1F3A]'
+            }`}
+          >
+            <div className="min-w-0 flex-1 space-y-1">
+              <div className="text-xs font-bold uppercase tracking-wider text-[#174C3C]">
+                {data.learningReadiness.isReady
+                  ? 'Farming Readiness Complete'
+                  : 'Farming Readiness Tracker'}
+              </div>
+              {data.learningReadiness.isReady ? (
+                <>
+                  <p className="font-display text-lg font-bold text-emerald-950">
+                    {data.learningReadiness.completionMessage}
+                  </p>
+                  <p className="text-xs text-emerald-900">
+                    All {data.learningReadiness.requiredGuidesTotal} foundational starter guides and the Practical Readiness Assessment ({data.learningReadiness.assessmentScore}/{data.learningReadiness.assessmentTotalQuestions}) are verified in your account. When you have acquired or begun managing farmland, register your farm below without losing any of your saved plans or learning progress.
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p className="text-sm font-semibold text-[#0B1F3A]">
+                    Starter Guides: {data.learningReadiness.requiredGuidesCompleted} /{' '}
+                    {data.learningReadiness.requiredGuidesTotal} complete · Readiness Check:{' '}
+                    {data.learningReadiness.assessmentPassed
+                      ? `Passed (${data.learningReadiness.assessmentScore}/${data.learningReadiness.assessmentTotalQuestions})`
+                      : 'Pending'}
+                  </p>
+                  <p className="text-xs text-[#475569]">
+                    Complete all 3 starter guides (First-Season Readiness, Composite Soil Sampling, and Agricultural Business Planning) plus the 5-question readiness check in Learning Centre, or register your farm right away if you have already secured land.
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+              <button
+                type="button"
+                onClick={onOpenLearningView}
+                className="px-4 py-2 rounded-lg border border-[#CBD5E1] bg-white text-[#0B1F3A] text-xs font-semibold hover:bg-slate-50 cursor-pointer whitespace-nowrap"
+              >
+                {data.learningReadiness.isReady ? 'Review Learning' : 'Open Learning & Readiness'}
+              </button>
+              {onOpenFarmTransition && (
+                <button
+                  type="button"
+                  onClick={onOpenFarmTransition}
+                  className="px-4 py-2 rounded-lg bg-[#174C3C] hover:bg-[#113A2E] text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                >
+                  I Now Have a Farm — Register My Farm
+                </button>
+              )}
+            </div>
           </div>
         )}
 
         {/* Overview Metrics */}
         {data && (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Saved Locations (Database)</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Saved Locations (Database)</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {data.overview.savedLocationsCount}
               </p>
-              <p className="text-xs text-[#4A5A50] mt-0.5">Candidate areas bookmarked</p>
+              <p className="text-xs text-[#475569] mt-0.5">Candidate areas bookmarked</p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Farming Plans (Database)</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Farming Plans (Database)</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {data.overview.farmingPlansCount}
               </p>
-              <p className="text-xs text-[#4A5A50] mt-0.5">Saved business scenarios</p>
+              <p className="text-xs text-[#475569] mt-0.5">Saved business scenarios</p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Lowest Startup Budget (Estimated)</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#1B4332] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Lowest Startup Budget (Estimated)</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#0B3D91] mt-1">
                 {data.overview.estimatedLowestStartupZar !== null
                   ? `R${data.overview.estimatedLowestStartupZar.toLocaleString()}`
                   : 'No saved plan'}
               </p>
-              <p className="text-xs text-[#4A5A50] mt-0.5">
+              <p className="text-xs text-[#475569] mt-0.5">
                 {data.overview.estimatedLowestStartupZar !== null
                   ? 'Non-guaranteed estimate'
                   : 'Create a plan in Business Planner'}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Learning Progress</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Learning Progress</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {data.overview.learningProgressPercent}%
               </p>
-              <p className="text-xs text-[#2D6A4F] mt-0.5 font-mono tabular-nums">
+              <p className="text-xs text-[#174C3C] mt-0.5 font-mono tabular-nums">
                 {data.overview.learningCompletedCount} / {data.overview.learningTotalCount} guides completed
               </p>
             </div>
@@ -727,18 +803,18 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
         {/* Saved Locations & Land Suitability Recommendations */}
         {data && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <section className="lg:col-span-6 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <MapPin className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <MapPin className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Saved Candidate Locations
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowAddLoc(!showAddLoc)}
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1B4332] text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer whitespace-nowrap min-h-[36px]"
                 >
                   <Plus className="w-4 h-4" />
                   <span>{showAddLoc ? 'Cancel' : 'Save Location'}</span>
@@ -748,17 +824,17 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               {showAddLoc && (
                 <form
                   onSubmit={handleSaveProspectiveLocation}
-                  className="bg-[#F6F7F4] border border-[#D4DDD2] rounded-xl p-4 space-y-3"
+                  className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-4 space-y-3"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#143326] mb-1">
+                      <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                         Province
                       </label>
                       <select
                         value={locProvince}
                         onChange={(e) => setLocProvince(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-sm"
                       >
                         {provinces.map((p) => (
                           <option key={p.code} value={p.name}>
@@ -768,7 +844,7 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#143326] mb-1">
+                      <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                         Town or Area *
                       </label>
                       <input
@@ -777,11 +853,11 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                         value={locTown}
                         onChange={(e) => setLocTown(e.target.value)}
                         placeholder="e.g. Mooi River"
-                        className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#143326] mb-1">
+                      <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                         District Municipality
                       </label>
                       <input
@@ -789,11 +865,11 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                         value={locDistrict}
                         onChange={(e) => setLocDistrict(e.target.value)}
                         placeholder="e.g. uMgungundlovu"
-                        className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#143326] mb-1">
+                      <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                         Intended Size (ha)
                       </label>
                       <input
@@ -802,24 +878,24 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                         min="0.1"
                         value={locHectares}
                         onChange={(e) => setLocHectares(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm font-mono"
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-sm font-mono"
                       />
                     </div>
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-semibold text-[#143326] mb-1">
+                      <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                         Water Source Note
                       </label>
                       <input
                         type="text"
                         value={locWater}
                         onChange={(e) => setLocWater(e.target.value)}
-                        className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-sm"
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-semibold text-[#143326] mb-1">
+                      <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                         Notes
                       </label>
                       <input
@@ -827,14 +903,14 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                         value={locNotes}
                         onChange={(e) => setLocNotes(e.target.value)}
                         placeholder="Lease terms, road access..."
-                        className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                        className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] bg-white text-sm"
                       />
                     </div>
                   </div>
                   <button
                     type="submit"
                     disabled={locSaving}
-                    className="px-4 py-2 rounded-lg bg-[#1B4332] text-white text-xs font-semibold cursor-pointer disabled:opacity-60"
+                    className="px-4 py-2 rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer disabled:opacity-60 min-h-[38px]"
                   >
                     {locSaving ? 'Saving...' : 'Save Candidate Location'}
                   </button>
@@ -842,19 +918,19 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               )}
 
               {data.savedLocations.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">
+                <p className="text-sm text-[#475569]">
                   No candidate locations saved yet. Click Save Location to bookmark target districts.
                 </p>
               ) : (
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {data.savedLocations.map((loc) => (
                     <div key={loc.id} className="py-3.5 space-y-1">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="font-semibold text-[#143326] text-sm">
+                          <p className="font-semibold text-[#0B1F3A] text-sm">
                             {loc.townOrArea}, {loc.province}
                           </p>
-                          <p className="text-xs text-[#4A5A50]">
+                          <p className="text-xs text-[#475569]">
                             {loc.district ? `${loc.district} · ` : ''}
                             <span className="font-mono tabular-nums">{loc.intendedHectares} ha</span> ·{' '}
                             {loc.waterSourceNote}
@@ -864,15 +940,15 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                           type="button"
                           onClick={() => handleDeleteProspectiveLocation(loc.id)}
                           aria-label="Remove saved location"
-                          className="p-1.5 rounded-lg text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                          className="p-1.5 rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
                       {loc.suitabilitySummary && (
-                        <p className="text-xs text-[#35443B]">{loc.suitabilitySummary}</p>
+                        <p className="text-xs text-[#334155]">{loc.suitabilitySummary}</p>
                       )}
-                      {loc.notes && <p className="text-xs text-[#4A5A50]">{loc.notes}</p>}
+                      {loc.notes && <p className="text-xs text-[#475569]">{loc.notes}</p>}
                     </div>
                   ))}
                 </div>
@@ -880,18 +956,18 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
 
             {/* Land Suitability Recommendations */}
-            <section className="lg:col-span-6 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <Compass className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Land Suitability Recommendations
                   </h2>
                 </div>
                 <select
                   value={prospectiveProvince}
                   onChange={(e) => setProspectiveProvince(e.target.value)}
-                  className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white text-xs font-semibold"
+                  className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white text-xs font-semibold text-[#0B1F3A]"
                 >
                   {provinces.map((p) => (
                     <option key={p.code} value={p.name}>
@@ -904,19 +980,19 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 {data.landSuitabilityRecommendations.map((rec) => (
                   <div
                     key={rec.province}
-                    className="border border-[#E2E6DF] rounded-xl p-4 space-y-2"
+                    className="border border-[#E2E8F0] bg-[#F8FAFC] rounded-xl p-4 space-y-2"
                   >
                     <div className="flex flex-wrap items-center justify-between gap-2">
-                      <p className="font-display font-bold text-[#143326]">{rec.province}</p>
-                      <span className="text-xs font-mono tabular-nums text-[#2D6A4F]">
+                      <p className="font-display font-bold text-[#0B1F3A]">{rec.province}</p>
+                      <span className="text-xs font-mono tabular-nums text-[#0B3D91]">
                         {rec.annualRainfallMm}
                       </span>
                     </div>
-                    <p className="text-xs text-[#4A5A50]">{rec.climateZone}</p>
-                    <p className="text-xs text-[#17201B]">
+                    <p className="text-xs text-[#475569]">{rec.climateZone}</p>
+                    <p className="text-xs text-[#0F172A]">
                       Key commodities: {rec.keyCommodities.join(' · ')}
                     </p>
-                    <p className="text-xs text-[#35443B] leading-relaxed">
+                    <p className="text-xs text-[#334155] leading-relaxed">
                       {rec.soilAndWaterGuidance}
                     </p>
                   </div>
@@ -929,10 +1005,10 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
         {/* Farming Opportunities & Suggested Activities */}
         {data && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <section className="lg:col-span-7 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-7 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex items-center gap-2">
-                <Sprout className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <Sprout className="w-5 h-5 text-[#174C3C]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   South African Farming Opportunities
                 </h2>
               </div>
@@ -940,18 +1016,18 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 {data.opportunities.map((opp) => (
                   <div
                     key={opp.id}
-                    className="border border-[#E2E6DF] rounded-xl p-4 flex flex-col justify-between space-y-3"
+                    className="border border-[#E2E8F0] bg-[#F8FAFC] rounded-xl p-4 flex flex-col justify-between space-y-3"
                   >
                     <div className="space-y-1.5">
-                      <p className="text-xs font-medium text-[#2D6A4F]">
+                      <p className="text-xs font-medium text-[#174C3C]">
                         {opp.startupTier} · Min {opp.minHectares} ha
                       </p>
-                      <h3 className="font-display text-base font-bold text-[#143326]">
+                      <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                         {opp.title}
                       </h3>
-                      <p className="text-xs text-[#415047] leading-relaxed">{opp.summary}</p>
+                      <p className="text-xs text-[#334155] leading-relaxed">{opp.summary}</p>
                     </div>
-                    <div className="pt-2 border-t border-[#E2E6DF] text-xs text-[#4A5A50] space-y-0.5">
+                    <div className="pt-2 border-t border-[#E2E8F0] text-xs text-[#475569] space-y-0.5">
                       <p>Regions: {opp.province}</p>
                       <p>Water: {opp.waterNeed} · Cycle: {opp.cycleDays}</p>
                     </div>
@@ -960,26 +1036,26 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               </div>
             </section>
 
-            <section className="lg:col-span-5 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-5 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <Layers className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Suggested Starter Activities
                 </h2>
               </div>
               <div className="space-y-3">
                 {data.suggestedActivities.map((act) => (
-                  <div key={act.id} className="border border-[#E2E6DF] rounded-xl p-4 space-y-1.5">
+                  <div key={act.id} className="border border-[#E2E8F0] bg-[#F8FAFC] rounded-xl p-4 space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
-                      <h3 className="font-semibold text-sm text-[#143326]">{act.title}</h3>
-                      <span className="text-xs font-mono tabular-nums text-[#2D6A4F]">
+                      <h3 className="font-semibold text-sm text-[#0B1F3A]">{act.title}</h3>
+                      <span className="text-xs font-mono tabular-nums text-[#0B3D91]">
                         {act.estimatedStarterScaleHa} ha
                       </span>
                     </div>
-                    <p className="text-xs text-[#4A5A50]">
+                    <p className="text-xs text-[#475569]">
                       {act.category} · {act.estimatedCycle}
                     </p>
-                    <p className="text-xs text-[#35443B]">{act.whyItFits}</p>
+                    <p className="text-xs text-[#334155]">{act.whyItFits}</p>
                   </div>
                 ))}
               </div>
@@ -990,49 +1066,49 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
         {/* Farming Plans, Estimated Startup Costs, Learning Progress & Next Steps */}
         {data && (
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <section className="lg:col-span-6 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Briefcase className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <Briefcase className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Farming Plans & Estimated Startup Costs
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenPlannerView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Open Planner →
                 </button>
               </div>
-              <p className="text-xs text-[#4A5A50]">{data.overview.estimationNotice}</p>
+              <p className="text-xs text-[#475569]">{data.overview.estimationNotice}</p>
               {data.farmingPlans.length === 0 ? (
-                <div className="p-4 rounded-xl bg-[#F6F7F4] text-sm text-[#4A5A50] space-y-2">
+                <div className="p-4 rounded-xl bg-[#F8FAFC] border border-[#E2E8F0] text-sm text-[#475569] space-y-2">
                   <p>No saved business scenarios yet.</p>
                   <button
                     type="button"
                     onClick={onOpenPlannerView}
-                    className="px-4 py-2 rounded-lg bg-[#1B4332] text-white text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer"
                   >
                     Create Small / Medium / Large Scale Plan
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {data.farmingPlans.map((plan) => (
                     <div key={plan.id} className="py-3 flex flex-wrap items-center justify-between gap-3">
                       <div>
-                        <p className="font-semibold text-sm text-[#143326]">{plan.planName}</p>
-                        <p className="text-xs text-[#4A5A50]">
+                        <p className="font-semibold text-sm text-[#0B1F3A]">{plan.planName}</p>
+                        <p className="text-xs text-[#475569]">
                           {plan.province} · {plan.farmSizeHectares} ha · {plan.scaleTier.replace('_', ' ')}
                         </p>
                       </div>
                       <div className="text-right font-mono text-xs tabular-nums">
-                        <p className="font-bold text-[#1B4332]">
+                        <p className="font-bold text-[#0B3D91]">
                           Est. Startup: R{plan.calculation.estimatedStartupCostsZar.toLocaleString()}
                         </p>
-                        <p className="text-[#4A5A50]">
+                        <p className="text-[#475569]">
                           Est. Operating: R{plan.calculation.estimatedOperatingCostsZar.toLocaleString()}
                         </p>
                       </div>
@@ -1042,18 +1118,18 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               )}
             </section>
 
-            <section className="lg:col-span-6 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <BookOpen className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <BookOpen className="w-5 h-5 text-[#174C3C]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Recommended Next Steps & Learning Progress
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenLearningView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Learning Centre →
                 </button>
@@ -1062,23 +1138,23 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 {data.recommendedNextSteps.map((step) => (
                   <div
                     key={step.id}
-                    className="border border-[#E2E6DF] rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3"
+                    className="border border-[#E2E8F0] rounded-xl p-3.5 flex flex-wrap items-center justify-between gap-3"
                   >
                     <div className="flex items-start gap-2.5 max-w-md">
                       <CheckCircle2
                         className={`w-5 h-5 shrink-0 mt-0.5 ${
-                          step.completed ? 'text-[#1B4332]' : 'text-[#B5C0B8]'
+                          step.completed ? 'text-[#174C3C]' : 'text-[#CBD5E1]'
                         }`}
                       />
                       <div>
-                        <p className="text-sm font-semibold text-[#143326]">{step.title}</p>
-                        <p className="text-xs text-[#4A5A50] mt-0.5">{step.detail}</p>
+                        <p className="text-sm font-semibold text-[#0B1F3A]">{step.title}</p>
+                        <p className="text-xs text-[#475569] mt-0.5">{step.detail}</p>
                       </div>
                     </div>
                     <button
                       type="button"
                       onClick={() => navigateActionTab(step.actionTab)}
-                      className="px-3 py-1.5 rounded-lg bg-[#EDF5EF] text-[#143326] text-xs font-semibold cursor-pointer whitespace-nowrap"
+                      className="px-3 py-1.5 rounded-lg bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0B3D91] text-xs font-semibold cursor-pointer whitespace-nowrap"
                     >
                       {step.actionLabel}
                     </button>
@@ -1112,8 +1188,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               key={a.id}
               className={`rounded-xl border px-4 py-3 text-sm ${
                 a.severity === 'warning'
-                  ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
-                  : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+                  ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+                  : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
               }`}
             >
               <span className="font-semibold">{a.title}:</span> {a.message}
@@ -1123,18 +1199,18 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
       )}
 
       {/* Header Banner */}
-      <div className="bg-[#143326] text-white rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6">
+      <div className="bg-[#0B1F3A] text-white rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6 border border-[#163055]">
         <div className="space-y-1.5">
           <div className="flex flex-wrap items-center gap-2">
-            <p className="text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">{roleLabel}</p>
+            <p className="text-xs font-mono uppercase tracking-wider text-[#93C5FD]">{roleLabel}</p>
             {(user.isDemonstration || farms.some((f) => f.isDemonstration)) && (
-              <span className="px-2 py-0.5 rounded bg-[#2D6A4F] text-[#E4F0E7] text-[10px] font-mono uppercase tracking-wider">
-                Demonstration Data
+              <span className="px-2 py-0.5 rounded bg-[#163055] border border-[#3B82F6]/40 text-[#E2E8F0] text-[10px] font-mono uppercase tracking-wider">
+                DEMONSTRATION DATA
               </span>
             )}
           </div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold">{user.profile?.fullName}</h1>
-          <p className="text-sm text-[#DCE8DF]">
+          <p className="text-sm text-[#CBD5E1]">
             <span className="font-mono font-bold tabular-nums">
               {d?.overview.registeredFarmsCount ?? farms.length}
             </span>{' '}
@@ -1160,21 +1236,21 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
           <button
             type="button"
             onClick={onOpenFarmsView}
-            className="px-3.5 py-2 rounded-xl bg-white text-[#143326] font-semibold text-xs sm:text-sm hover:bg-[#EDF2EC] cursor-pointer whitespace-nowrap"
+            className="px-3.5 py-2 rounded-xl bg-white text-[#0B1F3A] font-semibold text-xs sm:text-sm hover:bg-[#F8FAFC] cursor-pointer whitespace-nowrap min-h-[40px]"
           >
             Farms & GPS Map
           </button>
           <button
             type="button"
             onClick={onOpenVisualView}
-            className="px-3.5 py-2 rounded-xl bg-[#2D6A4F] text-white font-semibold text-xs sm:text-sm hover:bg-[#40916C] cursor-pointer whitespace-nowrap"
+            className="px-3.5 py-2 rounded-xl bg-[#0B3D91] text-white font-semibold text-xs sm:text-sm hover:bg-[#082E70] cursor-pointer whitespace-nowrap min-h-[40px]"
           >
             Visual Scan
           </button>
           <button
             type="button"
             onClick={onOpenStockView}
-            className="px-3.5 py-2 rounded-xl bg-[#2D6A4F] text-white font-semibold text-xs sm:text-sm hover:bg-[#40916C] cursor-pointer whitespace-nowrap"
+            className="px-3.5 py-2 rounded-xl bg-[#0B3D91] text-white font-semibold text-xs sm:text-sm hover:bg-[#082E70] cursor-pointer whitespace-nowrap min-h-[40px]"
           >
             Stock & Valuation
           </button>
@@ -1182,7 +1258,7 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             <button
               type="button"
               onClick={onOpenReportsView}
-              className="px-3.5 py-2 rounded-xl bg-[#2D6A4F] text-white font-semibold text-xs sm:text-sm hover:bg-[#40916C] cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5"
+              className="px-3.5 py-2 rounded-xl bg-[#0B3D91] text-white font-semibold text-xs sm:text-sm hover:bg-[#082E70] cursor-pointer whitespace-nowrap inline-flex items-center gap-1.5 min-h-[40px]"
             >
               <FileSpreadsheet className="w-4 h-4" />
               <span>Reports & Exports</span>
@@ -1191,7 +1267,7 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
           <button
             type="button"
             onClick={onOpenAdvisorView}
-            className="px-3.5 py-2 rounded-xl border border-[#8EB89D] text-white font-semibold text-xs sm:text-sm hover:bg-[#1B4332] cursor-pointer whitespace-nowrap"
+            className="px-3.5 py-2 rounded-xl border border-[#3B82F6]/50 text-white font-semibold text-xs sm:text-sm hover:bg-[#163055] cursor-pointer whitespace-nowrap min-h-[40px]"
           >
             AI Assistant
           </button>
@@ -1199,10 +1275,10 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
       </div>
 
       {/* Dashboard Filters Bar (Farm, Field, Date, Farming Category) */}
-      <section className="bg-white border border-[#E2E6DF] rounded-2xl p-4 sm:p-5 space-y-3">
+      <section className="bg-white border border-[#CBD5E1] rounded-2xl p-4 sm:p-5 space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-sm font-semibold text-[#143326]">
-            <Filter className="w-4 h-4 text-[#2D6A4F]" />
+          <div className="flex items-center gap-2 text-sm font-semibold text-[#0B1F3A]">
+            <Filter className="w-4 h-4 text-[#0B3D91]" />
             <span>Filter Dashboard & Analytics</span>
           </div>
           <button
@@ -1214,14 +1290,14 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               setFilterEndDate('');
               setFilterCategory('all');
             }}
-            className="text-xs font-semibold text-[#2D6A4F] hover:underline cursor-pointer"
+            className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
           >
             Reset Filters
           </button>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <label className="block text-xs text-[#4A5A50] mb-1">Farm</label>
+            <label className="block text-xs text-[#475569] mb-1">Farm</label>
             <select
               value={filterFarmId}
               onChange={(e) => {
@@ -1230,7 +1306,7 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 setFilterFieldId('all');
                 if (v !== 'all') onSelectFarm(v);
               }}
-              className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+              className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
             >
               <option value="all">All Accessible Farms ({farms.length})</option>
               {farms.map((f) => (
@@ -1241,11 +1317,11 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#4A5A50] mb-1">Field / Paddock</label>
+            <label className="block text-xs text-[#475569] mb-1">Field / Paddock</label>
             <select
               value={filterFieldId}
               onChange={(e) => setFilterFieldId(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+              className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
             >
               <option value="all">All Fields ({availableFields.length})</option>
               {availableFields.map((fl) => (
@@ -1256,11 +1332,11 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#4A5A50] mb-1">Farming Category</label>
+            <label className="block text-xs text-[#475569] mb-1">Farming Category</label>
             <select
               value={filterCategory}
               onChange={(e) => setFilterCategory(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+              className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
             >
               <option value="all">All Categories</option>
               <option value="crops">Crop Production</option>
@@ -1271,21 +1347,21 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </select>
           </div>
           <div>
-            <label className="block text-xs text-[#4A5A50] mb-1">From Date</label>
+            <label className="block text-xs text-[#475569] mb-1">From Date</label>
             <input
               type="date"
               value={filterStartDate}
               onChange={(e) => setFilterStartDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+              className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
             />
           </div>
           <div>
-            <label className="block text-xs text-[#4A5A50] mb-1">To Date</label>
+            <label className="block text-xs text-[#475569] mb-1">To Date</label>
             <input
               type="date"
               value={filterEndDate}
               onChange={(e) => setFilterEndDate(e.target.value)}
-              className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+              className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
             />
           </div>
         </div>
@@ -1295,8 +1371,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
         <div
           className={`rounded-xl border px-4 py-3 text-xs sm:text-sm ${
             isCacheStale
-              ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
-              : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#35443B]'
+              ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+              : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
           }`}
         >
           <span className="font-semibold">
@@ -1309,105 +1385,105 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
       )}
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}
 
       {loading && !d ? (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center text-sm text-[#4A5A50]">
+        <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center text-sm text-[#475569]">
           Loading operational farm metrics...
         </div>
       ) : d ? (
         <>
           {/* Clear Readability KPI Summary Cards (Database vs Estimated clearly labelled) */}
           <section className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Farms & Hectares</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Farms & Hectares</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {d.overview.totalHectares} ha
               </p>
-              <p className="text-xs text-[#4A5A50] mt-1">
+              <p className="text-xs text-[#475569] mt-1">
                 {d.overview.registeredFarmsCount} farm(s) · Database
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Registered Crops</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Registered Crops</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {d.overview.registeredCropsCount}
               </p>
-              <p className="text-xs text-[#4A5A50] font-mono tabular-nums mt-1">
+              <p className="text-xs text-[#475569] font-mono tabular-nums mt-1">
                 {d.overview.cultivatedHectares} ha · {d.overview.totalRemainingPlants.toLocaleString()} plants
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Livestock Quantity</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Livestock Quantity</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {d.overview.totalLivestockQuantity.toLocaleString()} head
               </p>
-              <p className="text-xs text-[#4A5A50] mt-1">Database herd ledger</p>
+              <p className="text-xs text-[#475569] mt-1">Database herd ledger</p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Stored Crop Stock</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Stored Crop Stock</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {d.overview.totalStoredCropKg.toLocaleString()} kg
               </p>
-              <p className="text-xs text-[#8E2424] font-mono tabular-nums mt-1">
+              <p className="text-xs text-[#B91C1C] font-mono tabular-nums mt-1">
                 Damaged: {d.overview.totalDamagedPlants.toLocaleString()} plants
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Stock Value (Estimated)</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Stock Value (Estimated)</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B3D91] mt-1">
                 R{d.overview.estimatedTotalStockValueZar.toLocaleString()}
               </p>
-              <p className="text-xs text-[#4A5A50] font-mono tabular-nums mt-1">
+              <p className="text-xs text-[#475569] font-mono tabular-nums mt-1">
                 Actual Exp: R{d.overview.actualRecordedExpensesZar.toLocaleString()}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-              <p className="text-xs text-[#4A5A50]">Active Warnings</p>
+            <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+              <p className="text-xs text-[#475569]">Active Warnings</p>
               <p
                 className={`font-mono text-xl font-bold tabular-nums mt-1 ${
-                  d.overview.activeWarningsCount > 0 ? 'text-[#9A5B13]' : 'text-[#1B4332]'
+                  d.overview.activeWarningsCount > 0 ? 'text-[#FC3D21]' : 'text-[#174C3C]'
                 }`}
               >
                 {d.overview.activeWarningsCount}
               </p>
-              <p className="text-xs text-[#4A5A50] mt-1">
+              <p className="text-xs text-[#475569] mt-1">
                 {d.overview.activeIncidentsCount} active incident(s)
               </p>
             </div>
           </section>
 
-          <p className="text-xs text-[#4A5A50] px-1">{d.overview.estimationNotice}</p>
+          <p className="text-xs text-[#475569] px-1">{d.overview.estimationNotice}</p>
 
           {/* Row 1: Weather & Warnings + Upcoming Activities + Recommended Next Actions */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
             {/* Weather Conditions & Active Agricultural Warnings */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <CloudRain className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <CloudRain className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Weather & Active Warnings
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenWeatherView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Weather Hub →
                 </button>
               </div>
-              <div className="text-xs text-[#4A5A50] space-y-1">
-                <p className="font-semibold text-[#143326] text-sm">
+              <div className="text-xs text-[#475569] space-y-1">
+                <p className="font-semibold text-[#0B1F3A] text-sm">
                   {d.weatherSummary.farmName} · {d.weatherSummary.locationLabel}
                 </p>
                 <p>{d.weatherSummary.forecastSummary}</p>
                 {d.weatherSummary.latestFarmerReport && (
-                  <p className="text-[#2D6A4F]">
+                  <p className="text-[#174C3C]">
                     Latest Farmer Report ({d.weatherSummary.latestFarmerReport.observationDate}):{' '}
                     <span className="font-mono tabular-nums">
                       {d.weatherSummary.latestFarmerReport.measuredRainfallMm ?? 0} mm
@@ -1416,9 +1492,9 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                   </p>
                 )}
               </div>
-              <div className="space-y-2 pt-2 border-t border-[#E2E6DF]">
+              <div className="space-y-2 pt-2 border-t border-[#E2E8F0]">
                 {d.weatherSummary.activeWarnings.length === 0 ? (
-                  <p className="text-xs text-[#2D6A4F]">
+                  <p className="text-xs text-[#174C3C]">
                     No active agricultural warnings for the selected farms.
                   </p>
                 ) : (
@@ -1427,8 +1503,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       key={w.id}
                       className={`rounded-xl p-3 border text-xs ${
                         w.severity === 'critical'
-                          ? 'bg-[#FDF2F2] border-[#E8B4B4] text-[#8E2424]'
-                          : 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
+                          ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+                          : 'bg-[#FFF7ED] border-[#FED7AA] text-[#9A3412]'
                       }`}
                     >
                       <p className="font-semibold">{w.title}</p>
@@ -1441,28 +1517,28 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
 
             {/* Upcoming Activities */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
-                <CalendarClock className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <CalendarClock className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Upcoming Activities
                 </h2>
               </div>
               {d.upcomingActivities.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">
+                <p className="text-sm text-[#475569]">
                   No urgent upcoming harvest dates, incident follow-ups, or weather logs due.
                 </p>
               ) : (
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {d.upcomingActivities.slice(0, 5).map((act) => (
                     <div key={act.id} className="py-2.5 space-y-0.5">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-[#143326]">{act.title}</p>
-                        <span className="text-xs font-mono tabular-nums text-[#2D6A4F] shrink-0">
+                        <p className="text-sm font-semibold text-[#0B1F3A]">{act.title}</p>
+                        <span className="text-xs font-mono tabular-nums text-[#0B3D91] shrink-0">
                           {act.dueDate}
                         </span>
                       </div>
-                      <p className="text-xs text-[#4A5A50]">
+                      <p className="text-xs text-[#475569]">
                         {act.farmName} · {act.detail}
                       </p>
                     </div>
@@ -1472,10 +1548,10 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
 
             {/* Recommended Next Actions */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <CheckCircle2 className="w-5 h-5 text-[#174C3C]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Recommended Next Actions
                 </h2>
               </div>
@@ -1483,19 +1559,19 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 {d.recommendedNextActions.map((act) => (
                   <div
                     key={act.id}
-                    className="border border-[#E2E6DF] rounded-xl p-3 flex items-center justify-between gap-3"
+                    className="border border-[#E2E8F0] rounded-xl p-3 flex items-center justify-between gap-3"
                   >
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold text-[#143326]">
+                      <p className="text-xs font-semibold text-[#0B1F3A]">
                         {act.priority === 'high' ? 'Priority · ' : ''}
                         {act.title}
                       </p>
-                      <p className="text-xs text-[#4A5A50] mt-0.5 line-clamp-2">{act.reason}</p>
+                      <p className="text-xs text-[#475569] mt-0.5 line-clamp-2">{act.reason}</p>
                     </div>
                     <button
                       type="button"
                       onClick={() => navigateActionTab(act.actionTab)}
-                      className="px-3 py-1.5 rounded-lg bg-[#EDF5EF] hover:bg-[#DCEBDD] text-[#143326] text-xs font-semibold shrink-0 cursor-pointer inline-flex items-center gap-1"
+                      className="px-3 py-1.5 rounded-lg bg-[#EFF6FF] hover:bg-[#DBEAFE] border border-[#BFDBFE] text-[#0B3D91] text-xs font-semibold shrink-0 cursor-pointer inline-flex items-center gap-1"
                     >
                       <span>{ACTION_TAB_LABELS[act.actionTab] || act.actionLabel}</span>
                       <ArrowRight className="w-3.5 h-3.5" />
@@ -1506,56 +1582,56 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
           </div>
 
-          {/* Row 2: Registered Crops & Crop Stock + Livestock & Livestock Stock + Recent Incidents + Recent AI Insights */}
+          {/* Row 2: Registered Crops & Crop Stock + Livestock & Livestock Stock */}
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Crops & Crop Stock */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Sprout className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <Sprout className="w-5 h-5 text-[#174C3C]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Registered Crops & Crop Stock
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenCropsView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Manage Crops →
                 </button>
               </div>
               {d.registeredCrops.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">No crops match the active filters.</p>
+                <p className="text-sm text-[#475569]">No crops match the active filters.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
                         <th className="py-2 pr-3 font-semibold">Crop & Field</th>
                         <th className="py-2 pr-3 font-semibold text-right">Remaining</th>
                         <th className="py-2 pr-3 font-semibold text-right">Stored kg</th>
                         <th className="py-2 font-semibold text-right">Est. Value</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {d.registeredCrops.slice(0, 6).map((c) => (
                         <tr key={c.id}>
                           <td className="py-2.5 pr-3">
-                            <p className="font-semibold text-[#143326]">
+                            <p className="font-semibold text-[#0B1F3A]">
                               {c.cropName} ({c.cropVariety})
                             </p>
-                            <p className="text-[#4A5A50]">
+                            <p className="text-[#475569]">
                               {c.farmName} · {c.fieldName} · {c.growthStage}
                             </p>
                           </td>
-                          <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-[#143326]">
+                          <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-[#0B1F3A]">
                             {c.remainingPlants.toLocaleString()}
                           </td>
-                          <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-[#143326]">
+                          <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-[#0B1F3A]">
                             {c.storedKg.toLocaleString()} kg
                           </td>
-                          <td className="py-2.5 text-right font-mono tabular-nums font-semibold text-[#1B4332]">
+                          <td className="py-2.5 text-right font-mono tabular-nums font-semibold text-[#174C3C]">
                             R{c.estimatedValueZar.toLocaleString()}
                           </td>
                         </tr>
@@ -1567,51 +1643,51 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
 
             {/* Livestock Quantities & Livestock Stock */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Beef className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <Beef className="w-5 h-5 text-[#174C3C]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Livestock Stock & Valuations (Estimated)
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenLivestockView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Manage Livestock →
                 </button>
               </div>
               {d.livestockSummary.groups.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">No livestock groups match the active filters.</p>
+                <p className="text-sm text-[#475569]">No livestock groups match the active filters.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
                         <th className="py-2 pr-3 font-semibold">Group & Breed</th>
                         <th className="py-2 pr-3 font-semibold">Health</th>
                         <th className="py-2 pr-3 font-semibold text-right">Head Count</th>
                         <th className="py-2 font-semibold text-right">Est. Value</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {d.livestockSummary.groups.slice(0, 6).map((g) => (
                         <tr key={g.id}>
                           <td className="py-2.5 pr-3">
-                            <p className="font-semibold text-[#143326]">
+                            <p className="font-semibold text-[#0B1F3A]">
                               {g.groupName} ({g.animalType})
                             </p>
-                            <p className="text-[#4A5A50]">
+                            <p className="text-[#475569]">
                               {g.breed} · {g.farmName}
                             </p>
                           </td>
-                          <td className="py-2.5 pr-3 text-[#35443B]">{g.healthStatus}</td>
-                          <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-[#143326]">
+                          <td className="py-2.5 pr-3 text-[#334155]">{g.healthStatus}</td>
+                          <td className="py-2.5 pr-3 text-right font-mono tabular-nums text-[#0B1F3A]">
                             {g.quantity.toLocaleString()}
                           </td>
-                          <td className="py-2.5 text-right font-mono tabular-nums font-semibold text-[#1B4332]">
+                          <td className="py-2.5 text-right font-mono tabular-nums font-semibold text-[#174C3C]">
                             R{g.estimatedValueZar.toLocaleString()}
                           </td>
                         </tr>
@@ -1625,43 +1701,43 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* Recent Incidents */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <AlertTriangle className="w-5 h-5 text-[#9A5B13]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <AlertTriangle className="w-5 h-5 text-[#FC3D21]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Recent Farm Incidents
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenIncidentsView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Incident Register →
                 </button>
               </div>
               {d.recentIncidents.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">No incidents recorded in the active range.</p>
+                <p className="text-sm text-[#475569]">No incidents recorded in the active range.</p>
               ) : (
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {d.recentIncidents.map((inc) => (
                     <div key={inc.id} className="py-3 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-[#143326]">{inc.title}</p>
+                        <p className="text-sm font-semibold text-[#0B1F3A]">{inc.title}</p>
                         <span
                           className={`text-xs font-semibold ${
                             inc.status === 'active'
-                              ? 'text-[#8E2424]'
+                              ? 'text-[#B91C1C]'
                               : inc.status === 'monitoring'
-                              ? 'text-[#9A5B13]'
-                              : 'text-[#1B4332]'
+                              ? 'text-[#B45309]'
+                              : 'text-[#174C3C]'
                           }`}
                         >
                           {inc.status}
                         </span>
                       </div>
-                      <p className="text-xs text-[#4A5A50]">
+                      <p className="text-xs text-[#475569]">
                         {inc.farmName} · {inc.occurredAt.slice(0, 10)} · Est. impact R
                         {inc.estimatedFinancialImpactZar.toLocaleString()}
                       </p>
@@ -1672,38 +1748,38 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
 
             {/* Recent AI Insights */}
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <Sparkles className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Recent AI Agricultural Insights (Advisory)
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={onOpenAdvisorView}
-                  className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   Open AI Advisor →
                 </button>
               </div>
               {d.recentAiInsights.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">
+                <p className="text-sm text-[#475569]">
                   No AI advisory summaries generated yet. Ask the AI Assistant or run a Visual Scan to build insight history.
                 </p>
               ) : (
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {d.recentAiInsights.slice(0, 4).map((ai) => (
                     <div key={ai.id} className="py-3 space-y-1">
                       <div className="flex items-center justify-between gap-2">
-                        <p className="text-sm font-semibold text-[#143326]">{ai.title}</p>
-                        <span className="text-xs font-mono text-[#4A5A50]">
+                        <p className="text-sm font-semibold text-[#0B1F3A]">{ai.title}</p>
+                        <span className="text-xs font-mono text-[#475569]">
                           {ai.createdAt.slice(0, 10)}
                         </span>
                       </div>
-                      <p className="text-xs text-[#35443B] line-clamp-2">{ai.summary}</p>
-                      <p className="text-[11px] text-[#4A5A50]">
+                      <p className="text-xs text-[#334155] line-clamp-2">{ai.summary}</p>
+                      <p className="text-[11px] text-[#475569]">
                         {ai.farmName || 'General'} · Advisory only (verify serious issues with an agronomist or vet)
                       </p>
                     </div>
@@ -1713,16 +1789,16 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             </section>
           </div>
 
-          {/* ANALYTICS SUITE (Clear Sub-Tabs for Older Farmer Readability) */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E2E6DF] pb-4">
+          {/* ANALYTICS SUITE */}
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-[#E2E8F0] pb-4">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-[#1B4332]" />
+                <BarChart3 className="w-5 h-5 text-[#0B3D91]" />
                 <div>
-                  <h2 className="font-display text-xl font-bold text-[#143326]">
+                  <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
                     Agricultural Analytics & Farm Comparisons
                   </h2>
-                  <p className="text-xs text-[#4A5A50]">
+                  <p className="text-xs text-[#475569]">
                     Select a section below to inspect database trends, stock movements, expenses, damage, and weather impact.
                   </p>
                 </div>
@@ -1741,10 +1817,10 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                     key={tab.id}
                     type="button"
                     onClick={() => setAnalyticsTab(tab.id)}
-                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                    className={`px-3.5 py-2 rounded-xl text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap min-h-[38px] ${
                       analyticsTab === tab.id
-                        ? 'bg-[#1B4332] text-white'
-                        : 'bg-[#F6F7F4] text-[#35443B] hover:bg-[#EDF2EC]'
+                        ? 'bg-[#0B3D91] text-white'
+                        : 'bg-[#F8FAFC] border border-[#CBD5E1] text-[#334155] hover:bg-[#EFF6FF]'
                     }`}
                   >
                     {tab.label}
@@ -1756,12 +1832,12 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             {analyticsTab === 'production' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Crop Performance Chart */}
-                <div className="border border-[#E2E6DF] rounded-xl p-4 space-y-3">
-                  <h3 className="font-display font-bold text-[#143326] text-base">
+                <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-3">
+                  <h3 className="font-display font-bold text-[#0B1F3A] text-base">
                     Crop Performance (Remaining vs Damaged & Harvested kg)
                   </h3>
                   {d.analytics.cropPerformance.length === 0 ? (
-                    <p className="text-xs text-[#4A5A50]">No crop records available.</p>
+                    <p className="text-xs text-[#475569]">No crop records available.</p>
                   ) : (
                     <div className="space-y-3">
                       {(() => {
@@ -1775,22 +1851,22 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                           return (
                             <div key={c.label} className="space-y-1 text-xs">
                               <div className="flex justify-between gap-2">
-                                <span className="font-semibold text-[#143326] truncate">
+                                <span className="font-semibold text-[#0B1F3A] truncate">
                                   {c.label}
                                 </span>
-                                <span className="font-mono tabular-nums text-[#4A5A50] shrink-0">
+                                <span className="font-mono tabular-nums text-[#475569] shrink-0">
                                   {c.harvestedKg.toLocaleString()} kg · Est. R
                                   {c.estimatedValueZar.toLocaleString()}
                                 </span>
                               </div>
-                              <div className="h-3 bg-[#EDF2EC] rounded-full overflow-hidden flex">
+                              <div className="h-3 bg-[#E2E8F0] rounded-full overflow-hidden flex">
                                 <div
-                                  className="bg-[#2D6A4F] h-full"
+                                  className="bg-[#174C3C] h-full"
                                   style={{ width: `${Math.max(3, remPct)}%` }}
                                 />
                                 {dmgPct > 0 && (
                                   <div
-                                    className="bg-[#C05621] h-full"
+                                    className="bg-[#FC3D21] h-full"
                                     style={{ width: `${Math.max(2, dmgPct)}%` }}
                                   />
                                 )}
@@ -1799,16 +1875,16 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                           );
                         });
                       })()}
-                      <p className="text-[11px] text-[#4A5A50]">
-                        Green: Remaining standing plants · Amber/Red: Damaged plants
+                      <p className="text-[11px] text-[#475569]">
+                        Green: Remaining standing plants · Red: Damaged plants
                       </p>
                     </div>
                   )}
                 </div>
 
                 {/* Livestock Performance & Production Trends */}
-                <div className="border border-[#E2E6DF] rounded-xl p-4 space-y-4">
-                  <h3 className="font-display font-bold text-[#143326] text-base">
+                <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-4">
+                  <h3 className="font-display font-bold text-[#0B1F3A] text-base">
                     Livestock Performance & Production Trends
                   </h3>
                   {d.analytics.livestockPerformance.length > 0 && (
@@ -1816,17 +1892,17 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       {d.analytics.livestockPerformance.map((l) => (
                         <div
                           key={l.animalType}
-                          className="flex items-center justify-between text-xs border-b border-[#EDF2EC] pb-2"
+                          className="flex items-center justify-between text-xs border-b border-[#E2E8F0] pb-2"
                         >
                           <div>
-                            <p className="font-semibold text-[#143326]">{l.animalType}</p>
-                            <p className="text-[#4A5A50]">
+                            <p className="font-semibold text-[#0B1F3A]">{l.animalType}</p>
+                            <p className="text-[#475569]">
                               +{l.birthsAndPurchases} births/purchases · -{l.deathsAndSales} deaths/sales
                             </p>
                           </div>
                           <div className="text-right font-mono tabular-nums">
-                            <p className="font-bold text-[#143326]">{l.headCount} head</p>
-                            <p className="text-[#2D6A4F]">
+                            <p className="font-bold text-[#0B1F3A]">{l.headCount} head</p>
+                            <p className="text-[#174C3C]">
                               Est. R{l.estimatedValueZar.toLocaleString()}
                             </p>
                           </div>
@@ -1837,8 +1913,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
 
                   {d.analytics.productionTrends.length > 0 && (
                     <div className="pt-2 space-y-2">
-                      <p className="text-xs font-semibold text-[#143326] flex items-center gap-1.5">
-                        <TrendingUp className="w-4 h-4 text-[#2D6A4F]" />
+                      <p className="text-xs font-semibold text-[#0B1F3A] flex items-center gap-1.5">
+                        <TrendingUp className="w-4 h-4 text-[#0B3D91]" />
                         <span>Monthly Production Trends (Database)</span>
                       </p>
                       <div className="space-y-2">
@@ -1847,8 +1923,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                             key={pt.period}
                             className="flex items-center justify-between text-xs font-mono tabular-nums"
                           >
-                            <span className="font-semibold text-[#143326]">{pt.period}</span>
-                            <span className="text-[#35443B]">
+                            <span className="font-semibold text-[#0B1F3A]">{pt.period}</span>
+                            <span className="text-[#334155]">
                               Harvest: {pt.harvestKg.toLocaleString()} kg · Livestock: {pt.livestockUnits} · Feed:{' '}
                               {pt.mixedFeedKg.toLocaleString()} kg
                             </span>
@@ -1864,35 +1940,35 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             {analyticsTab === 'stock_finance' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Stock Changes */}
-                <div className="border border-[#E2E6DF] rounded-xl p-4 space-y-3">
+                <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-3">
                   <div className="flex items-center justify-between">
-                    <h3 className="font-display font-bold text-[#143326] text-base flex items-center gap-2">
-                      <Package className="w-4 h-4 text-[#1B4332]" />
+                    <h3 className="font-display font-bold text-[#0B1F3A] text-base flex items-center gap-2">
+                      <Package className="w-4 h-4 text-[#0B3D91]" />
                       <span>Recent Stock Changes</span>
                     </h3>
                     <button
                       type="button"
                       onClick={onOpenStockView}
-                      className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                      className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                     >
                       Full Ledger →
                     </button>
                   </div>
                   {d.analytics.stockChanges.length === 0 ? (
-                    <p className="text-xs text-[#4A5A50]">No stock movements in selected range.</p>
+                    <p className="text-xs text-[#475569]">No stock movements in selected range.</p>
                   ) : (
-                    <div className="divide-y divide-[#EDF2EC]">
+                    <div className="divide-y divide-[#E2E8F0]">
                       {d.analytics.stockChanges.slice(0, 8).map((sc) => (
                         <div key={sc.id} className="py-2 flex items-center justify-between gap-2 text-xs">
                           <div>
-                            <p className="font-semibold text-[#143326]">
+                            <p className="font-semibold text-[#0B1F3A]">
                               {sc.itemLabel} ({sc.movementType})
                             </p>
-                            <p className="text-[#4A5A50] font-mono tabular-nums">{sc.date}</p>
+                            <p className="text-[#475569] font-mono tabular-nums">{sc.date}</p>
                           </div>
                           <div className="text-right font-mono tabular-nums">
-                            <p className="font-bold text-[#143326]">{sc.deltaLabel}</p>
-                            <p className="text-[#4A5A50]">
+                            <p className="font-bold text-[#0B1F3A]">{sc.deltaLabel}</p>
+                            <p className="text-[#475569]">
                               Est. R{sc.estimatedValueDeltaZar.toLocaleString()}
                             </p>
                           </div>
@@ -1903,20 +1979,20 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 </div>
 
                 {/* Expense Summaries (Actual vs Estimated Budget) */}
-                <div className="border border-[#E2E6DF] rounded-xl p-4 space-y-4">
-                  <h3 className="font-display font-bold text-[#143326] text-base">
+                <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-4">
+                  <h3 className="font-display font-bold text-[#0B1F3A] text-base">
                     Expense Summary (Actual Database Ledger vs Estimated Budget)
                   </h3>
                   <div className="grid grid-cols-2 gap-3 text-xs">
-                    <div className="p-3 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Total Actual Expenses (Database)</p>
-                      <p className="font-mono text-lg font-bold tabular-nums text-[#143326] mt-0.5">
+                    <div className="p-3 rounded-lg bg-[#F8FAFC] border border-[#E2E8F0]">
+                      <p className="text-[#475569]">Total Actual Expenses (Database)</p>
+                      <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                         R{d.analytics.expenseSummaries.totalActualExpensesZar.toLocaleString()}
                       </p>
                     </div>
-                    <div className="p-3 rounded-lg bg-[#EDF5EF]">
-                      <p className="text-[#4A5A50]">Planned Budget (Estimated)</p>
-                      <p className="font-mono text-lg font-bold tabular-nums text-[#1B4332] mt-0.5">
+                    <div className="p-3 rounded-lg bg-[#EFF6FF] border border-[#BFDBFE]">
+                      <p className="text-[#0B3D91]">Planned Budget (Estimated)</p>
+                      <p className="font-mono text-lg font-bold tabular-nums text-[#0B3D91] mt-0.5">
                         R{d.analytics.expenseSummaries.estimatedPlannedBudgetZar.toLocaleString()}
                       </p>
                     </div>
@@ -1931,14 +2007,14 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       return (
                         <div key={cat.label} className="space-y-1 text-xs">
                           <div className="flex justify-between">
-                            <span className="text-[#17201B]">{cat.label}</span>
+                            <span className="text-[#0F172A]">{cat.label}</span>
                             <span className="font-mono font-semibold tabular-nums">
                               R{cat.amountZar.toLocaleString()}
                             </span>
                           </div>
-                          <div className="h-2.5 bg-[#EDF2EC] rounded-full overflow-hidden">
+                          <div className="h-2.5 bg-[#E2E8F0] rounded-full overflow-hidden">
                             <div
-                              className="h-full bg-[#1B4332]"
+                              className="h-full bg-[#0B3D91]"
                               style={{ width: `${Math.max(cat.amountZar > 0 ? 4 : 0, pct)}%` }}
                             />
                           </div>
@@ -1946,18 +2022,18 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       );
                     })}
                   </div>
-                  <div className="flex gap-2">
+                  <div className="flex gap-3">
                     <button
                       type="button"
                       onClick={onOpenMixedView}
-                      className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                      className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                     >
                       Log Farm Expense →
                     </button>
                     <button
                       type="button"
                       onClick={onOpenPlannerView}
-                      className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                      className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                     >
                       Compare in Business Planner →
                     </button>
@@ -1969,32 +2045,32 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             {analyticsTab === 'damage_weather' && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Damage & Loss Summary */}
-                <div className="border border-[#E2E6DF] rounded-xl p-4 space-y-3">
-                  <h3 className="font-display font-bold text-[#143326] text-base">
+                <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-3">
+                  <h3 className="font-display font-bold text-[#0B1F3A] text-base">
                     Damage & Loss Summary
                   </h3>
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                    <div className="p-2.5 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Incidents</p>
-                      <p className="font-mono font-bold tabular-nums text-[#143326] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#F8FAFC]">
+                      <p className="text-[#475569]">Incidents</p>
+                      <p className="font-mono font-bold tabular-nums text-[#0B1F3A] text-base">
                         {d.analytics.damageAndLoss.totalIncidents}
                       </p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Affected Plants</p>
-                      <p className="font-mono font-bold tabular-nums text-[#8E2424] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#F8FAFC]">
+                      <p className="text-[#475569]">Affected Plants</p>
+                      <p className="font-mono font-bold tabular-nums text-[#B91C1C] text-base">
                         {d.analytics.damageAndLoss.affectedPlants.toLocaleString()}
                       </p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Affected Ha</p>
-                      <p className="font-mono font-bold tabular-nums text-[#143326] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#F8FAFC]">
+                      <p className="text-[#475569]">Affected Ha</p>
+                      <p className="font-mono font-bold tabular-nums text-[#0B1F3A] text-base">
                         {d.analytics.damageAndLoss.affectedHectares}
                       </p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-[#FDF2F2]">
-                      <p className="text-[#8E2424]">Est. Impact</p>
-                      <p className="font-mono font-bold tabular-nums text-[#8E2424] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#FEF2F2] border border-[#FECACA]">
+                      <p className="text-[#B91C1C]">Est. Impact</p>
+                      <p className="font-mono font-bold tabular-nums text-[#B91C1C] text-base">
                         R{d.analytics.damageAndLoss.estimatedFinancialImpactZar.toLocaleString()}
                       </p>
                     </div>
@@ -2003,12 +2079,12 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                     {d.analytics.damageAndLoss.byIncidentType.map((row) => (
                       <div
                         key={row.typeLabel}
-                        className="flex justify-between text-xs border-b border-[#EDF2EC] py-1.5"
+                        className="flex justify-between text-xs border-b border-[#E2E8F0] py-1.5"
                       >
-                        <span className="font-medium text-[#143326] capitalize">
+                        <span className="font-medium text-[#0B1F3A] capitalize">
                           {row.typeLabel.replace(/_/g, ' ')} ({row.count})
                         </span>
-                        <span className="font-mono tabular-nums text-[#8E2424]">
+                        <span className="font-mono tabular-nums text-[#B91C1C]">
                           Est. R{row.estimatedImpactZar.toLocaleString()}
                         </span>
                       </div>
@@ -2017,26 +2093,26 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 </div>
 
                 {/* Weather Impact Summary */}
-                <div className="border border-[#E2E6DF] rounded-xl p-4 space-y-3">
-                  <h3 className="font-display font-bold text-[#143326] text-base">
+                <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-3">
+                  <h3 className="font-display font-bold text-[#0B1F3A] text-base">
                     Weather Impact & Forecast vs Reported Rain
                   </h3>
                   <div className="grid grid-cols-3 gap-2 text-xs">
-                    <div className="p-2.5 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Forecast Days</p>
-                      <p className="font-mono font-bold tabular-nums text-[#143326] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#F8FAFC]">
+                      <p className="text-[#475569]">Forecast Days</p>
+                      <p className="font-mono font-bold tabular-nums text-[#0B1F3A] text-base">
                         {d.analytics.weatherImpact.storedForecastDays}
                       </p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Farmer Reports</p>
-                      <p className="font-mono font-bold tabular-nums text-[#143326] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#F8FAFC]">
+                      <p className="text-[#475569]">Farmer Reports</p>
+                      <p className="font-mono font-bold tabular-nums text-[#0B1F3A] text-base">
                         {d.analytics.weatherImpact.farmerObservationsCount}
                       </p>
                     </div>
-                    <div className="p-2.5 rounded-lg bg-[#F6F7F4]">
-                      <p className="text-[#4A5A50]">Avg Rain Diff</p>
-                      <p className="font-mono font-bold tabular-nums text-[#1B4332] text-base">
+                    <div className="p-2.5 rounded-lg bg-[#F8FAFC]">
+                      <p className="text-[#475569]">Avg Rain Diff</p>
+                      <p className="font-mono font-bold tabular-nums text-[#0B3D91] text-base">
                         {d.analytics.weatherImpact.avgRainfallVarianceMm != null
                           ? `${d.analytics.weatherImpact.avgRainfallVarianceMm > 0 ? '+' : ''}${d.analytics.weatherImpact.avgRainfallVarianceMm} mm`
                           : 'N/A'}
@@ -2054,20 +2130,20 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       return (
                         <div key={day.date} className="space-y-1 text-xs">
                           <div className="flex justify-between font-mono tabular-nums">
-                            <span className="text-[#143326] font-semibold">{day.date}</span>
-                            <span className="text-[#4A5A50]">
+                            <span className="text-[#0B1F3A] font-semibold">{day.date}</span>
+                            <span className="text-[#475569]">
                               Forecast: {day.forecastRainMm} mm · Reported:{' '}
                               {day.reportedRainMm != null ? `${day.reportedRainMm} mm` : 'Not logged'}
                             </span>
                           </div>
                           <div className="space-y-1">
                             <div
-                              className="h-2 bg-[#4A7C59] rounded-full"
+                              className="h-2 bg-[#0B3D91] rounded-full"
                               style={{ width: `${Math.max(2, (day.forecastRainMm / maxMm) * 100)}%` }}
                             />
                             {day.reportedRainMm != null && (
                               <div
-                                className="h-2 bg-[#143326] rounded-full"
+                                className="h-2 bg-[#174C3C] rounded-full"
                                 style={{
                                   width: `${Math.max(2, (day.reportedRainMm / maxMm) * 100)}%`,
                                 }}
@@ -2086,7 +2162,7 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs sm:text-sm">
                   <thead>
-                    <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                    <tr className="border-b border-[#E2E8F0] text-[#475569]">
                       <th className="py-2.5 pr-4 font-semibold">Farm & Province</th>
                       <th className="py-2.5 pr-4 font-semibold text-right">Hectares</th>
                       <th className="py-2.5 pr-4 font-semibold text-right">Fields</th>
@@ -2097,12 +2173,12 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                       <th className="py-2.5 font-semibold text-right">Active Incidents</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E6DF]">
+                  <tbody className="divide-y divide-[#E2E8F0]">
                     {d.farmsSummary.map((f) => (
                       <tr key={f.id}>
                         <td className="py-3 pr-4">
-                          <p className="font-semibold text-[#143326]">{f.name}</p>
-                          <p className="text-xs text-[#4A5A50]">
+                          <p className="font-semibold text-[#0B1F3A]">{f.name}</p>
+                          <p className="text-xs text-[#475569]">
                             {f.district}, {f.province}
                           </p>
                         </td>
@@ -2114,14 +2190,14 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                         <td className="py-3 pr-4 text-right font-mono tabular-nums">
                           {f.livestockCount}
                         </td>
-                        <td className="py-3 pr-4 text-right font-mono tabular-nums font-semibold text-[#1B4332]">
+                        <td className="py-3 pr-4 text-right font-mono tabular-nums font-semibold text-[#174C3C]">
                           R{f.estimatedStockValueZar.toLocaleString()}
                         </td>
                         <td className="py-3 pr-4 text-right font-mono tabular-nums">
                           R{f.actualExpensesZar.toLocaleString()}
                         </td>
                         <td className="py-3 text-right font-mono tabular-nums">
-                          <span className={f.activeIncidentsCount > 0 ? 'text-[#8E2424] font-bold' : ''}>
+                          <span className={f.activeIncidentsCount > 0 ? 'text-[#B91C1C] font-bold' : ''}>
                             {f.activeIncidentsCount}
                           </span>
                         </td>
@@ -2145,10 +2221,10 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
                 key={item.label}
                 type="button"
                 onClick={item.fn}
-                className="bg-white border border-[#E2E6DF] hover:border-[#1B4332] rounded-xl px-4 py-3 text-sm font-semibold text-[#143326] flex items-center justify-between cursor-pointer"
+                className="bg-white border border-[#CBD5E1] hover:border-[#0B3D91] rounded-xl px-4 py-3 text-sm font-semibold text-[#0B1F3A] flex items-center justify-between cursor-pointer min-h-[44px]"
               >
                 <span>{item.label}</span>
-                <Activity className="w-4 h-4 text-[#2D6A4F]" />
+                <Activity className="w-4 h-4 text-[#0B3D91]" />
               </button>
             ))}
           </div>

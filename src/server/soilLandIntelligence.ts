@@ -767,3 +767,238 @@ export async function getFarmSoilAndLandIntelligence(
     suitabilityOptions,
   };
 }
+
+export async function getSiteSoilAndLandIntelligence(params: {
+  province: string;
+  district?: string;
+  townOrArea?: string;
+  latitude?: number;
+  longitude?: number;
+  siteName?: string;
+  farmSizeHectares?: number;
+  waterAvailability?: string;
+  selectedFarmingType?: string;
+}): Promise<SoilLandIntelligencePayload> {
+  const prov =
+    SOUTH_AFRICA_PROVINCES.find((p) => p.name === params.province) ||
+    SOUTH_AFRICA_PROVINCES[0];
+  const lat =
+    typeof params.latitude === 'number' && Number.isFinite(params.latitude)
+      ? params.latitude
+      : prov.centerLat;
+  const lng =
+    typeof params.longitude === 'number' && Number.isFinite(params.longitude)
+      ? params.longitude
+      : prov.centerLng;
+  const siteId = `site-${prov.code}`;
+  const district = params.district || prov.districts[0] || prov.capital;
+  const town = params.townOrArea || prov.capital;
+  const waterAvailability =
+    params.waterAvailability || 'Candidate Site Water Access Unverified';
+
+  const syntheticFarm: Farm = {
+    id: siteId,
+    ownerId: 'site-preview',
+    name: params.siteName || `${prov.name} Candidate Site (${town})`,
+    farmingActivities: params.selectedFarmingType
+      ? [params.selectedFarmingType]
+      : ['Mixed Planning'],
+    farmSizeHectares:
+      typeof params.farmSizeHectares === 'number' && params.farmSizeHectares > 0
+        ? params.farmSizeHectares
+        : 5,
+    yearsOfExperience: 0,
+    waterAvailability,
+    existingCrops: [],
+    existingLivestock: [],
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  const syntheticLocation: FarmLocation = {
+    id: `loc-${siteId}`,
+    farmId: siteId,
+    province: prov.name,
+    districtMunicipality: district,
+    localMunicipality: town,
+    townOrVillage: town,
+    latitude: lat,
+    longitude: lng,
+    locationSource: 'municipal_center',
+    gpsLatitude: null,
+    gpsLongitude: null,
+    gpsAccuracyMeters: null,
+    gpsCapturedAt: null,
+    centroidWkt: `POINT(${lng} ${lat})`,
+    elevationMeters: estimateSaElevationMeters(prov.name, lat, lng),
+  };
+
+  const regionalProfile = getProvinceSoilTemperatureProfile(prov.name);
+  const remote = await fetchRemoteElevationAndSoilGrids(lat, lng);
+  const elevationMeters =
+    remote.elevationMeters ?? estimateSaElevationMeters(prov.name, lat, lng);
+
+  const mappedTexture = classifyTexture(
+    remote.soilGrids.clayPct,
+    remote.soilGrids.sandPct,
+    remote.soilGrids.siltPct
+  );
+  const mappedAwc = estimateAwcMmPerM(mappedTexture);
+  const mappedDrainage = estimateDrainageFromClay(remote.soilGrids.clayPct);
+
+  const soilMetrics: SoilMetricPoint[] = [
+    {
+      key: 'ph',
+      label: 'Soil pH (H₂O)',
+      labValue: null,
+      mappedEstimate: remote.soilGrids.phWater != null ? `~${remote.soilGrids.phWater}` : null,
+      unit: 'pH',
+      sourceType: remote.soilGrids.phWater != null ? 'mapped_estimate' : 'not_measured',
+      sourceNote:
+        remote.soilGrids.phWater != null
+          ? 'ISRIC SoilGrids 250m Mapped Estimate (candidate site)'
+          : 'Requires on-site composite lab sample',
+    },
+    {
+      key: 'texture',
+      label: 'Soil Texture',
+      labValue: null,
+      mappedEstimate: mappedTexture
+        ? `${mappedTexture} (${remote.soilGrids.clayPct}% clay / ${remote.soilGrids.sandPct}% sand)`
+        : null,
+      unit: 'Class & %',
+      sourceType: mappedTexture ? 'mapped_estimate' : 'not_measured',
+      sourceNote: mappedTexture
+        ? 'ISRIC SoilGrids 250m Mapped Estimate'
+        : 'Requires on-site particle size test',
+    },
+    {
+      key: 'om',
+      label: 'Soil Organic Matter',
+      labValue: null,
+      mappedEstimate:
+        remote.soilGrids.organicMatterPct != null ? `~${remote.soilGrids.organicMatterPct}%` : null,
+      unit: '% OM',
+      sourceType: remote.soilGrids.organicMatterPct != null ? 'mapped_estimate' : 'not_measured',
+      sourceNote:
+        remote.soilGrids.organicMatterPct != null
+          ? 'Derived from SoilGrids Organic Carbon'
+          : 'Awaiting lab sample',
+    },
+    {
+      key: 'fertility',
+      label: 'Fertility & CEC Indicator',
+      labValue: null,
+      mappedEstimate:
+        remote.soilGrids.cecCmolKg != null
+          ? `CEC ~${remote.soilGrids.cecCmolKg} cmol/kg`
+          : null,
+      unit: 'cmol(+)/kg',
+      sourceType: remote.soilGrids.cecCmolKg != null ? 'mapped_estimate' : 'not_measured',
+      sourceNote:
+        remote.soilGrids.cecCmolKg != null
+          ? 'ISRIC SoilGrids CEC Estimate'
+          : 'Requires lab CEC test',
+    },
+    {
+      key: 'nutrients',
+      label: 'Primary Nutrients (N · P · K)',
+      labValue: null,
+      mappedEstimate:
+        remote.soilGrids.nitrogenGKg != null
+          ? `Total N ~${remote.soilGrids.nitrogenGKg} g/kg (P & K require lab test)`
+          : null,
+      unit: 'mg/kg',
+      sourceType: remote.soilGrids.nitrogenGKg != null ? 'mapped_estimate' : 'not_measured',
+      sourceNote: 'P & K cannot be estimated by satellite; take a 0–20 cm soil sample before lease/purchase',
+    },
+    {
+      key: 'drainage',
+      label: 'Soil Drainage',
+      labValue: null,
+      mappedEstimate: mappedDrainage,
+      unit: 'Class',
+      sourceType: mappedDrainage ? 'mapped_estimate' : 'not_measured',
+      sourceNote: 'Inferred from mapped clay %; confirm with a test pit on site',
+    },
+    {
+      key: 'awc',
+      label: 'Water-Holding Capacity (AWC)',
+      labValue: null,
+      mappedEstimate: mappedAwc != null ? `~${mappedAwc} mm/m` : null,
+      unit: 'mm/m',
+      sourceType: mappedAwc != null ? 'mapped_estimate' : 'not_measured',
+      sourceNote: mappedAwc != null ? 'Estimated from mapped texture class' : 'Not measured yet',
+    },
+  ];
+
+  const suitabilityOptions = computeLandSuitability({
+    farm: syntheticFarm,
+    location: syntheticLocation,
+    fields: [],
+    latestLabReport: null,
+    soilGrids: remote.soilGrids,
+    selectedFarmingType: params.selectedFarmingType,
+  });
+
+  return {
+    farmId: syntheticFarm.id,
+    farmName: syntheticFarm.name,
+    fetchedAt: new Date().toISOString(),
+    coordinates: {
+      latitude: lat,
+      longitude: lng,
+      locationSource: 'municipal_center',
+    },
+    landIntelligence: {
+      elevationMeters,
+      elevationSource: remote.elevationSource,
+      terrainProfile: `${regionalProfile.terrain} (${district})`,
+      climateZone: prov.climateZone,
+      annualRainfallPattern: prov.annualRainfallMm,
+      temperaturePattern: regionalProfile.tempPattern,
+      environmentalConditions: regionalProfile.envConditions,
+      waterAvailabilitySummary: waterAvailability,
+    },
+    dataSources: [
+      {
+        id: 'src-lab',
+        name: 'Site Soil Laboratory Sample Status',
+        providerType: 'laboratory',
+        status: 'unavailable',
+        summary: 'Candidate site preview — collect a 0–20 cm soil sample before buying land or committing input capital.',
+        lastUpdated: null,
+      },
+      {
+        id: 'src-soilgrids',
+        name: 'ISRIC SoilGrids v2.0 Geospatial Soil Dataset',
+        providerType: 'satellite_grid',
+        status: remote.soilGrids.available ? 'connected' : 'unavailable',
+        summary: remote.soilGrids.note,
+        lastUpdated: remote.soilGrids.available ? new Date().toISOString() : null,
+      },
+      {
+        id: 'src-arc',
+        name: 'Agricultural Research Council (ARC-ISCW) Land Type Reference',
+        providerType: 'national_dataset',
+        status: 'reference_only',
+        summary: `${regionalProfile.arcLandTypeRef}. Broad land-type context; does not replace site inspection.`,
+        lastUpdated: null,
+      },
+      {
+        id: 'src-dalrrd',
+        name: 'Department of Agriculture (DALRRD) Geospatial & Land Capability Adapter',
+        providerType: 'national_dataset',
+        status: 'reference_only',
+        summary: `Configured for ${prov.name} / ${district}.`,
+        lastUpdated: null,
+      },
+    ],
+    hasLabReport: false,
+    latestLabReport: null,
+    allLabReports: [],
+    soilMetrics,
+    suitabilityOptions,
+  };
+}

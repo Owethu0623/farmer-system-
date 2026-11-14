@@ -424,10 +424,10 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Farm Incident & Damage Management
           </h1>
-          <p className="text-sm text-[#4A5A50]">
+          <p className="text-sm text-[#475569]">
             Report weather, pest, disease, livestock, equipment, or infrastructure incidents and track validated remaining stock.
           </p>
         </div>
@@ -436,7 +436,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
           <select
             value={selectedFarmId || ''}
             onChange={(e) => onSelectFarm(e.target.value || null)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold text-[#143326]"
+            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A]"
           >
             <option value="">All Accessible Farms</option>
             {farms.map((f) => (
@@ -452,7 +452,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
               setFormFarmId(selectedFarmId || farms[0]?.id || '');
               setCreateOpen(true);
             }}
-            className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#143326] text-white text-sm font-semibold hover:bg-[#1B4332] flex items-center gap-2 cursor-pointer"
+            className="min-h-[44px] px-4 py-2.5 rounded-xl bg-[#0B3D91] text-white text-sm font-semibold hover:bg-[#082E70] flex items-center gap-2 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Report Incident</span>
@@ -461,26 +461,26 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
       </div>
 
       {/* Monitoring / Non-Insurance Notice */}
-      <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-2xl p-4 flex items-start gap-2.5 text-xs text-[#143326]">
-        <Info className="w-4 h-4 text-[#1B4332] shrink-0 mt-0.5" />
+      <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl p-4 flex items-start gap-2.5 text-xs text-[#0B1F3A]">
+        <Info className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />
         <div>
           <p className="font-bold">Agricultural Monitoring & Decision Support Only</p>
-          <p className="text-[#2D4B3B] mt-0.5 leading-relaxed">
+          <p className="text-[#334155] mt-0.5 leading-relaxed">
             This module tracks operational damage, preserves original planted/herd baselines, updates remaining stock transparently, and logs audit history for farm management. It does not perform formal insurance underwriting or claim adjudication.
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] rounded-xl px-4 py-3 text-sm text-[#8E2424]">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] rounded-xl px-4 py-3 text-sm text-[#B91C1C]">
           {error}
         </div>
       )}
 
       {successMsg && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl px-4 py-3 text-sm text-[#143326] flex items-center justify-between gap-2">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl px-4 py-3 text-sm text-[#174C3C] flex items-center justify-between gap-2">
           <span className="flex items-center gap-2 font-medium">
-            <CheckCircle2 className="w-4 h-4 text-[#1B4332]" />
+            <CheckCircle2 className="w-4 h-4 text-[#174C3C] shrink-0" />
             {successMsg}
           </span>
           <button type="button" onClick={() => setSuccessMsg(null)} className="cursor-pointer">
@@ -490,46 +490,46 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
       )}
 
       {loading || !dashboard ? (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center text-sm text-[#4A5A50]">
+        <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center text-sm text-[#475569]">
           Loading incident and damage history...
         </div>
       ) : (
         <>
           {/* Summary KPI Strip */}
           <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Active Incidents</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#8E2424] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Active Incidents</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#B91C1C] mt-1">
                 {dashboard.summary.activeCount}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Monitoring</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#8A5A00] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Monitoring</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#92400E] mt-1">
                 {dashboard.summary.monitoringCount}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Resolved</p>
-              <p className="font-mono text-2xl font-bold tabular-nums text-[#1B4332] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Resolved</p>
+              <p className="font-mono text-2xl font-bold tabular-nums text-[#174C3C] mt-1">
                 {dashboard.summary.resolvedCount}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Est. Financial Impact</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Est. Financial Impact</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 R{dashboard.summary.totalFinancialImpactZar.toLocaleString()}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Affected Plants</p>
-              <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Affected Plants</p>
+              <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {dashboard.summary.totalAffectedCropPlants.toLocaleString()}
               </p>
             </div>
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-4">
-              <p className="text-xs text-[#4A5A50]">Affected Area / Livestock</p>
-              <p className="font-mono text-lg font-bold tabular-nums text-[#143326] mt-1">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-4">
+              <p className="text-xs text-[#475569]">Affected Area / Livestock</p>
+              <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A] mt-1">
                 {dashboard.summary.totalAffectedHectares} ha · {dashboard.summary.totalAffectedLivestockHead} head
               </p>
             </div>
@@ -544,8 +544,8 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 onClick={() => setStatusFilter(st)}
                 className={`min-h-[40px] px-4 py-2 rounded-xl border text-xs font-semibold capitalize cursor-pointer inline-flex items-center gap-1.5 ${
                   statusFilter === st
-                    ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                    : 'bg-white text-[#17201B] border-[#D4DDD2] hover:bg-[#F6F7F4]'
+                    ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                    : 'bg-white text-[#0F172A] border-[#CBD5E1] hover:bg-[#F1F5F9]'
                 }`}
               >
                 {st === 'audit' && <History className="w-3.5 h-3.5" />}
@@ -562,42 +562,42 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
           {/* Audit History View */}
           {statusFilter === 'audit' ? (
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
               <div className="flex items-center gap-2">
-                <History className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <History className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Immutable Damage & Incident Audit History
                 </h2>
               </div>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 Original planted and herd records are preserved permanently. Every reported incident, validated stock deduction, status change, and follow-up is logged chronologically below.
               </p>
               {!dashboard.auditHistory || dashboard.auditHistory.length === 0 ? (
-                <p className="text-sm text-[#4A5A50]">No incident audit entries recorded yet.</p>
+                <p className="text-sm text-[#475569]">No incident audit entries recorded yet.</p>
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
                         <th className="py-2 pr-3 font-semibold">Timestamp</th>
                         <th className="py-2 pr-3 font-semibold">Actor</th>
                         <th className="py-2 pr-3 font-semibold">Event</th>
                         <th className="py-2 font-semibold">Validated Record Details</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {dashboard.auditHistory.map((log) => (
                         <tr key={log.id}>
-                          <td className="py-2.5 pr-3 font-mono tabular-nums text-[#4A5A50] whitespace-nowrap">
+                          <td className="py-2.5 pr-3 font-mono tabular-nums text-[#475569] whitespace-nowrap">
                             {new Date(log.createdAt).toLocaleString()}
                           </td>
-                          <td className="py-2.5 pr-3 text-[#143326] font-medium">
+                          <td className="py-2.5 pr-3 text-[#0B1F3A] font-medium">
                             {log.actorEmail || log.actorUserId || 'System'}
                           </td>
-                          <td className="py-2.5 pr-3 font-mono font-semibold text-[#1B4332]">
+                          <td className="py-2.5 pr-3 font-mono font-semibold text-[#0B3D91]">
                             {log.action.replace(/_/g, ' ')}
                           </td>
-                          <td className="py-2.5 text-[#35443B] font-mono text-[11px]">
+                          <td className="py-2.5 text-[#334155] font-mono text-[11px]">
                             {Object.entries(log.details || {})
                               .filter(([k]) => k !== 'farmId')
                               .map(([k, v]) => `${k}: ${String(v)}`)
@@ -611,12 +611,12 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
               )}
             </section>
           ) : filteredIncidents.length === 0 ? (
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center space-y-2">
-              <AlertOctagon className="w-8 h-8 text-[#2D6A4F] mx-auto" />
-              <p className="font-display font-bold text-[#143326]">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-center space-y-2">
+              <AlertOctagon className="w-8 h-8 text-[#0B3D91] mx-auto" />
+              <p className="font-display font-bold text-[#0B1F3A]">
                 No incidents recorded under this filter
               </p>
-              <p className="text-sm text-[#4A5A50]">
+              <p className="text-sm text-[#475569]">
                 Use “Report Incident” above or convert a visual inspection into a tracked incident.
               </p>
             </div>
@@ -625,12 +625,12 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
               {filteredIncidents.map((inc) => (
                 <article
                   key={inc.id}
-                  className="bg-white border border-[#E2E6DF] rounded-2xl p-5 sm:p-6 space-y-4"
+                  className="bg-white border border-[#E2E8F0] rounded-2xl p-5 sm:p-6 space-y-4"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-4">
                     <div className="space-y-1">
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#4A5A50]">
-                        <span className="font-bold uppercase text-[#143326]">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-[#475569]">
+                        <span className="font-bold uppercase text-[#0B1F3A]">
                           {INCIDENT_TYPE_OPTIONS.find((o) => o.value === inc.incidentType)?.label ||
                             inc.incidentType}
                         </span>
@@ -642,7 +642,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                         {inc.cropName && <span>· {inc.cropName}</span>}
                         {inc.livestockGroupName && <span>· {inc.livestockGroupName}</span>}
                       </div>
-                      <h2 className="font-display text-lg font-bold text-[#143326]">
+                      <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                         {inc.title}
                       </h2>
                     </div>
@@ -654,10 +654,10 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                         aria-label="Incident status"
                         className={`px-3 py-2 rounded-xl border text-xs font-semibold capitalize cursor-pointer ${
                           inc.status === 'active'
-                            ? 'bg-[#FDF2F2] border-[#E8B4B4] text-[#8E2424]'
+                            ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
                             : inc.status === 'monitoring'
-                            ? 'bg-[#FDF8EE] border-[#E5D3A3] text-[#8A5A00]'
-                            : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#1B4332]'
+                            ? 'bg-[#FFFBEB] border-[#FDE68A] text-[#92400E]'
+                            : 'bg-[#ECF5F2] border-[#A7D7C5] text-[#174C3C]'
                         }`}
                       >
                         <option value="active">Active</option>
@@ -672,7 +672,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                           setFuStatusAfter(inc.status);
                           setFuDate(getSastDateString());
                         }}
-                        className="min-h-[38px] px-3.5 py-2 rounded-xl border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1.5 cursor-pointer"
+                        className="min-h-[38px] px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] flex items-center gap-1.5 cursor-pointer"
                       >
                         <ClipboardList className="w-3.5 h-3.5" />
                         <span>Add Follow-Up</span>
@@ -688,16 +688,16 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                           <img
                             src={inc.mediaPreviewDataUrl}
                             alt={inc.mediaFileName || inc.title}
-                            className="w-full h-36 object-cover rounded-xl border border-[#E2E6DF]"
+                            className="w-full h-36 object-cover rounded-xl border border-[#E2E8F0]"
                           />
                         ) : (
-                          <div className="w-full h-24 rounded-xl border border-[#E2E6DF] bg-[#F6F7F4] flex items-center justify-center gap-2 text-xs text-[#35443B] px-3">
-                            <Film className="w-4 h-4 text-[#1B4332] shrink-0" />
+                          <div className="w-full h-24 rounded-xl border border-[#E2E8F0] bg-[#F8FAFC] flex items-center justify-center gap-2 text-xs text-[#334155] px-3">
+                            <Film className="w-4 h-4 text-[#0B3D91] shrink-0" />
                             <span className="truncate">{inc.mediaFileName}</span>
                           </div>
                         )}
                         {inc.mediaFileName && (
-                          <p className="text-[11px] font-mono text-[#4A5A50] truncate">
+                          <p className="text-[11px] font-mono text-[#475569] truncate">
                             {inc.mediaType === 'video' ? 'Video: ' : 'Photo: '}
                             {inc.mediaFileName}
                           </p>
@@ -705,41 +705,41 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                       </div>
                     )}
                     <div className={inc.mediaPreviewDataUrl || inc.mediaFileName ? 'md:col-span-9 space-y-3' : 'md:col-span-12 space-y-3'}>
-                      <p className="text-sm text-[#17201B] leading-relaxed whitespace-pre-line">
+                      <p className="text-sm text-[#0F172A] leading-relaxed whitespace-pre-line">
                         {inc.description}
                       </p>
 
                       {/* Validated Quantities & Financial Impact */}
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3 text-xs">
+                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-3 bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs">
                         <div>
-                          <p className="text-[#4A5A50]">Affected Qty</p>
-                          <p className="font-mono font-bold tabular-nums text-[#8E2424] mt-0.5">
+                          <p className="text-[#475569]">Affected Qty</p>
+                          <p className="font-mono font-bold tabular-nums text-[#B91C1C] mt-0.5">
                             {inc.affectedQuantity.toLocaleString()} {inc.affectedUnit}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[#4A5A50]">Affected Area</p>
-                          <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                          <p className="text-[#475569]">Affected Area</p>
+                          <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                             {inc.affectedAreaHectares} ha
                           </p>
                         </div>
                         <div>
-                          <p className="text-[#4A5A50]">Est. Impact</p>
-                          <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                          <p className="text-[#475569]">Est. Impact</p>
+                          <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                             R{inc.estimatedFinancialImpactZar.toLocaleString()}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[#4A5A50]">Original Recorded</p>
-                          <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+                          <p className="text-[#475569]">Original Recorded</p>
+                          <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                             {inc.originalRecordedQuantity !== null
                               ? inc.originalRecordedQuantity.toLocaleString()
                               : '—'}
                           </p>
                         </div>
                         <div>
-                          <p className="text-[#4A5A50]">Remaining After</p>
-                          <p className="font-mono font-bold tabular-nums text-[#1B4332] mt-0.5">
+                          <p className="text-[#475569]">Remaining After</p>
+                          <p className="font-mono font-bold tabular-nums text-[#174C3C] mt-0.5">
                             {inc.remainingRecordedQuantity !== null
                               ? inc.remainingRecordedQuantity.toLocaleString()
                               : '—'}
@@ -751,11 +751,11 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
                   {/* Recommended Actions */}
                   {inc.recommendedActions.length > 0 && (
-                    <div className="text-xs text-[#143326] bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 space-y-1">
+                    <div className="text-xs text-[#174C3C] bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3 space-y-1">
                       <p className="font-bold uppercase tracking-wider text-[11px]">
                         Recommended Actions
                       </p>
-                      <ul className="space-y-1">
+                      <ul className="space-y-1 text-[#0F172A]">
                         {inc.recommendedActions.map((act, idx) => (
                           <li key={idx}>• {act}</li>
                         ))}
@@ -765,8 +765,8 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
                   {/* Follow-Up Audit History */}
                   {inc.followUps.length > 0 && (
-                    <div className="pt-3 border-t border-[#E2E6DF] space-y-2">
-                      <p className="text-xs font-bold text-[#4A5A50] flex items-center gap-1.5">
+                    <div className="pt-3 border-t border-[#E2E8F0] space-y-2">
+                      <p className="text-xs font-bold text-[#475569] flex items-center gap-1.5">
                         <CalendarClock className="w-3.5 h-3.5" />
                         <span>Follow-Up History ({inc.followUps.length})</span>
                       </p>
@@ -774,13 +774,13 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                         {inc.followUps.map((fu) => (
                           <div
                             key={fu.id}
-                            className="text-xs bg-[#FAFBFA] border border-[#E2E6DF] rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2"
+                            className="text-xs bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-3 py-2 flex flex-wrap items-center justify-between gap-2"
                           >
                             <div>
-                              <span className="font-semibold text-[#143326]">{fu.actionTaken}</span>
-                              {fu.notes && <span className="text-[#4A5A50]"> — {fu.notes}</span>}
+                              <span className="font-semibold text-[#0B1F3A]">{fu.actionTaken}</span>
+                              {fu.notes && <span className="text-[#475569]"> — {fu.notes}</span>}
                             </div>
-                            <span className="font-mono tabular-nums text-[#4A5A50]">
+                            <span className="font-mono tabular-nums text-[#475569]">
                               {fu.followUpDate} · {fu.statusAfter} · {fu.actorName}
                             </span>
                           </div>
@@ -800,20 +800,20 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
           <form
             onSubmit={handleCreateIncident}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8"
+            className="bg-white border border-[#E2E8F0] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8"
           >
-            <div className="flex items-center justify-between pb-3 border-b border-[#E2E6DF]">
-              <h3 className="font-display text-xl font-bold text-[#143326]">
+            <div className="flex items-center justify-between pb-3 border-b border-[#E2E8F0]">
+              <h3 className="font-display text-xl font-bold text-[#0B1F3A]">
                 Report Farm Incident or Damage
               </h3>
               <button type="button" onClick={() => setCreateOpen(false)} className="cursor-pointer">
-                <X className="w-5 h-5 text-[#4A5A50]" />
+                <X className="w-5 h-5 text-[#475569]" />
               </button>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Incident Type
                 </label>
                 <select
@@ -829,7 +829,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                       setFormAffectedUnit('plants');
                     }
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold"
                 >
                   {INCIDENT_TYPE_OPTIONS.map((opt) => (
                     <option key={opt.value} value={opt.value}>
@@ -839,7 +839,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Date & Time Occurred
                 </label>
                 <input
@@ -847,14 +847,14 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                   required
                   value={formOccurredAt}
                   onChange={(e) => setFormOccurredAt(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Farm</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Farm</label>
                 <select
                   value={formFarmId}
                   onChange={(e) => {
@@ -863,7 +863,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                     setFormCropId('');
                     setFormLivestockId('');
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   {farms.map((f) => (
                     <option key={f.id} value={f.id}>
@@ -873,13 +873,13 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Affected Field (Optional)
                 </label>
                 <select
                   value={formFieldId}
                   onChange={(e) => setFormFieldId(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="">Whole Farm / Unspecified</option>
                   {(formFarm?.fields || []).map((fl) => (
@@ -893,7 +893,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Affected Crop (Auto-updates damaged & remaining stock)
                 </label>
                 <select
@@ -905,7 +905,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                       setFormAffectedUnit('plants');
                     }
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="">None / Not crop-specific</option>
                   {formCrops.map((c) => (
@@ -916,7 +916,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Affected Livestock Group
                 </label>
                 <select
@@ -928,7 +928,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                       setFormAffectedUnit('head');
                     }
                   }}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                 >
                   <option value="">None / Not livestock-specific</option>
                   {formLivestock.map((g) => (
@@ -942,7 +942,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
             {/* Validated Damage Preview */}
             {selectedCropPreview && (
-              <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 text-xs text-[#143326] space-y-1">
+              <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3 text-xs text-[#174C3C] space-y-1">
                 <p className="font-bold">Validated Crop Stock Accounting Preview — {selectedCropPreview.cropName}</p>
                 <p className="font-mono tabular-nums">
                   Original Planted: {selectedCropPreview.originalPlanted.toLocaleString()} · Previously Damaged:{' '}
@@ -954,7 +954,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
             )}
 
             {selectedLivestockPreview && (
-              <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 text-xs text-[#143326] space-y-1">
+              <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3 text-xs text-[#174C3C] space-y-1">
                 <p className="font-bold">Livestock Head Accounting Preview — {selectedLivestockPreview.groupName}</p>
                 <p className="font-mono tabular-nums">
                   Current Head: {selectedLivestockPreview.currentHead} · Loss Recorded:{' '}
@@ -965,7 +965,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
             )}
 
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+              <label className="block text-xs font-semibold text-[#475569] mb-1">
                 Incident Title
               </label>
               <input
@@ -974,12 +974,12 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 value={formTitle}
                 onChange={(e) => setFormTitle(e.target.value)}
                 placeholder="E.g. Hailstorm damage on Lower Valley Maize"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+              <label className="block text-xs font-semibold text-[#475569] mb-1">
                 Detailed Description
               </label>
               <textarea
@@ -988,13 +988,13 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 value={formDescription}
                 onChange={(e) => setFormDescription(e.target.value)}
                 placeholder="Describe what happened, severity, and visible damage..."
-                className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
               />
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Affected Qty
                 </label>
                 <input
@@ -1003,20 +1003,20 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                   step="1"
                   value={formAffectedQty}
                   onChange={(e) => setFormAffectedQty(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Unit</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Unit</label>
                 <input
                   type="text"
                   value={formAffectedUnit}
                   onChange={(e) => setFormAffectedUnit(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Area (ha)
                 </label>
                 <input
@@ -1025,11 +1025,11 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                   step="0.01"
                   value={formAffectedAreaHa}
                   onChange={(e) => setFormAffectedAreaHa(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Est. Loss (ZAR)
                 </label>
                 <input
@@ -1038,14 +1038,14 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                   step="1"
                   value={formImpactZar}
                   onChange={(e) => setFormImpactZar(e.target.value)}
-                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Recommended Actions (one per line)
                 </label>
                 <textarea
@@ -1053,24 +1053,24 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                   value={formActions}
                   onChange={(e) => setFormActions(e.target.value)}
                   placeholder="E.g. Clear drainage channels&#10;Schedule agronomist visit"
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
               <div className="space-y-2">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Status</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Status</label>
                   <select
                     value={formStatus}
                     onChange={(e) => setFormStatus(e.target.value as IncidentStatus)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="active">Active</option>
                     <option value="monitoring">Monitoring</option>
                     <option value="resolved">Resolved</option>
                   </select>
                 </div>
-                <label className="min-h-[40px] px-3 py-2 rounded-xl border border-[#D4DDD2] bg-[#F6F7F4] text-xs font-semibold text-[#143326] flex items-center gap-2 cursor-pointer">
-                  <Upload className="w-4 h-4 text-[#1B4332]" />
+                <label className="min-h-[40px] px-3 py-2 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] text-xs font-semibold text-[#0B1F3A] flex items-center gap-2 cursor-pointer">
+                  <Upload className="w-4 h-4 text-[#0B3D91]" />
                   <span className="truncate">{formMediaName || 'Attach Photo or Video'}</span>
                   <input
                     type="file"
@@ -1082,18 +1082,18 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E6DF]">
+            <div className="flex justify-end gap-2 pt-2 border-t border-[#E2E8F0]">
               <button
                 type="button"
                 onClick={() => setCreateOpen(false)}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#143326] text-white text-sm font-semibold cursor-pointer"
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
               >
                 {submitting ? 'Saving...' : 'Save Incident'}
               </button>
@@ -1107,10 +1107,10 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
           <form
             onSubmit={handleSubmitFollowUp}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-md w-full p-6 space-y-4"
+            className="bg-white border border-[#E2E8F0] rounded-2xl max-w-md w-full p-6 space-y-4"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Record Incident Follow-Up
               </h3>
               <button
@@ -1118,30 +1118,30 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 onClick={() => setFollowUpIncident(null)}
                 className="cursor-pointer"
               >
-                <X className="w-5 h-5 text-[#4A5A50]" />
+                <X className="w-5 h-5 text-[#475569]" />
               </button>
             </div>
-            <p className="text-xs text-[#4A5A50]">{followUpIncident.title}</p>
+            <p className="text-xs text-[#475569]">{followUpIncident.title}</p>
             <div className="space-y-3">
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Date</label>
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">Date</label>
                   <input
                     type="date"
                     required
                     value={fuDate}
                     onChange={(e) => setFuDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm font-mono"
                   />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  <label className="block text-xs font-semibold text-[#475569] mb-1">
                     Updated Status
                   </label>
                   <select
                     value={fuStatusAfter}
                     onChange={(e) => setFuStatusAfter(e.target.value as IncidentStatus)}
-                    className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     <option value="active">Active</option>
                     <option value="monitoring">Monitoring</option>
@@ -1150,7 +1150,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                <label className="block text-xs font-semibold text-[#475569] mb-1">
                   Action Taken
                 </label>
                 <input
@@ -1159,17 +1159,17 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                   value={fuActionTaken}
                   onChange={(e) => setFuActionTaken(e.target.value)}
                   placeholder="E.g. Cleared storm drainage & consulted agronomist"
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Notes</label>
+                <label className="block text-xs font-semibold text-[#475569] mb-1">Notes</label>
                 <textarea
                   rows={2}
                   value={fuNotes}
                   onChange={(e) => setFuNotes(e.target.value)}
                   placeholder="Observations during follow-up inspection..."
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
             </div>
@@ -1177,14 +1177,14 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
               <button
                 type="button"
                 onClick={() => setFollowUpIncident(null)}
-                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155]"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={submitting}
-                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer"
               >
                 Save Follow-Up
               </button>

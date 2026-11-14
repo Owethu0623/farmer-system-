@@ -83,6 +83,51 @@ export interface WeatherIntelligencePayload {
     daysCount: number;
     lastUpdated: string | null;
   };
+  nasaClimateComparison?: {
+    serviceAvailable: boolean;
+    unavailableReason: string | null;
+    source: string;
+    datasetName: string;
+    coordinatesLabel: string;
+    spatialResolutionNote: string;
+    baselinePeriodLabel: string;
+    recentPeriodLabel: string;
+    retrievedAt: string | null;
+    baselineMetrics: {
+      meanAnnualRainfallMm: number | null;
+      summerDjRainfallMm: number | null;
+      winterJjaRainfallMm: number | null;
+      avgMaxTempC: number | null;
+      avgMinTempC: number | null;
+      avgSolarIrradiance: number | null;
+      avgRelativeHumidityPercent: number | null;
+      yearsCovered: number;
+    } | null;
+    recentMetrics: {
+      meanAnnualRainfallMm: number | null;
+      summerDjRainfallMm: number | null;
+      winterJjaRainfallMm: number | null;
+      avgMaxTempC: number | null;
+      avgMinTempC: number | null;
+      avgSolarIrradiance: number | null;
+      avgRelativeHumidityPercent: number | null;
+      yearsCovered: number;
+    } | null;
+    delta: {
+      annualRainfallChangeMm: number | null;
+      annualRainfallChangePercent: number | null;
+      avgMaxTempChangeC: number | null;
+      avgMinTempChangeC: number | null;
+      solarIrradianceChange: number | null;
+      humidityChangePercent: number | null;
+    } | null;
+    localInterpretation: {
+      summary: string;
+      soilAndMoistureNote: string;
+      cropPlanningNote: string;
+      dataLimitations: string;
+    };
+  };
   seasonalCalendar?: {
     regime: string;
     seasonLabel: string;
@@ -108,6 +153,10 @@ const WEATHER_CACHE = new Map<
 const NASA_POWER_CACHE = new Map<
   string,
   { timestampMs: number; data: NonNullable<WeatherIntelligencePayload['nasaPower']> }
+>();
+const NASA_CLIMATE_CACHE = new Map<
+  string,
+  { timestampMs: number; data: NonNullable<WeatherIntelligencePayload['nasaClimateComparison']> }
 >();
 const CACHE_TTL_MS = 15 * 60 * 1000;
 const NASA_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -230,6 +279,276 @@ async function fetchNasaPowerSummary(
       lastUpdated: null,
     };
   }
+}
+
+function daysInMonth(year: number, month1To12: number): number {
+  if (month1To12 === 2) {
+    const isLeap = (year % 4 === 0 && year % 100 !== 0) || year % 400 === 0;
+    return isLeap ? 29 : 28;
+  }
+  if ([4, 6, 9, 11].includes(month1To12)) return 30;
+  return 31;
+}
+
+export async function fetchNasaPowerClimateComparison(
+  latitude: number,
+  longitude: number,
+  context?: {
+    province?: string;
+    locationLabel?: string;
+    waterAvailability?: string;
+    primaryCrops?: string[];
+  }
+): Promise<NonNullable<WeatherIntelligencePayload['nasaClimateComparison']>> {
+  const key = `clim:${latitude.toFixed(2)},${longitude.toFixed(2)}`;
+  const cached = NASA_CLIMATE_CACHE.get(key);
+  const prov = SOUTH_AFRICA_PROVINCES.find((p) => p.name === context?.province);
+  const coordLabel = `${latitude.toFixed(3)}°, ${longitude.toFixed(3)}°`;
+  const spatialNote =
+    'NASA POWER Agroclimatology monthly grid (~0.5° latitude × 0.625° longitude, ~55 km resolution). Represents regional satellite/reanalysis grid conditions rather than micro-scale farm valleys or frost pockets.';
+
+  if (cached && Date.now() - cached.timestampMs < NASA_CACHE_TTL_MS) {
+    return buildInterpretedClimateBlock(cached.data, context, prov);
+  }
+
+  const url =
+    `https://power.larc.nasa.gov/api/temporal/monthly/point` +
+    `?parameters=ALLSKY_SFC_SW_DWN,PRECTOTCORR,T2M_MAX,T2M_MIN,RH2M` +
+    `&community=AG` +
+    `&longitude=${encodeURIComponent(longitude)}` +
+    `&latitude=${encodeURIComponent(latitude)}` +
+    `&start=2001&end=2024&format=JSON`;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(9000) });
+    if (!res.ok) {
+      throw new Error(`NASA POWER monthly archive responded with HTTP ${res.status}`);
+    }
+    const raw = (await res.json()) as {
+      properties?: {
+        parameter?: {
+          ALLSKY_SFC_SW_DWN?: Record<string, number>;
+          PRECTOTCORR?: Record<string, number>;
+          T2M_MAX?: Record<string, number>;
+          T2M_MIN?: Record<string, number>;
+          RH2M?: Record<string, number>;
+        };
+      };
+    };
+
+    const params = raw.properties?.parameter || {};
+    const rainMap = params.PRECTOTCORR || {};
+    const solarMap = params.ALLSKY_SFC_SW_DWN || {};
+    const tmaxMap = params.T2M_MAX || {};
+    const tminMap = params.T2M_MIN || {};
+    const rhMap = params.RH2M || {};
+
+    const summariseYears = (startYear: number, endYear: number) => {
+      const annualTotals = new Map<number, number>();
+      const djfTotals = new Map<number, number>();
+      const jjaTotals = new Map<number, number>();
+      const tmaxVals: number[] = [];
+      const tminVals: number[] = [];
+      const solarVals: number[] = [];
+      const rhVals: number[] = [];
+
+      for (const ymKey of Object.keys(rainMap)) {
+        if (ymKey.length !== 6) continue;
+        const year = Number(ymKey.slice(0, 4));
+        const month = Number(ymKey.slice(4, 6));
+        if (!Number.isInteger(year) || !Number.isInteger(month) || month < 1 || month > 12) continue;
+        if (year < startYear || year > endYear) continue;
+
+        const rainRate = rainMap[ymKey];
+        if (typeof rainRate === 'number' && Number.isFinite(rainRate) && rainRate > -900) {
+          const monthMm = rainRate * daysInMonth(year, month);
+          annualTotals.set(year, (annualTotals.get(year) || 0) + monthMm);
+          if (month === 12 || month === 1 || month === 2) {
+            djfTotals.set(year, (djfTotals.get(year) || 0) + monthMm);
+          }
+          if (month === 6 || month === 7 || month === 8) {
+            jjaTotals.set(year, (jjaTotals.get(year) || 0) + monthMm);
+          }
+        }
+        const tmax = tmaxMap[ymKey];
+        if (typeof tmax === 'number' && Number.isFinite(tmax) && tmax > -900) tmaxVals.push(tmax);
+        const tmin = tminMap[ymKey];
+        if (typeof tmin === 'number' && Number.isFinite(tmin) && tmin > -900) tminVals.push(tmin);
+        const sol = solarMap[ymKey];
+        if (typeof sol === 'number' && Number.isFinite(sol) && sol > -900) solarVals.push(sol);
+        const rh = rhMap[ymKey];
+        if (typeof rh === 'number' && Number.isFinite(rh) && rh > -900) rhVals.push(rh);
+      }
+
+      const avgArr = (arr: number[]) =>
+        arr.length > 0 ? Number((arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1)) : null;
+
+      const annualList = Array.from(annualTotals.values());
+      const djfList = Array.from(djfTotals.values());
+      const jjaList = Array.from(jjaTotals.values());
+
+      return {
+        meanAnnualRainfallMm: avgArr(annualList),
+        summerDjRainfallMm: avgArr(djfList),
+        winterJjaRainfallMm: avgArr(jjaList),
+        avgMaxTempC: avgArr(tmaxVals),
+        avgMinTempC: avgArr(tminVals),
+        avgSolarIrradiance: avgArr(solarVals),
+        avgRelativeHumidityPercent: avgArr(rhVals),
+        yearsCovered: annualTotals.size,
+      };
+    };
+
+    const baselineMetrics = summariseYears(2001, 2015);
+    const recentMetrics = summariseYears(2020, 2024);
+
+    if (baselineMetrics.yearsCovered === 0 || recentMetrics.yearsCovered === 0) {
+      throw new Error('NASA POWER monthly archive returned insufficient valid observations for 2001-2024.');
+    }
+
+    const diffOrNull = (a: number | null, b: number | null) =>
+      a !== null && b !== null ? Number((a - b).toFixed(1)) : null;
+    const rainDeltaMm = diffOrNull(
+      recentMetrics.meanAnnualRainfallMm,
+      baselineMetrics.meanAnnualRainfallMm
+    );
+    const rainDeltaPct =
+      rainDeltaMm !== null &&
+      baselineMetrics.meanAnnualRainfallMm !== null &&
+      baselineMetrics.meanAnnualRainfallMm > 0
+        ? Number(((rainDeltaMm / baselineMetrics.meanAnnualRainfallMm) * 100).toFixed(1))
+        : null;
+
+    const baseResult: NonNullable<WeatherIntelligencePayload['nasaClimateComparison']> = {
+      serviceAvailable: true,
+      unavailableReason: null,
+      source: 'NASA POWER Monthly Agroclimatology Point API (power.larc.nasa.gov)',
+      datasetName: 'NASA POWER AG Community Monthly Time Series (PRECTOTCORR, T2M_MAX, T2M_MIN, ALLSKY_SFC_SW_DWN, RH2M)',
+      coordinatesLabel: coordLabel,
+      spatialResolutionNote: spatialNote,
+      baselinePeriodLabel: '2001–2015 (15-year Baseline)',
+      recentPeriodLabel: '2020–2024 (5-year Recent)',
+      retrievedAt: new Date().toISOString(),
+      baselineMetrics,
+      recentMetrics,
+      delta: {
+        annualRainfallChangeMm: rainDeltaMm,
+        annualRainfallChangePercent: rainDeltaPct,
+        avgMaxTempChangeC: diffOrNull(recentMetrics.avgMaxTempC, baselineMetrics.avgMaxTempC),
+        avgMinTempChangeC: diffOrNull(recentMetrics.avgMinTempC, baselineMetrics.avgMinTempC),
+        solarIrradianceChange: diffOrNull(
+          recentMetrics.avgSolarIrradiance,
+          baselineMetrics.avgSolarIrradiance
+        ),
+        humidityChangePercent: diffOrNull(
+          recentMetrics.avgRelativeHumidityPercent,
+          baselineMetrics.avgRelativeHumidityPercent
+        ),
+      },
+      localInterpretation: {
+        summary: '',
+        soilAndMoistureNote: '',
+        cropPlanningNote: '',
+        dataLimitations: spatialNote,
+      },
+    };
+
+    NASA_CLIMATE_CACHE.set(key, { timestampMs: Date.now(), data: baseResult });
+    return buildInterpretedClimateBlock(baseResult, context, prov);
+  } catch (err: unknown) {
+    if (cached) {
+      return buildInterpretedClimateBlock(
+        {
+          ...cached.data,
+          unavailableReason: `NASA POWER historical refresh failed (${err instanceof Error ? err.message : 'network error'}); showing last verified cached baseline.`,
+        },
+        context,
+        prov
+      );
+    }
+    return {
+      serviceAvailable: false,
+      unavailableReason: `NASA POWER multi-year climate archive could not be retrieved (${err instanceof Error ? err.message : 'offline'}). No synthetic satellite trends are displayed.`,
+      source: 'NASA POWER Monthly Agroclimatology Point API (Unavailable)',
+      datasetName: 'NASA POWER AG Monthly Archive (2001–2024)',
+      coordinatesLabel: coordLabel,
+      spatialResolutionNote: spatialNote,
+      baselinePeriodLabel: '2001–2015 (15-year Baseline)',
+      recentPeriodLabel: '2020–2024 (5-year Recent)',
+      retrievedAt: null,
+      baselineMetrics: null,
+      recentMetrics: null,
+      delta: null,
+      localInterpretation: {
+        summary:
+          'Multi-year NASA satellite climate comparison is currently unavailable. Use verified SAWS provincial weather advice and local soil moisture checks before planting.',
+        soilAndMoistureNote: prov
+          ? `Regional reference baseline for ${prov.name}: ${prov.climateZone} (${prov.annualRainfallMm}).`
+          : 'Inspect local topsoil moisture and borehole logs prior to seasonal input orders.',
+        cropPlanningNote:
+          'Do not treat seasonal rainfall projections as guaranteed; match crop water needs to confirmed on-farm water storage.',
+        dataLimitations: spatialNote,
+      },
+    };
+  }
+}
+
+function buildInterpretedClimateBlock(
+  base: NonNullable<WeatherIntelligencePayload['nasaClimateComparison']>,
+  context?: {
+    province?: string;
+    locationLabel?: string;
+    waterAvailability?: string;
+    primaryCrops?: string[];
+  },
+  prov?: (typeof SOUTH_AFRICA_PROVINCES)[number]
+): NonNullable<WeatherIntelligencePayload['nasaClimateComparison']> {
+  if (!base.serviceAvailable || !base.baselineMetrics || !base.recentMetrics || !base.delta) {
+    return base;
+  }
+
+  const d = base.delta;
+  const rainChange = d.annualRainfallChangeMm ?? 0;
+  const tmaxChange = d.avgMaxTempChangeC ?? 0;
+  const siteName = context?.locationLabel || context?.province || base.coordinatesLabel;
+  const waterInfo = context?.waterAvailability || 'unverified water allocation';
+  const cropList =
+    context?.primaryCrops && context.primaryCrops.length > 0
+      ? context.primaryCrops.join(', ')
+      : prov?.keyCommodities.slice(0, 3).join(', ') || 'mixed crops';
+
+  const rainDirection =
+    rainChange <= -35
+      ? `drier recent conditions (${rainChange} mm/yr compared to 2001–2015)`
+      : rainChange >= 35
+        ? `higher recent rainfall (+${rainChange} mm/yr compared to 2001–2015)`
+        : `comparable annual rainfall (${rainChange >= 0 ? '+' : ''}${rainChange} mm/yr vs 2001–2015)`;
+
+  const tempDirection =
+    tmaxChange >= 0.4
+      ? `warmer daytime peaks (+${tmaxChange}°C mean daily Tmax)`
+      : tmaxChange <= -0.4
+        ? `slightly cooler daytime peaks (${tmaxChange}°C mean daily Tmax)`
+        : `stable daytime temperatures (${tmaxChange >= 0 ? '+' : ''}${tmaxChange}°C Tmax shift)`;
+
+  const summary = `At ${siteName} (${base.coordinatesLabel}), NASA POWER satellite comparisons indicate ${rainDirection} alongside ${tempDirection} between 2020–2024 vs the 2001–2015 baseline.`;
+
+  const soilAndMoistureNote =
+    rainChange < -20 || tmaxChange >= 0.4
+      ? `Warmer daytime peaks and lower rainfall reserves increase topsoil evapotranspiration. Prioritise mulch retention, zero/minimum tillage where practical, and verify water capacity (${waterInfo}) before expanding cropped area.`
+      : `Moisture and heat signals remain within historical range for ${prov?.name || 'this region'}, though seasonal onset timing still fluctuates year-to-year — schedule irrigation around 0–20 cm soil moisture checks.`;
+
+  const cropPlanningNote = `For ${cropList}: align planting dates to confirmed seasonal rain onset rather than fixed calendar dates, pair high-nitrogen feeders with legume cover or break crops, and avoid relying on historical averages without drought-tolerant cultivar buffers.`;
+
+  return {
+    ...base,
+    localInterpretation: {
+      summary,
+      soilAndMoistureNote,
+      cropPlanningNote,
+      dataLimitations: base.spatialResolutionNote,
+    },
+  };
 }
 
 function deriveAgriculturalWarnings(params: {
@@ -531,11 +850,22 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
 
   const seasonalCalendar = getSaSeasonalGuidance(location.province, getSastMonth());
   const nasaPowerPromise = fetchNasaPowerSummary(location.latitude, location.longitude);
+  const nasaClimatePromise = fetchNasaPowerClimateComparison(
+    location.latitude,
+    location.longitude,
+    {
+      province: location.province,
+      locationLabel,
+      waterAvailability: farm.waterAvailability,
+      primaryCrops: crops.map((c) => c.cropName),
+    }
+  );
 
   try {
-    const [response, nasaPower] = await Promise.all([
+    const [response, nasaPower, nasaClimateComparison] = await Promise.all([
       fetch(url, { signal: AbortSignal.timeout(7000) }),
       nasaPowerPromise,
+      nasaClimatePromise,
     ]);
     if (!response.ok) {
       throw new Error(`Weather API responded with HTTP ${response.status}`);
@@ -692,6 +1022,7 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
         historicalDays,
       },
       nasaPower,
+      nasaClimateComparison,
       seasonalCalendar,
       operationsWindow: derived.operationsWindow,
       warnings: derived.warnings,
@@ -700,11 +1031,17 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
     WEATHER_CACHE.set(cacheKey, { timestampMs: Date.now(), payload });
     return payload;
   } catch (err: unknown) {
-    const nasaPower = await nasaPowerPromise;
+    const [nasaPower, nasaClimateComparison] = await Promise.all([
+      nasaPowerPromise,
+      nasaClimatePromise,
+    ]);
     if (cached) {
       return {
         ...cached.payload,
         nasaPower: nasaPower.serviceAvailable ? nasaPower : cached.payload.nasaPower,
+        nasaClimateComparison: nasaClimateComparison.serviceAvailable
+          ? nasaClimateComparison
+          : cached.payload.nasaClimateComparison,
         seasonalCalendar,
         isCachedFallback: true,
         unavailableReason: `Live weather refresh failed (${err instanceof Error ? err.message : 'network error'}). Showing last verified observation from ${new Date(cached.payload.lastUpdated || '').toLocaleString()}.`,
@@ -732,6 +1069,7 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
         historicalDays: [],
       },
       nasaPower,
+      nasaClimateComparison,
       seasonalCalendar,
       operationsWindow: {
         sprayingStatus: 'Unknown',
@@ -740,6 +1078,278 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
         plantingReason: 'Live 7-day forecast unavailable — verify local soil moisture manually before seeding.',
         irrigationStatus: 'Unknown',
         irrigationReason: 'Live evapotranspiration and rainfall forecast unavailable — inspect soil profile by hand.',
+      },
+      warnings: [],
+    };
+  }
+}
+
+export async function getSiteWeatherIntelligence(params: {
+  province: string;
+  district?: string;
+  townOrArea?: string;
+  latitude?: number;
+  longitude?: number;
+  siteName?: string;
+  waterAvailability?: string;
+}): Promise<WeatherIntelligencePayload> {
+  const prov =
+    SOUTH_AFRICA_PROVINCES.find((p) => p.name === params.province) ||
+    SOUTH_AFRICA_PROVINCES[0];
+  const lat =
+    typeof params.latitude === 'number' && Number.isFinite(params.latitude)
+      ? params.latitude
+      : prov.centerLat;
+  const lng =
+    typeof params.longitude === 'number' && Number.isFinite(params.longitude)
+      ? params.longitude
+      : prov.centerLng;
+  const label = [params.townOrArea || prov.capital, params.district, prov.name]
+    .filter(Boolean)
+    .join(', ');
+  const siteId = `site-${prov.code}`;
+  const siteName = params.siteName || `${prov.name} Candidate Site`;
+  const syntheticFarm: Farm = {
+    id: siteId,
+    ownerId: 'site-preview',
+    name: siteName,
+    farmingActivities: ['Mixed Planning'],
+    farmSizeHectares: 5,
+    yearsOfExperience: 0,
+    waterAvailability: params.waterAvailability || 'Candidate Site Water Check',
+    existingCrops: [],
+    existingLivestock: [],
+    status: 'active',
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+  const syntheticLocation: FarmLocation = {
+    id: `loc-${siteId}`,
+    farmId: siteId,
+    province: prov.name,
+    districtMunicipality: params.district || prov.districts[0] || prov.capital,
+    localMunicipality: params.townOrArea || prov.capital,
+    townOrVillage: params.townOrArea || prov.capital,
+    latitude: lat,
+    longitude: lng,
+    locationSource: 'municipal_center',
+    gpsLatitude: null,
+    gpsLongitude: null,
+    gpsAccuracyMeters: null,
+    gpsCapturedAt: null,
+    centroidWkt: `POINT(${lng} ${lat})`,
+    elevationMeters: 1100,
+  };
+
+  const seasonalClimateNote = `${prov.climateZone} · Typical annual rainfall ${prov.annualRainfallMm}`;
+  const seasonalCalendar = getSaSeasonalGuidance(prov.name, getSastMonth());
+  const url =
+    `https://api.open-meteo.com/v1/forecast` +
+    `?latitude=${encodeURIComponent(lat)}` +
+    `&longitude=${encodeURIComponent(lng)}` +
+    `&current=temperature_2m,relative_humidity_2m,apparent_temperature,precipitation,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m` +
+    `&hourly=temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,wind_speed_10m` +
+    `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,et0_fao_evapotranspiration` +
+    `&past_days=30&forecast_days=7&timezone=Africa%2FJohannesburg`;
+
+  const nasaPowerPromise = fetchNasaPowerSummary(lat, lng);
+  const nasaClimatePromise = fetchNasaPowerClimateComparison(lat, lng, {
+    province: prov.name,
+    locationLabel: label,
+    waterAvailability: params.waterAvailability,
+    primaryCrops: prov.keyCommodities.slice(0, 3),
+  });
+
+  try {
+    const [response, nasaPower, nasaClimateComparison] = await Promise.all([
+      fetch(url, { signal: AbortSignal.timeout(7000) }),
+      nasaPowerPromise,
+      nasaClimatePromise,
+    ]);
+    if (!response.ok) {
+      throw new Error(`Weather API responded with HTTP ${response.status}`);
+    }
+    const raw = (await response.json()) as {
+      current?: Record<string, number | undefined>;
+      hourly?: {
+        time: string[];
+        temperature_2m: number[];
+        relative_humidity_2m?: number[];
+        precipitation: number[];
+        precipitation_probability?: number[];
+        wind_speed_10m: number[];
+      };
+      daily?: {
+        time: string[];
+        weather_code: number[];
+        temperature_2m_max: number[];
+        temperature_2m_min: number[];
+        precipitation_sum: number[];
+        precipitation_probability_max?: number[];
+        wind_speed_10m_max: number[];
+        et0_fao_evapotranspiration?: number[];
+      };
+    };
+
+    const todayStr = getSastDateString();
+    const allDaily = (raw.daily?.time || []).map((date, idx) => ({
+      date,
+      tempMaxC: Number((raw.daily?.temperature_2m_max?.[idx] ?? 0).toFixed(1)),
+      tempMinC: Number((raw.daily?.temperature_2m_min?.[idx] ?? 0).toFixed(1)),
+      precipitationMm: Number((raw.daily?.precipitation_sum?.[idx] ?? 0).toFixed(1)),
+      precipProbabilityPercent:
+        raw.daily?.precipitation_probability_max?.[idx] !== undefined &&
+        raw.daily?.precipitation_probability_max?.[idx] !== null
+          ? Number(raw.daily.precipitation_probability_max[idx])
+          : null,
+      windMaxKmh: Number((raw.daily?.wind_speed_10m_max?.[idx] ?? 0).toFixed(1)),
+      et0EvapotranspirationMm:
+        raw.daily?.et0_fao_evapotranspiration?.[idx] !== undefined
+          ? Number((raw.daily.et0_fao_evapotranspiration[idx] ?? 0).toFixed(1))
+          : null,
+      weatherDescription: wmoCodeToText(raw.daily?.weather_code?.[idx]),
+    }));
+
+    const historicalDays = allDaily
+      .filter((d) => d.date < todayStr)
+      .map((d) => ({
+        date: d.date,
+        precipitationMm: d.precipitationMm,
+        tempMaxC: d.tempMaxC,
+        tempMinC: d.tempMinC,
+      }));
+    const forecastDaily = allDaily.filter((d) => d.date >= todayStr).slice(0, 7);
+    const past30DaysMm = Number(
+      historicalDays.reduce((s, d) => s + d.precipitationMm, 0).toFixed(1)
+    );
+    const past14DaysMm = Number(
+      historicalDays
+        .slice(-14)
+        .reduce((s, d) => s + d.precipitationMm, 0)
+        .toFixed(1)
+    );
+    const nowHourSast = getSastIsoMinute().slice(0, 13);
+    const hourlyStartIdx = Math.max(
+      0,
+      (raw.hourly?.time || []).findIndex((t) => t.slice(0, 13) >= nowHourSast)
+    );
+    const hourly = (raw.hourly?.time || [])
+      .slice(hourlyStartIdx, hourlyStartIdx + 24)
+      .map((time, offset) => {
+        const idx = hourlyStartIdx + offset;
+        return {
+          time,
+          temperatureC: Number((raw.hourly?.temperature_2m?.[idx] ?? 0).toFixed(1)),
+          precipitationMm: Number((raw.hourly?.precipitation?.[idx] ?? 0).toFixed(1)),
+          precipProbabilityPercent:
+            raw.hourly?.precipitation_probability?.[idx] !== undefined &&
+            raw.hourly?.precipitation_probability?.[idx] !== null
+              ? Number(raw.hourly.precipitation_probability[idx])
+              : null,
+          windSpeedKmh: Number((raw.hourly?.wind_speed_10m?.[idx] ?? 0).toFixed(1)),
+          humidityPercent:
+            raw.hourly?.relative_humidity_2m?.[idx] !== undefined
+              ? Number(raw.hourly.relative_humidity_2m[idx])
+              : null,
+        };
+      });
+
+    const current: WeatherIntelligencePayload['current'] = raw.current
+      ? {
+          temperatureC:
+            raw.current.temperature_2m !== undefined ? Number(raw.current.temperature_2m.toFixed(1)) : null,
+          apparentTempC:
+            raw.current.apparent_temperature !== undefined
+              ? Number(raw.current.apparent_temperature.toFixed(1))
+              : null,
+          humidityPercent:
+            raw.current.relative_humidity_2m !== undefined ? raw.current.relative_humidity_2m : null,
+          windSpeedKmh:
+            raw.current.wind_speed_10m !== undefined ? Number(raw.current.wind_speed_10m.toFixed(1)) : null,
+          windGustsKmh:
+            raw.current.wind_gusts_10m !== undefined ? Number(raw.current.wind_gusts_10m.toFixed(1)) : null,
+          windDirectionDeg:
+            raw.current.wind_direction_10m !== undefined ? raw.current.wind_direction_10m : null,
+          precipitationMm:
+            raw.current.precipitation !== undefined ? Number(raw.current.precipitation.toFixed(1)) : null,
+          weatherDescription: wmoCodeToText(raw.current.weather_code),
+        }
+      : null;
+
+    const derived = deriveAgriculturalWarnings({
+      farm: syntheticFarm,
+      location: syntheticLocation,
+      fields: [],
+      crops: [],
+      livestock: [],
+      current,
+      hourly,
+      daily: forecastDaily,
+      past14DaysMm,
+      past30DaysMm,
+    });
+
+    return {
+      farmId: siteId,
+      farmName: siteName,
+      locationLabel: label,
+      coordinates: { latitude: lat, longitude: lng },
+      serviceAvailable: true,
+      unavailableReason: null,
+      source: 'Open-Meteo Coordinate Weather & NASA POWER Agroclimatology API',
+      sawsIntegrationStatus: getSawsStatusLabel(),
+      lastUpdated: new Date().toISOString(),
+      isCachedFallback: false,
+      current,
+      hourly,
+      daily: forecastDaily,
+      historicalRainfall: {
+        past14DaysMm,
+        past30DaysMm,
+        seasonalClimateNote,
+        historicalDays,
+      },
+      nasaPower,
+      nasaClimateComparison,
+      seasonalCalendar,
+      operationsWindow: derived.operationsWindow,
+      warnings: derived.warnings,
+    };
+  } catch (err: unknown) {
+    const [nasaPower, nasaClimateComparison] = await Promise.all([
+      nasaPowerPromise,
+      nasaClimatePromise,
+    ]);
+    return {
+      farmId: siteId,
+      farmName: siteName,
+      locationLabel: label,
+      coordinates: { latitude: lat, longitude: lng },
+      serviceAvailable: false,
+      unavailableReason: `Live site weather service is currently unreachable (${err instanceof Error ? err.message : 'offline'}). No synthetic forecasts are generated.`,
+      source: 'Seasonal Provincial Climate Reference Only (Live Feed Unavailable)',
+      sawsIntegrationStatus: getSawsStatusLabel(),
+      lastUpdated: null,
+      isCachedFallback: false,
+      current: null,
+      hourly: [],
+      daily: [],
+      historicalRainfall: {
+        past14DaysMm: null,
+        past30DaysMm: null,
+        seasonalClimateNote,
+        historicalDays: [],
+      },
+      nasaPower,
+      nasaClimateComparison,
+      seasonalCalendar,
+      operationsWindow: {
+        sprayingStatus: 'Unknown',
+        sprayingReason: 'Live wind and precipitation telemetry unavailable.',
+        plantingStatus: 'Unknown',
+        plantingReason: 'Live 7-day forecast unavailable.',
+        irrigationStatus: 'Unknown',
+        irrigationReason: 'Live evapotranspiration forecast unavailable.',
       },
       warnings: [],
     };

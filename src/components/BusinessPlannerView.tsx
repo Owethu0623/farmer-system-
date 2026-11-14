@@ -609,15 +609,15 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 <meta charset="utf-8" />
 <title>Field Shift Business Plan — ${escapeHtml(draft.planName)}</title>
 <style>
-  body { font-family: system-ui, -apple-system, sans-serif; color: #17201B; max-width: 900px; margin: 32px auto; padding: 0 20px; line-height: 1.5; }
-  h1, h2 { color: #143326; }
-  .notice { background: #FFF8EB; border: 1px solid #E2C693; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin: 16px 0; }
+  body { font-family: system-ui, -apple-system, sans-serif; color: #0F172A; max-width: 900px; margin: 32px auto; padding: 0 20px; line-height: 1.5; }
+  h1, h2 { color: #0B1F3A; }
+  .notice { background: #EFF6FF; border: 1px solid #BFDBFE; color: #0B1F3A; padding: 12px 16px; border-radius: 8px; font-size: 13px; margin: 16px 0; }
   .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin: 16px 0; }
-  .kpi { border: 1px solid #D4DDD2; border-radius: 8px; padding: 12px; }
-  .kpi small { color: #4A5A50; display: block; font-size: 11px; }
-  .kpi strong { font-size: 18px; font-variant-numeric: tabular-nums; }
+  .kpi { border: 1px solid #CBD5E1; border-radius: 8px; padding: 12px; }
+  .kpi small { color: #475569; display: block; font-size: 11px; }
+  .kpi strong { font-size: 18px; color: #0B1F3A; font-variant-numeric: tabular-nums; }
   table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 13px; }
-  th, td { border-bottom: 1px solid #E2E6DF; padding: 8px 6px; text-align: left; }
+  th, td { border-bottom: 1px solid #E2E8F0; padding: 8px 6px; text-align: left; }
   td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
 </style>
 </head>
@@ -692,8 +692,8 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
         <div
           className={`rounded-2xl border px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-2 ${
             isCacheStale
-              ? 'bg-[#FFF6EB] border-[#E6C98A] text-[#7A4A0B]'
-              : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+              ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+              : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
           }`}
         >
           <span>
@@ -704,16 +704,16 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
         </div>
       )}
       {/* Header & Exports */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 flex flex-wrap items-start justify-between gap-4">
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1 max-w-2xl">
-          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#2D6A4F]">
+          <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#0B3D91]">
             <Briefcase className="w-4 h-4" />
             <span>Prospective & Existing Farmers · Financial Scenario Modeller</span>
           </div>
-          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl sm:text-3xl font-bold text-[#0B1F3A]">
             Farming Business Planner
           </h1>
-          <p className="text-sm text-[#4A5A50]">
+          <p className="text-sm text-[#475569]">
             Model startup capital, input costs, labour, water needs, and potential revenue across small-, medium-, and larger-scale scenarios.
           </p>
         </div>
@@ -731,15 +731,15 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
           <button
             type="button"
             onClick={handleDownloadCsv}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-sm font-semibold text-[#143326] whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-sm font-semibold text-[#0B1F3A] whitespace-nowrap shrink-0 cursor-pointer min-h-[40px]"
           >
-            <FileSpreadsheet className="w-4 h-4 text-[#1B4332]" />
+            <FileSpreadsheet className="w-4 h-4 text-[#0B3D91]" />
             <span>Export CSV</span>
           </button>
           <button
             type="button"
             onClick={handleDownloadHtmlReport}
-            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-sm font-semibold text-white whitespace-nowrap shrink-0 cursor-pointer"
+            className="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-sm font-semibold text-white whitespace-nowrap shrink-0 cursor-pointer min-h-[40px]"
           >
             <Download className="w-4 h-4" />
             <span>Download Report</span>
@@ -748,50 +748,53 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
       </div>
 
       {/* Mandatory Non-Guarantee & Actuals vs Estimates Governance Notice */}
-      <div className="bg-[#FFF9ED] border border-[#E7CFA1] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#614210] flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-[#9B6A16]" />
+      <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl px-4 py-3 text-xs sm:text-sm text-[#0B1F3A] flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 shrink-0 mt-0.5 text-[#0B3D91]" />
         <div className="space-y-1">
           <p className="font-semibold">
             Planning Estimates Only — Never Guaranteed Profits or Yields
           </p>
-          <p>
+          <p className="text-[#334155]">
             {overview?.disclaimer ||
               'All calculations below represent estimated planning assumptions entered or adjusted by you. Yields, rainfall, input inflation, and market prices vary. Actual expenses logged on registered farms are tracked separately below.'}
+          </p>
+          <p className="text-[11px] font-mono text-[#0B3D91]">
+            Formulas: Operating Cost = Seeds + Fertilisers + Feed + Water + Labour + Other · Break-Even Units = Operating Cost ÷ Price/Unit
           </p>
         </div>
       </div>
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}
       {notice && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm flex items-center gap-2">
-          <CheckCircle2 className="w-4 h-4 text-[#1B4332] shrink-0" />
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#174C3C] rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#174C3C] shrink-0" />
           <span>{notice}</span>
         </div>
       )}
 
       {/* Template Quick-Loader + Saved Scenarios */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-7 bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-4">
+        <div className="lg:col-span-7 bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="font-display text-base font-bold text-[#143326]">
+            <h2 className="font-display text-base font-bold text-[#0B1F3A]">
               1. Choose Enterprise Baseline & Scale Tier
             </h2>
-            {loading && <RefreshCw className="w-4 h-4 animate-spin text-[#4A5A50]" />}
+            {loading && <RefreshCw className="w-4 h-4 animate-spin text-[#475569]" />}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
                 Farming Type Preset
               </label>
               <select
                 value={draft.farmingType}
                 onChange={(e) => handleApplyTemplate(e.target.value, draft.scaleTier)}
-                className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-medium text-[#143326]"
+                className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-medium text-[#0B1F3A]"
               >
                 {(overview?.templates || []).map((tpl) => (
                   <option key={tpl.code} value={tpl.code}>
@@ -801,10 +804,10 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
               </select>
             </div>
             <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
                 Operation Scale Preset
               </label>
-              <div className="grid grid-cols-3 gap-1.5 bg-[#F6F7F4] p-1 rounded-xl border border-[#E2E6DF]">
+              <div className="grid grid-cols-3 gap-1.5 bg-[#F1F5F9] p-1 rounded-xl border border-[#CBD5E1]">
                 {SCALE_TIERS.map((tier) => (
                   <button
                     key={tier.code}
@@ -812,8 +815,8 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                     onClick={() => handleApplyTemplate(draft.farmingType, tier.code)}
                     className={`px-2 py-2 rounded-lg text-xs font-semibold transition-colors whitespace-nowrap cursor-pointer ${
                       draft.scaleTier === tier.code
-                        ? 'bg-[#1B4332] text-white'
-                        : 'text-[#35443B] hover:bg-white'
+                        ? 'bg-[#0B3D91] text-white'
+                        : 'text-[#334155] hover:bg-white'
                     }`}
                   >
                     {tier.label}
@@ -824,18 +827,18 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
           </div>
 
           {activeTemplate && (
-            <p className="text-xs text-[#4A5A50]">
-              Category: <span className="font-semibold text-[#143326]">{activeTemplate.category}</span> ·
-              Output Unit: <span className="font-mono font-semibold text-[#143326]">{activeTemplate.productionUnit}</span> ·
+            <p className="text-xs text-[#475569]">
+              Category: <span className="font-semibold text-[#0B1F3A]">{activeTemplate.category}</span> ·
+              Output Unit: <span className="font-mono font-semibold text-[#0B1F3A]">{activeTemplate.productionUnit}</span> ·
               Typical Market: {activeTemplate.defaultMarketChannel}
             </p>
           )}
         </div>
 
         {/* Saved Scenarios Manager */}
-        <div className="lg:col-span-5 bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-3">
+        <div className="lg:col-span-5 bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-3">
           <div className="flex items-center justify-between gap-2">
-            <h2 className="font-display text-base font-bold text-[#143326]">
+            <h2 className="font-display text-base font-bold text-[#0B1F3A]">
               Saved Scenarios ({overview?.savedPlans.length || 0})
             </h2>
             <button
@@ -848,7 +851,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                 }));
                 setNotice('Started fresh unsaved scenario draft from current inputs.');
               }}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+              className="inline-flex items-center gap-1 text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>New Draft</span>
@@ -857,7 +860,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 
           <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
             {(overview?.savedPlans || []).length === 0 ? (
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 No saved business plans yet. Adjust the inputs below and save your first scenario.
               </p>
             ) : (
@@ -868,8 +871,8 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                     key={p.id}
                     className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl border text-xs ${
                       isSelected
-                        ? 'bg-[#EDF5EF] border-[#1B4332]'
-                        : 'bg-[#F6F7F4] border-[#E2E6DF]'
+                        ? 'bg-[#EFF6FF] border-[#0B3D91]'
+                        : 'bg-[#F8FAFC] border-[#E2E8F0]'
                     }`}
                   >
                     <button
@@ -880,8 +883,8 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       }}
                       className="text-left flex-1 min-w-0 cursor-pointer"
                     >
-                      <p className="font-semibold text-[#143326] truncate">{p.planName}</p>
-                      <p className="text-[#4A5A50] font-mono tabular-nums">
+                      <p className="font-semibold text-[#0B1F3A] truncate">{p.planName}</p>
+                      <p className="text-[#475569] font-mono tabular-nums">
                         {p.farmSizeHectares} ha · Est. Rev {formatZar(p.calculation.estimatedRevenueZar)}
                       </p>
                     </button>
@@ -889,7 +892,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       type="button"
                       onClick={() => handleDeletePlan(p.id)}
                       aria-label={`Delete ${p.planName}`}
-                      className="p-1.5 rounded-lg text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer shrink-0"
+                      className="p-1.5 rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer shrink-0"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
@@ -903,52 +906,52 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 
       {/* Top Financial KPI Summary Strip (Estimated Figures) */}
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Est. Startup Costs (Capex)</p>
-          <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+        <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Est. Startup Costs (Capex)</p>
+          <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
             {formatZar(liveCalc.estimatedStartupCostsZar)}
           </p>
-          <p className="text-xs text-[#4A5A50] mt-1">Equipment + infrastructure</p>
+          <p className="text-xs text-[#475569] mt-1">Equipment + infrastructure</p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Est. Operating Costs</p>
-          <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+        <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Est. Operating Costs</p>
+          <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
             {formatZar(liveCalc.estimatedOperatingCostsZar)}
           </p>
-          <p className="text-xs text-[#4A5A50] font-mono tabular-nums mt-1">
+          <p className="text-xs text-[#475569] font-mono tabular-nums mt-1">
             {formatZar(liveCalc.costPerHectareZar)} / ha
           </p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Est. Potential Revenue</p>
-          <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+        <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Est. Potential Revenue</p>
+          <p className="font-mono text-xl font-bold tabular-nums text-[#0B3D91] mt-1">
             {formatZar(liveCalc.estimatedRevenueZar)}
           </p>
-          <p className="text-xs text-[#4A5A50] font-mono tabular-nums mt-1">
+          <p className="text-xs text-[#475569] font-mono tabular-nums mt-1">
             {draft.expectedProductionQty.toLocaleString()} {draft.productionUnit}
           </p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-          <p className="text-xs text-[#4A5A50]">Est. Operating Profit / Loss</p>
+        <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+          <p className="text-xs text-[#475569]">Est. Operating Profit / Loss</p>
           <p
             className={`font-mono text-xl font-bold tabular-nums mt-1 ${
-              liveCalc.estimatedOperatingProfitLossZar >= 0 ? 'text-[#1B4332]' : 'text-[#8E2424]'
+              liveCalc.estimatedOperatingProfitLossZar >= 0 ? 'text-[#174C3C]' : 'text-[#B91C1C]'
             }`}
           >
             {formatZar(liveCalc.estimatedOperatingProfitLossZar)}
           </p>
-          <p className="text-xs text-[#4A5A50] font-mono tabular-nums mt-1">
+          <p className="text-xs text-[#475569] font-mono tabular-nums mt-1">
             Net Yr 1 (after capex): {formatZar(liveCalc.estimatedNetYearOneZar)}
           </p>
         </div>
-        <div className="bg-white border border-[#E2E6DF] rounded-xl p-4 col-span-2 lg:col-span-1">
-          <p className="text-xs text-[#4A5A50]">Est. Break-Even Point</p>
-          <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+        <div className="bg-white border border-[#CBD5E1] rounded-xl p-4 col-span-2 lg:col-span-1">
+          <p className="text-xs text-[#475569]">Est. Break-Even Point</p>
+          <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
             {liveCalc.breakEvenUnits !== null
               ? `${liveCalc.breakEvenUnits.toLocaleString()} ${draft.productionUnit}`
               : '—'}
           </p>
-          <p className="text-xs text-[#4A5A50] font-mono tabular-nums mt-1">
+          <p className="text-xs text-[#475569] font-mono tabular-nums mt-1">
             Min price:{' '}
             {liveCalc.breakEvenPriceZar !== null
               ? `R${liveCalc.breakEvenPriceZar}/${draft.productionUnit}`
@@ -960,13 +963,13 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
       {/* Main Editor + Live Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left 7 Cols: All 14 Required Planner Inputs */}
-        <section className="lg:col-span-7 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+        <section className="lg:col-span-7 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
-              <h2 className="font-display text-lg font-bold text-[#143326]">
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                 2. Adjust Farm Assumptions (Live Recalculation)
               </h2>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 Every input below updates financial totals, break-even metrics, and charts immediately.
               </p>
             </div>
@@ -976,7 +979,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                   type="button"
                   disabled={saving}
                   onClick={() => handleSavePlan(true)}
-                  className="px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] cursor-pointer"
+                  className="px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#0B1F3A] cursor-pointer"
                 >
                   Save As Copy
                 </button>
@@ -985,7 +988,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                 type="button"
                 disabled={saving}
                 onClick={() => handleSavePlan(false)}
-                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-xs font-semibold text-white disabled:opacity-60 cursor-pointer"
+                className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-xs font-semibold text-white disabled:opacity-60 cursor-pointer"
               >
                 <Save className="w-3.5 h-3.5" />
                 <span>{saving ? 'Saving...' : draft.id ? 'Update Saved Plan' : 'Save Scenario'}</span>
@@ -996,25 +999,25 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
           {/* Farm Identity, Location, Size & Goals */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
                 Scenario Name
               </label>
               <input
                 type="text"
                 value={draft.planName}
                 onChange={(e) => setDraft((p) => ({ ...p, planName: e.target.value }))}
-                className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
                 Province
               </label>
               <select
                 value={draft.province}
                 onChange={(e) => handleSelectProvince(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
               >
                 {provinces.map((p) => (
                   <option key={p.code} value={p.name}>
@@ -1025,7 +1028,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
                 District / Municipality
               </label>
               <input
@@ -1034,7 +1037,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                 value={draft.district}
                 onChange={(e) => setDraft((p) => ({ ...p, district: e.target.value }))}
                 placeholder="e.g. uMgungundlovu"
-                className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
               />
               {selectedProvObj && (
                 <datalist id="planner-districts">
@@ -1045,293 +1048,293 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
               )}
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                Link Registered Farm (Optional — compares Actuals)
-              </label>
-              <select
-                value={draft.farmId}
-                onChange={(e) => handleSelectFarmLink(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm"
-              >
-                <option value="">Prospective / Unlinked Scenario</option>
-                {farms.map((f) => (
-                  <option key={f.id} value={f.id}>
-                    {f.name} ({f.farmSizeHectares} ha)
-                  </option>
-                ))}
-              </select>
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
+                  Link Registered Farm (Optional — compares Actuals)
+                </label>
+                <select
+                  value={draft.farmId}
+                  onChange={(e) => handleSelectFarmLink(e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                >
+                  <option value="">Prospective / Unlinked Scenario</option>
+                  {farms.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      {f.name} ({f.farmSizeHectares} ha)
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
+                  Farm / Plot Size (Hectares)
+                </label>
+                <input
+                  type="number"
+                  step="0.1"
+                  min="0.05"
+                  value={draft.farmSizeHectares}
+                  onChange={(e) => numField('farmSizeHectares', e.target.value)}
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                />
+              </div>
+
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
+                  Production Goals & Target Market Channel
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input
+                    type="text"
+                    value={draft.productionGoals}
+                    onChange={(e) => setDraft((p) => ({ ...p, productionGoals: e.target.value }))}
+                    placeholder="Production goals..."
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                  <input
+                    type="text"
+                    value={draft.marketChannel}
+                    onChange={(e) => setDraft((p) => ({ ...p, marketChannel: e.target.value }))}
+                    placeholder="Market channel..."
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                Farm / Plot Size (Hectares)
-              </label>
-              <input
-                type="number"
-                step="0.1"
-                min="0.05"
-                value={draft.farmSizeHectares}
-                onChange={(e) => numField('farmSizeHectares', e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-              />
-            </div>
-
-            <div className="sm:col-span-2">
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                Production Goals & Target Market Channel
-              </label>
+            {/* Startup Capex Inputs */}
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#0B3D91] font-semibold">
+                Estimated Startup Capital (Equipment & Infrastructure)
+              </h3>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <input
-                  type="text"
-                  value={draft.productionGoals}
-                  onChange={(e) => setDraft((p) => ({ ...p, productionGoals: e.target.value }))}
-                  placeholder="Production goals..."
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
-                />
-                <input
-                  type="text"
-                  value={draft.marketChannel}
-                  onChange={(e) => setDraft((p) => ({ ...p, marketChannel: e.target.value }))}
-                  placeholder="Market channel..."
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
-                />
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Equipment & Tools Cost (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={draft.equipmentCostZar}
+                    onChange={(e) => numField('equipmentCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Infrastructure (Fencing, Sheds, Irrigation) (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={draft.infrastructureCostZar}
+                    onChange={(e) => numField('infrastructureCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Equipment Requirements Notes
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.equipmentNotes}
+                    onChange={(e) => setDraft((p) => ({ ...p, equipmentNotes: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Startup Capex Inputs */}
-          <div className="pt-3 border-t border-[#E2E6DF] space-y-3">
-            <h3 className="text-xs font-mono uppercase tracking-wider text-[#2D6A4F] font-semibold">
-              Estimated Startup Capital (Equipment & Infrastructure)
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Equipment & Tools Cost (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={draft.equipmentCostZar}
-                  onChange={(e) => numField('equipmentCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Infrastructure (Fencing, Sheds, Irrigation) (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={draft.infrastructureCostZar}
-                  onChange={(e) => numField('infrastructureCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Equipment Requirements Notes
-                </label>
-                <input
-                  type="text"
-                  value={draft.equipmentNotes}
-                  onChange={(e) => setDraft((p) => ({ ...p, equipmentNotes: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
-                />
+            {/* Seasonal Operating Inputs */}
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#0B3D91] font-semibold">
+                Estimated Seasonal / Annual Operating Costs
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Seeds & Planting Materials (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="250"
+                    value={draft.seedsPlantingCostZar}
+                    onChange={(e) => numField('seedsPlantingCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Fertilisers & Lime (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="250"
+                    value={draft.fertilisersCostZar}
+                    onChange={(e) => numField('fertilisersCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Animal Feed & Licks (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="250"
+                    value={draft.feedCostZar}
+                    onChange={(e) => numField('feedCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Water & Pumping Cost (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="250"
+                    value={draft.waterCostZar}
+                    onChange={(e) => numField('waterCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Est. Water Requirement (m³)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="50"
+                    value={draft.waterDemandM3}
+                    onChange={(e) => numField('waterDemandM3', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Other Operating Expenses (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="250"
+                    value={draft.operatingExpensesZar}
+                    onChange={(e) => numField('operatingExpensesZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Labour Workers Needed
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={draft.labourWorkers}
+                    onChange={(e) => numField('labourWorkers', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div className="sm:col-span-2">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Total Annual / Seasonal Labour Cost (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="500"
+                    value={draft.labourCostZar}
+                    onChange={(e) => numField('labourCostZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
               </div>
             </div>
-          </div>
 
-          {/* Seasonal Operating Inputs */}
-          <div className="pt-3 border-t border-[#E2E6DF] space-y-3">
-            <h3 className="text-xs font-mono uppercase tracking-wider text-[#2D6A4F] font-semibold">
-              Estimated Seasonal / Annual Operating Costs
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Seeds & Planting Materials (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="250"
-                  value={draft.seedsPlantingCostZar}
-                  onChange={(e) => numField('seedsPlantingCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Fertilisers & Lime (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="250"
-                  value={draft.fertilisersCostZar}
-                  onChange={(e) => numField('fertilisersCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Animal Feed & Licks (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="250"
-                  value={draft.feedCostZar}
-                  onChange={(e) => numField('feedCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Water & Pumping Cost (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="250"
-                  value={draft.waterCostZar}
-                  onChange={(e) => numField('waterCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Est. Water Requirement (m³)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="50"
-                  value={draft.waterDemandM3}
-                  onChange={(e) => numField('waterDemandM3', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Other Operating Expenses (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="250"
-                  value={draft.operatingExpensesZar}
-                  onChange={(e) => numField('operatingExpensesZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Labour Workers Needed
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  value={draft.labourWorkers}
-                  onChange={(e) => numField('labourWorkers', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Total Annual / Seasonal Labour Cost (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="500"
-                  value={draft.labourCostZar}
-                  onChange={(e) => numField('labourCostZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
+            {/* Expected Production & Selling Prices */}
+            <div className="pt-3 border-t border-[#E2E8F0] space-y-3">
+              <h3 className="text-xs font-mono uppercase tracking-wider text-[#0B3D91] font-semibold">
+                Estimated Output & Assumed Selling Price
+              </h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Expected Production Quantity
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="10"
+                    value={draft.expectedProductionQty}
+                    onChange={(e) => numField('expectedProductionQty', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Production Unit
+                  </label>
+                  <input
+                    type="text"
+                    value={draft.productionUnit}
+                    onChange={(e) => setDraft((p) => ({ ...p, productionUnit: e.target.value }))}
+                    placeholder="kg / tonnes / birds / head"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Assumed Selling Price / Unit (ZAR)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.5"
+                    value={draft.sellingPricePerUnitZar}
+                    onChange={(e) => numField('sellingPricePerUnitZar', e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono tabular-nums text-sm"
+                  />
+                </div>
+                <div className="sm:col-span-3">
+                  <label className="block text-xs font-semibold text-[#334155] mb-1">
+                    Assumptions & Risk Notes
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={draft.assumptionsNotes}
+                    onChange={(e) => setDraft((p) => ({ ...p, assumptionsNotes: e.target.value }))}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
               </div>
             </div>
-          </div>
-
-          {/* Expected Production & Selling Prices */}
-          <div className="pt-3 border-t border-[#E2E6DF] space-y-3">
-            <h3 className="text-xs font-mono uppercase tracking-wider text-[#2D6A4F] font-semibold">
-              Estimated Output & Assumed Selling Price
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Expected Production Quantity
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="10"
-                  value={draft.expectedProductionQty}
-                  onChange={(e) => numField('expectedProductionQty', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Production Unit
-                </label>
-                <input
-                  type="text"
-                  value={draft.productionUnit}
-                  onChange={(e) => setDraft((p) => ({ ...p, productionUnit: e.target.value }))}
-                  placeholder="kg / tonnes / birds / head"
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Assumed Selling Price / Unit (ZAR)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.5"
-                  value={draft.sellingPricePerUnitZar}
-                  onChange={(e) => numField('sellingPricePerUnitZar', e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] font-mono tabular-nums text-sm"
-                />
-              </div>
-              <div className="sm:col-span-3">
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
-                  Assumptions & Risk Notes
-                </label>
-                <textarea
-                  rows={2}
-                  value={draft.assumptionsNotes}
-                  onChange={(e) => setDraft((p) => ({ ...p, assumptionsNotes: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
-                />
-              </div>
-            </div>
-          </div>
         </section>
 
         {/* Right 5 Cols: Cost Breakdown, Resource Requirements, Actuals vs Estimates */}
         <div className="lg:col-span-5 space-y-6">
           {/* Cost Structure Breakdown */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <BarChart3 className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <BarChart3 className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Cost Structure Breakdown
                 </h2>
               </div>
-              <span className="font-mono text-xs font-semibold tabular-nums text-[#4A5A50]">
+              <span className="font-mono text-xs font-semibold tabular-nums text-[#475569]">
                 Outlay: {formatZar(liveCalc.totalYearOneOutlayZar)}
               </span>
             </div>
@@ -1340,20 +1343,20 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
               {liveCalc.costBreakdown.map((item) => (
                 <div key={item.key} className="space-y-1">
                   <div className="flex items-center justify-between text-xs">
-                    <span className="font-medium text-[#17201B]">
+                    <span className="font-medium text-[#0F172A]">
                       {item.label}{' '}
-                      <span className="text-[#4A5A50]">
+                      <span className="text-[#475569]">
                         · {item.categoryType === 'startup_capex' ? 'Capex' : 'Operating'}
                       </span>
                     </span>
-                    <span className="font-mono font-semibold tabular-nums text-[#143326]">
+                    <span className="font-mono font-semibold tabular-nums text-[#0B1F3A]">
                       {formatZar(item.amountZar)} ({item.sharePercent}%)
                     </span>
                   </div>
-                  <div className="h-2 bg-[#EDF2EC] rounded-full overflow-hidden">
+                  <div className="h-2 bg-[#E2E8F0] rounded-full overflow-hidden">
                     <div
                       className={`h-full rounded-full ${
-                        item.categoryType === 'startup_capex' ? 'bg-[#B07D2B]' : 'bg-[#1B4332]'
+                        item.categoryType === 'startup_capex' ? 'bg-[#B45309]' : 'bg-[#0B3D91]'
                       }`}
                       style={{ width: `${Math.min(100, item.sharePercent)}%` }}
                     />
@@ -1364,61 +1367,61 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
           </section>
 
           {/* Resource Requirements Summary */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-3">
-            <h2 className="font-display text-base font-bold text-[#143326]">
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-3">
+            <h2 className="font-display text-base font-bold text-[#0B1F3A]">
               Estimated Resource Requirements
             </h2>
             <div className="grid grid-cols-3 gap-3 text-center">
-              <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
-                <p className="text-[11px] text-[#4A5A50]">Land Area</p>
-                <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[11px] text-[#475569]">Land Area</p>
+                <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                   {liveCalc.resourceRequirements.farmSizeHectares} ha
                 </p>
               </div>
-              <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
-                <p className="text-[11px] text-[#4A5A50]">Workforce</p>
-                <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[11px] text-[#475569]">Workforce</p>
+                <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                   {liveCalc.resourceRequirements.labourWorkers} people
                 </p>
               </div>
-              <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
-                <p className="text-[11px] text-[#4A5A50]">Est. Water</p>
-                <p className="font-mono font-bold tabular-nums text-[#143326] mt-0.5">
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[11px] text-[#475569]">Est. Water</p>
+                <p className="font-mono font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                   {liveCalc.resourceRequirements.waterDemandM3.toLocaleString()} m³
                 </p>
               </div>
             </div>
-            <p className="text-xs text-[#4A5A50]">{liveCalc.resourceRequirements.summaryText}</p>
+            <p className="text-xs text-[#475569]">{liveCalc.resourceRequirements.summaryText}</p>
           </section>
 
           {/* Estimated Values vs Actual Recorded Farm Expenses */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-3">
-            <h2 className="font-display text-base font-bold text-[#143326]">
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-3">
+            <h2 className="font-display text-base font-bold text-[#0B1F3A]">
               Estimated Budget vs Actual Farm Expenses
             </h2>
             {linkedActualExpense ? (
               <div className="space-y-3">
-                <p className="text-xs text-[#4A5A50]">
+                <p className="text-xs text-[#475569]">
                   Comparing your <strong>Planning Estimates</strong> against real expenses logged on{' '}
-                  <strong className="text-[#143326]">{linkedActualExpense.farmName}</strong>:
+                  <strong className="text-[#0B1F3A]">{linkedActualExpense.farmName}</strong>:
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
-                    <p className="text-[11px] text-[#4A5A50]">Estimated Operating Plan</p>
-                    <p className="font-mono text-lg font-bold tabular-nums text-[#143326] mt-0.5">
+                  <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                    <p className="text-[11px] text-[#475569]">Estimated Operating Plan</p>
+                    <p className="font-mono text-lg font-bold tabular-nums text-[#0B1F3A] mt-0.5">
                       {formatZar(liveCalc.estimatedOperatingCostsZar)}
                     </p>
-                    <p className="text-[11px] text-[#4A5A50]">Assumed projection</p>
+                    <p className="text-[11px] text-[#475569]">Assumed projection</p>
                   </div>
-                  <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3">
-                    <p className="text-[11px] text-[#2D6A4F]">Actual Recorded Expenses</p>
-                    <p className="font-mono text-lg font-bold tabular-nums text-[#1B4332] mt-0.5">
+                  <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3">
+                    <p className="text-[11px] text-[#174C3C]">Actual Recorded Expenses</p>
+                    <p className="font-mono text-lg font-bold tabular-nums text-[#174C3C] mt-0.5">
                       {formatZar(linkedActualExpense.totalActualRecordedExpensesZar)}
                     </p>
-                    <p className="text-[11px] text-[#35443B]">Verified farm ledger</p>
+                    <p className="text-[11px] text-[#334155]">Verified farm ledger</p>
                   </div>
                 </div>
-                <div className="text-xs text-[#4A5A50] space-y-1 font-mono tabular-nums pt-1 border-t border-[#E2E6DF]">
+                <div className="text-xs text-[#475569] space-y-1 font-mono tabular-nums pt-1 border-t border-[#E2E8F0]">
                   <div className="flex justify-between">
                     <span>Mixed Operations Logs:</span>
                     <span>{formatZar(linkedActualExpense.mixedExpensesZar)}</span>
@@ -1434,7 +1437,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                 </div>
               </div>
             ) : (
-              <p className="text-xs text-[#4A5A50] leading-relaxed">
+              <p className="text-xs text-[#475569] leading-relaxed">
                 {liveCalc.actualExpensesNote} Existing farmers can link a registered farm above to track actual recorded farm expenses alongside estimated budgets.
               </p>
             )}
@@ -1444,30 +1447,30 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 
       {/* Multi-Scale Scenario Comparison Chart & Matrix */}
       {comparisonRows.length > 0 && (
-        <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+        <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <div className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <TrendingUp className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Scale Comparison: Small vs Medium vs Larger Operations ({activeTemplate?.name})
                 </h2>
               </div>
-              <p className="text-xs text-[#4A5A50] mt-0.5">
+              <p className="text-xs text-[#475569] mt-0.5">
                 Compare estimated startup capex, seasonal operating costs, and potential revenue across scales.
               </p>
             </div>
-            <div className="flex items-center gap-4 text-xs text-[#35443B]">
+            <div className="flex items-center gap-4 text-xs text-[#334155]">
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-[#B07D2B] inline-block" />
+                <span className="w-3 h-3 rounded-sm bg-[#B45309] inline-block" />
                 Startup Capex
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-[#4A5A50] inline-block" />
+                <span className="w-3 h-3 rounded-sm bg-[#475569] inline-block" />
                 Operating Cost
               </span>
               <span className="inline-flex items-center gap-1.5">
-                <span className="w-3 h-3 rounded-sm bg-[#1B4332] inline-block" />
+                <span className="w-3 h-3 rounded-sm bg-[#0B3D91] inline-block" />
                 Potential Revenue
               </span>
             </div>
@@ -1485,19 +1488,19 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                 const y = 175 - frac * 145;
                 return (
                   <g key={frac}>
-                    <line x1="65" y1={y} x2="740" y2={y} stroke="#E2E6DF" strokeDasharray="3 3" />
+                    <line x1="65" y1={y} x2="740" y2={y} stroke="#E2E8F0" strokeDasharray="3 3" />
                     <text
                       x="58"
                       y={y + 4}
                       textAnchor="end"
-                      className="fill-[#4A5A50] text-[10px] font-mono"
+                      className="fill-[#475569] text-[10px] font-mono"
                     >
                       R{Math.round((maxChartValue * frac) / 1000)}k
                     </text>
                   </g>
                 );
               })}
-              <line x1="65" y1="175" x2="740" y2="175" stroke="#CBD4C9" />
+              <line x1="65" y1="175" x2="740" y2="175" stroke="#CBD5E1" />
 
               {comparisonRows.map((row, idx) => {
                 const groupX = 95 + idx * 165;
@@ -1513,7 +1516,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       width="28"
                       height={Math.max(2, capH)}
                       rx="3"
-                      fill="#B07D2B"
+                      fill="#B45309"
                     >
                       <title>{`Startup Capex: ${formatZar(row.calc.estimatedStartupCostsZar)}`}</title>
                     </rect>
@@ -1523,7 +1526,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       width="28"
                       height={Math.max(2, opH)}
                       rx="3"
-                      fill="#4A5A50"
+                      fill="#475569"
                     >
                       <title>{`Operating Cost: ${formatZar(row.calc.estimatedOperatingCostsZar)}`}</title>
                     </rect>
@@ -1533,7 +1536,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       width="28"
                       height={Math.max(2, revH)}
                       rx="3"
-                      fill="#1B4332"
+                      fill="#0B3D91"
                     >
                       <title>{`Est. Revenue: ${formatZar(row.calc.estimatedRevenueZar)}`}</title>
                     </rect>
@@ -1542,7 +1545,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       y="194"
                       textAnchor="middle"
                       className={`text-[11px] font-sans ${
-                        row.isCurrent ? 'fill-[#143326] font-bold' : 'fill-[#35443B]'
+                        row.isCurrent ? 'fill-[#0B1F3A] font-bold' : 'fill-[#334155]'
                       }`}
                     >
                       {row.label}
@@ -1551,7 +1554,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                       x={groupX + 48}
                       y="208"
                       textAnchor="middle"
-                      className="fill-[#4A5A50] text-[10px] font-mono"
+                      className="fill-[#475569] text-[10px] font-mono"
                     >
                       {row.ha} ha
                     </text>
@@ -1565,7 +1568,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
           <div className="overflow-x-auto">
             <table className="w-full text-left text-sm">
               <thead>
-                <tr className="border-b border-[#E2E6DF] text-xs text-[#4A5A50]">
+                <tr className="border-b border-[#E2E8F0] text-xs text-[#475569]">
                   <th className="py-2.5 pr-4 font-semibold">Scenario Scale</th>
                   <th className="py-2.5 pr-4 font-semibold text-right">Land & Labour</th>
                   <th className="py-2.5 pr-4 font-semibold text-right">Est. Startup</th>
@@ -1575,11 +1578,11 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                   <th className="py-2.5 font-semibold text-right">Est. Operating P/L</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E2E6DF]">
+              <tbody className="divide-y divide-[#E2E8F0]">
                 {comparisonRows.map((row) => (
-                  <tr key={row.key} className={row.isCurrent ? 'bg-[#F6FAF7]' : ''}>
-                    <td className="py-3 pr-4 font-semibold text-[#143326]">{row.label}</td>
-                    <td className="py-3 pr-4 text-right font-mono tabular-nums text-xs text-[#35443B]">
+                  <tr key={row.key} className={row.isCurrent ? 'bg-[#EFF6FF]' : ''}>
+                    <td className="py-3 pr-4 font-semibold text-[#0B1F3A]">{row.label}</td>
+                    <td className="py-3 pr-4 text-right font-mono tabular-nums text-xs text-[#334155]">
                       {row.ha} ha · {row.workers} workers
                     </td>
                     <td className="py-3 pr-4 text-right font-mono tabular-nums">
@@ -1591,14 +1594,14 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
                     <td className="py-3 pr-4 text-right font-mono tabular-nums text-xs">
                       {row.qty.toLocaleString()} {row.unit}
                     </td>
-                    <td className="py-3 pr-4 text-right font-mono tabular-nums font-semibold text-[#1B4332]">
+                    <td className="py-3 pr-4 text-right font-mono tabular-nums font-semibold text-[#0B3D91]">
                       {formatZar(row.calc.estimatedRevenueZar)}
                     </td>
                     <td
                       className={`py-3 text-right font-mono tabular-nums font-bold ${
                         row.calc.estimatedOperatingProfitLossZar >= 0
-                          ? 'text-[#1B4332]'
-                          : 'text-[#8E2424]'
+                          ? 'text-[#174C3C]'
+                          : 'text-[#B91C1C]'
                       }`}
                     >
                       {formatZar(row.calc.estimatedOperatingProfitLossZar)}

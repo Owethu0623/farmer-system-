@@ -13,10 +13,10 @@ import {
   Upload,
   X,
 } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import { apiRequest, fetchPublicDatasets } from '../lib/api';
 import { isLikelyOfflineError } from '../lib/offlineSync';
 import { getSastDateString } from '../lib/saTime';
-import { FarmItem, LanguageCode, SoilLandIntelligence } from '../types';
+import { FarmItem, LanguageCode, PublicDatasetRecord, SoilLandIntelligence } from '../types';
 import { SpeakButton } from './AccessibilityControls';
 
 interface SoilLandViewProps {
@@ -53,6 +53,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
 
   const [farmingTypeFilter, setFarmingTypeFilter] = useState('');
   const [data, setData] = useState<SoilLandIntelligence | null>(null);
+  const [publicDatasets, setPublicDatasets] = useState<PublicDatasetRecord[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,6 +113,18 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
   useEffect(() => {
     loadSoilIntelligence();
   }, [loadSoilIntelligence]);
+
+  useEffect(() => {
+    fetchPublicDatasets()
+      .then((res) =>
+        setPublicDatasets(
+          res.datasets.filter((d) =>
+            ['soil', 'climate_agromet', 'elevation_terrain', 'geographical_boundaries'].includes(d.category)
+          )
+        )
+      )
+      .catch(() => {});
+  }, []);
 
   const handleFileAttachment = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -200,12 +213,12 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
 
   if (farms.length === 0) {
     return (
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center space-y-2">
-        <Mountain className="w-8 h-8 text-[#1B4332] mx-auto" />
-        <h2 className="font-display text-xl font-bold text-[#143326]">
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center space-y-2">
+        <Mountain className="w-8 h-8 text-[#0B3D91] mx-auto" />
+        <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
           No Registered Farm Locations Found
         </h2>
-        <p className="text-sm text-[#4A5A50]">
+        <p className="text-sm text-[#475569]">
           Register a farm in Farms & GPS Map to inspect coordinate-specific soil datasets, elevation, and land suitability.
         </p>
       </div>
@@ -215,12 +228,12 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             Soil & Land Intelligence
           </h1>
-          <p className="text-sm text-[#4A5A50]">
+          <p className="text-sm text-[#475569]">
             Distinguishes verified laboratory soil measurements from satellite/provincial mapped estimates.
           </p>
         </div>
@@ -229,7 +242,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
           <select
             value={activeFarmId}
             onChange={(e) => onSelectFarm(e.target.value)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold min-h-[42px]"
+            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[42px]"
           >
             {farms.map((f) => (
               <option key={f.id} value={f.id}>
@@ -241,7 +254,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
           <button
             type="button"
             onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
           >
             <Upload className="w-4 h-4" />
             <span>Upload Lab Soil Report</span>
@@ -251,7 +264,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
             type="button"
             onClick={loadSoilIntelligence}
             disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-[#F6F7F4] hover:bg-[#EDF5EF] text-sm font-semibold text-[#143326] min-h-[42px] cursor-pointer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#EFF6FF] text-sm font-semibold text-[#0B1F3A] min-h-[42px] cursor-pointer"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
             <span>Refresh</span>
@@ -260,13 +273,13 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
       </div>
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}
 
       {loading && !data && (
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-sm text-[#4A5A50]">
+        <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-sm text-[#475569]">
           Querying elevation, SoilGrids coordinates, and laboratory records...
         </div>
       )}
@@ -274,14 +287,14 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
       {data && (
         <>
           {/* Honest Scientific Distinction Banner */}
-          <div className="bg-[#F6F7F4] border border-[#D4DDD2] rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+          <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1 max-w-3xl">
-              <p className="text-sm font-semibold text-[#143326]">
+              <p className="text-sm font-semibold text-[#0B1F3A]">
                 {data.hasLabReport
                   ? `Laboratory Soil Report Active (${data.latestLabReport?.laboratoryName}, sampled ${data.latestLabReport?.sampleDate})`
                   : 'No Laboratory Soil Report Uploaded — Showing Mapped Geospatial Estimates Only'}
               </p>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#334155]">
                 Mapped estimates from ISRIC SoilGrids (250 m grid) and ARC-ISCW references provide broad regional guidance only. They never substitute for a composite 0–20 cm laboratory soil analysis, and Field Shift never guarantees crop yields.
               </p>
             </div>
@@ -301,15 +314,15 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
           </div>
 
           {/* Land Intelligence Section */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <div className="flex items-center gap-2">
-                <Mountain className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <Mountain className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Land & Environmental Intelligence
                 </h2>
               </div>
-              <span className="text-xs font-mono tabular-nums text-[#4A5A50]">
+              <span className="text-xs font-mono tabular-nums text-[#475569]">
                 {data.coordinates.latitude.toFixed(5)}, {data.coordinates.longitude.toFixed(5)} ·{' '}
                 {data.coordinates.locationSource === 'gps'
                   ? 'GPS Coordinate'
@@ -319,43 +332,43 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2 border-t border-[#E2E6DF]">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 pt-2 border-t border-[#E2E8F0]">
               <div>
-                <p className="text-xs text-[#4A5A50]">Elevation</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+                <p className="text-xs text-[#475569]">Elevation</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                   {data.landIntelligence.elevationMeters != null
                     ? `${data.landIntelligence.elevationMeters} m ASL`
                     : 'Not available'}
                 </p>
-                <p className="text-xs text-[#4A5A50] mt-0.5">{data.landIntelligence.elevationSource}</p>
+                <p className="text-xs text-[#475569] mt-0.5">{data.landIntelligence.elevationSource}</p>
               </div>
               <div>
-                <p className="text-xs text-[#4A5A50]">Terrain & Physiography</p>
-                <p className="text-sm font-semibold text-[#143326] mt-1">
+                <p className="text-xs text-[#475569]">Terrain & Physiography</p>
+                <p className="text-sm font-semibold text-[#0B1F3A] mt-1">
                   {data.landIntelligence.terrainProfile}
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#4A5A50]">Water Availability</p>
-                <p className="text-sm font-semibold text-[#143326] mt-1 flex items-center gap-1.5">
-                  <Droplets className="w-4 h-4 text-[#2D6A4F] shrink-0" />
+                <p className="text-xs text-[#475569]">Water Availability</p>
+                <p className="text-sm font-semibold text-[#0B1F3A] mt-1 flex items-center gap-1.5">
+                  <Droplets className="w-4 h-4 text-[#0B3D91] shrink-0" />
                   <span>{data.landIntelligence.waterAvailabilitySummary}</span>
                 </p>
               </div>
               <div>
-                <p className="text-xs text-[#4A5A50]">Rainfall Pattern</p>
-                <p className="font-mono font-semibold tabular-nums text-sm text-[#143326] mt-1">
+                <p className="text-xs text-[#475569]">Rainfall Pattern</p>
+                <p className="font-mono font-semibold tabular-nums text-sm text-[#0B1F3A] mt-1">
                   {data.landIntelligence.annualRainfallPattern}
                 </p>
-                <p className="text-xs text-[#4A5A50] mt-0.5">{data.landIntelligence.climateZone}</p>
+                <p className="text-xs text-[#475569] mt-0.5">{data.landIntelligence.climateZone}</p>
               </div>
               <div>
-                <p className="text-xs text-[#4A5A50]">Temperature Pattern</p>
-                <p className="text-sm text-[#17201B] mt-1">{data.landIntelligence.temperaturePattern}</p>
+                <p className="text-xs text-[#475569]">Temperature Pattern</p>
+                <p className="text-sm text-[#0F172A] mt-1">{data.landIntelligence.temperaturePattern}</p>
               </div>
               <div>
-                <p className="text-xs text-[#4A5A50]">Environmental Conditions</p>
-                <p className="text-sm text-[#17201B] mt-1">
+                <p className="text-xs text-[#475569]">Environmental Conditions</p>
+                <p className="text-sm text-[#0F172A] mt-1">
                   {data.landIntelligence.environmentalConditions}
                 </p>
               </div>
@@ -363,18 +376,18 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
           </section>
 
           {/* Soil Metrics Table (Measured vs Mapped Comparison) */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="flex items-center gap-2">
-                <Layers className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <Layers className="w-5 h-5 text-[#174C3C]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Soil Profile: Laboratory Measurements vs. Mapped Estimates
                 </h2>
               </div>
               <button
                 type="button"
                 onClick={() => setShowUploadModal(true)}
-                className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
               >
                 + Add Laboratory Test Result
               </button>
@@ -383,35 +396,35 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
             <div className="overflow-x-auto">
               <table className="w-full text-left text-sm">
                 <thead>
-                  <tr className="border-b border-[#E2E6DF] text-xs text-[#4A5A50]">
+                  <tr className="border-b border-[#E2E8F0] text-xs text-[#475569]">
                     <th className="py-2.5 pr-4 font-semibold">Soil Property</th>
                     <th className="py-2.5 pr-4 font-semibold">Uploaded Lab Measurement</th>
                     <th className="py-2.5 pr-4 font-semibold">Mapped Geospatial Estimate</th>
                     <th className="py-2.5 font-semibold">Provenance & Reliability</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E2E6DF]">
+                <tbody className="divide-y divide-[#E2E8F0]">
                   {data.soilMetrics.map((m) => (
                     <tr key={m.key}>
-                      <td className="py-3 pr-4 font-semibold text-[#143326]">{m.label}</td>
+                      <td className="py-3 pr-4 font-semibold text-[#0B1F3A]">{m.label}</td>
                       <td className="py-3 pr-4 font-mono tabular-nums">
                         {m.labValue ? (
-                          <span className="font-bold text-[#1B4332]">{m.labValue}</span>
+                          <span className="font-bold text-[#174C3C]">{m.labValue}</span>
                         ) : (
-                          <span className="text-[#6E7D73] text-xs">Not measured in lab</span>
+                          <span className="text-[#64748B] text-xs">Not measured in lab</span>
                         )}
                       </td>
-                      <td className="py-3 pr-4 font-mono tabular-nums text-[#35443B]">
-                        {m.mappedEstimate || <span className="text-xs text-[#6E7D73]">Unavailable</span>}
+                      <td className="py-3 pr-4 font-mono tabular-nums text-[#334155]">
+                        {m.mappedEstimate || <span className="text-xs text-[#64748B]">Unavailable</span>}
                       </td>
                       <td className="py-3 text-xs">
                         <span
                           className={`font-semibold ${
                             m.sourceType === 'laboratory_measurement'
-                              ? 'text-[#1B4332]'
+                              ? 'text-[#174C3C]'
                               : m.sourceType === 'mapped_estimate'
-                              ? 'text-[#9A5B13]'
-                              : 'text-[#8E2424]'
+                              ? 'text-[#B45309]'
+                              : 'text-[#B91C1C]'
                           }`}
                         >
                           {m.sourceType === 'laboratory_measurement'
@@ -420,7 +433,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                             ? 'Mapped Estimate Only'
                             : 'Missing Data'}
                         </span>
-                        <span className="text-[#4A5A50]"> · {m.sourceNote}</span>
+                        <span className="text-[#475569]"> · {m.sourceNote}</span>
                       </td>
                     </tr>
                   ))}
@@ -431,18 +444,18 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
 
           {/* Uploaded Soil Lab Reports List & Data Source Integrations */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            <section className="lg:col-span-6 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <FileText className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Laboratory Soil Reports ({data.allLabReports.length})
                   </h2>
                 </div>
                 <button
                   type="button"
                   onClick={() => setShowUploadModal(true)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                 >
                   <Plus className="w-3.5 h-3.5" />
                   <span>Record New Report</span>
@@ -450,28 +463,28 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
               </div>
 
               {data.allLabReports.length === 0 ? (
-                <div className="py-6 text-center space-y-2 border-t border-[#E2E6DF]">
-                  <p className="text-sm text-[#4A5A50]">
+                <div className="py-6 text-center space-y-2 border-t border-[#E2E8F0]">
+                  <p className="text-sm text-[#475569]">
                     No laboratory soil reports uploaded for {data.farmName} yet.
                   </p>
                   <button
                     type="button"
                     onClick={() => setShowUploadModal(true)}
-                    className="px-4 py-2 rounded-xl bg-[#EDF5EF] text-[#1B4332] text-xs font-semibold cursor-pointer"
+                    className="px-4 py-2 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#0B3D91] text-xs font-semibold cursor-pointer min-h-[40px]"
                   >
                     Upload Soil Test Now
                   </button>
                 </div>
               ) : (
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {data.allLabReports.map((rep) => (
                     <div key={rep.id} className="py-3.5 space-y-1.5">
                       <div className="flex items-start justify-between gap-2">
                         <div>
-                          <p className="font-semibold text-sm text-[#143326]">
+                          <p className="font-semibold text-sm text-[#0B1F3A]">
                             {rep.laboratoryName} · Sample {rep.sampleCode}
                           </p>
-                          <p className="text-xs text-[#4A5A50] font-mono tabular-nums">
+                          <p className="text-xs text-[#475569] font-mono tabular-nums">
                             {rep.sampleDate} · Depth {rep.sampleDepthCm}
                             {rep.fieldName ? ` · Field: ${rep.fieldName}` : ''}
                           </p>
@@ -480,48 +493,48 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                           type="button"
                           onClick={() => handleDeleteReport(rep.id)}
                           aria-label="Delete soil report"
-                          className="p-1.5 rounded-lg text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                          className="p-1.5 rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
                       </div>
-                      <p className="text-xs text-[#17201B] font-mono tabular-nums">
+                      <p className="text-xs text-[#0F172A] font-mono tabular-nums">
                         pH(H₂O) {rep.soilPhWater ?? '—'} · {rep.soilTextureClass} · OM{' '}
                         {rep.organicMatterPercent ?? '—'}% · P {rep.phosphorusMgKg ?? '—'} · K{' '}
                         {rep.potassiumMgKg ?? '—'} mg/kg
                       </p>
                       {rep.attachmentFileName && (
-                        <p className="text-xs text-[#2D6A4F]">
+                        <p className="text-xs text-[#174C3C]">
                           File: {rep.attachmentFileName}
                           {rep.attachmentSummary ? ` — ${rep.attachmentSummary}` : ''}
                         </p>
                       )}
-                      {rep.notes && <p className="text-xs text-[#4A5A50]">{rep.notes}</p>}
+                      {rep.notes && <p className="text-xs text-[#475569]">{rep.notes}</p>}
                     </div>
                   ))}
                 </div>
               )}
             </section>
 
-            <section className="lg:col-span-6 bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex items-center gap-2">
-                <Database className="w-5 h-5 text-[#1B4332]" />
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+                <Database className="w-5 h-5 text-[#0B3D91]" />
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Connected South African & Geospatial Datasets
                 </h2>
               </div>
-              <div className="divide-y divide-[#E2E6DF]">
+              <div className="divide-y divide-[#E2E8F0]">
                 {data.dataSources.map((src) => (
                   <div key={src.id} className="py-3 space-y-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-sm font-semibold text-[#143326]">{src.name}</p>
+                      <p className="text-sm font-semibold text-[#0B1F3A]">{src.name}</p>
                       <span
                         className={`text-xs font-semibold shrink-0 ${
                           src.status === 'farmer_uploaded' || src.status === 'connected'
-                            ? 'text-[#1B4332]'
+                            ? 'text-[#174C3C]'
                             : src.status === 'reference_only'
-                            ? 'text-[#9A5B13]'
-                            : 'text-[#6E7D73]'
+                            ? 'text-[#B45309]'
+                            : 'text-[#64748B]'
                         }`}
                       >
                         {src.status === 'farmer_uploaded'
@@ -533,24 +546,45 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                           : 'Unavailable / Not Uploaded'}
                       </span>
                     </div>
-                    <p className="text-xs text-[#4A5A50] leading-relaxed">{src.summary}</p>
+                    <p className="text-xs text-[#475569] leading-relaxed">{src.summary}</p>
                   </div>
                 ))}
               </div>
+
+              {publicDatasets.length > 0 && (
+                <div className="pt-3 border-t border-[#E2E8F0] space-y-2.5">
+                  <p className="text-xs font-mono uppercase tracking-wider text-[#0B3D91] font-semibold">
+                    Public Dataset Provenance & Limitations
+                  </p>
+                  <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                    {publicDatasets.map((ds) => (
+                      <div key={ds.id} className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3 text-xs space-y-1">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-[#0B1F3A]">{ds.sourceName}</span>
+                          <span className="font-mono text-[11px] text-[#475569]">{ds.units}</span>
+                        </div>
+                        <p className="text-[#334155] font-medium">{ds.datasetOrApiName}</p>
+                        <p className="text-[#475569]">Licence: {ds.licenceAndTerms}</p>
+                        <p className="text-[#B45309]">Limitation: {ds.limitations}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </section>
           </div>
 
           {/* Land Suitability Analysis */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
             <div className="flex flex-wrap items-center justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-[#1B4332]" />
-                  <h2 className="font-display text-xl font-bold text-[#143326]">
+                  <Compass className="w-5 h-5 text-[#0B3D91]" />
+                  <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
                     Land Suitability & Enterprise Assessment
                   </h2>
                 </div>
-                <p className="text-xs text-[#4A5A50]">
+                <p className="text-xs text-[#475569]">
                   Cross-analyses soil metrics, rainfall, elevation, water availability, farm size ({activeFarm?.farmSizeHectares} ha), and farmer experience. Suitability never guarantees yield or profit.
                 </p>
               </div>
@@ -558,7 +592,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
               <select
                 value={farmingTypeFilter}
                 onChange={(e) => setFarmingTypeFilter(e.target.value)}
-                className="px-3.5 py-2 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+                className="px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[40px]"
               >
                 {FARMING_TYPE_FILTERS.map((opt) => (
                   <option key={opt.value} value={opt.value}>
@@ -572,36 +606,36 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
               {data.suitabilityOptions.map((opt) => (
                 <article
                   key={opt.id}
-                  className="border border-[#E2E6DF] rounded-2xl p-5 bg-[#FAFBF9] space-y-4"
+                  className="border border-[#E2E8F0] rounded-2xl p-5 bg-[#F8FAFC] space-y-4"
                 >
                   <div className="space-y-1">
                     <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="font-medium text-[#4A5A50]">{opt.category}</span>
+                      <span className="font-medium text-[#475569]">{opt.category}</span>
                       <span
                         className={`font-semibold ${
                           opt.suitabilityLevel === 'Well Suited'
-                            ? 'text-[#1B4332]'
+                            ? 'text-[#174C3C]'
                             : opt.suitabilityLevel === 'Conditionally Suitable'
-                            ? 'text-[#9A5B13]'
-                            : 'text-[#8E2424]'
+                            ? 'text-[#B45309]'
+                            : 'text-[#B91C1C]'
                         }`}
                       >
                         {opt.suitabilityLevel}
                       </span>
                     </div>
-                    <h3 className="font-display text-base font-bold text-[#143326]">
+                    <h3 className="font-display text-base font-bold text-[#0B1F3A]">
                       {opt.farmingOption}
                     </h3>
                   </div>
 
-                  <div className="space-y-3 text-xs text-[#35443B] leading-relaxed">
+                  <div className="space-y-3 text-xs text-[#334155] leading-relaxed">
                     <div>
-                      <p className="font-semibold text-[#143326]">1. Why this option may be suitable</p>
+                      <p className="font-semibold text-[#0B1F3A]">1. Why this option may be suitable</p>
                       <p className="mt-0.5">{opt.whySuitable}</p>
                     </div>
 
                     <div>
-                      <p className="font-semibold text-[#143326]">2. Supporting information</p>
+                      <p className="font-semibold text-[#0B1F3A]">2. Supporting information</p>
                       <ul className="mt-0.5 space-y-0.5">
                         {opt.supportingInformation.map((item) => (
                           <li key={item}>· {item}</li>
@@ -610,7 +644,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                     </div>
 
                     <div>
-                      <p className="font-semibold text-[#9A5B13]">3. Missing information</p>
+                      <p className="font-semibold text-[#B45309]">3. Missing information</p>
                       <ul className="mt-0.5 space-y-0.5">
                         {opt.missingInformation.map((item) => (
                           <li key={item}>· {item}</li>
@@ -619,7 +653,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                     </div>
 
                     <div>
-                      <p className="font-semibold text-[#8E2424]">4. Possible limitations</p>
+                      <p className="font-semibold text-[#B91C1C]">4. Possible limitations</p>
                       <ul className="mt-0.5 space-y-0.5">
                         {opt.possibleLimitations.map((item) => (
                           <li key={item}>· {item}</li>
@@ -628,7 +662,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                     </div>
 
                     <div>
-                      <p className="font-semibold text-[#143326]">5. Additional assessments required</p>
+                      <p className="font-semibold text-[#0B1F3A]">5. Additional assessments required</p>
                       <ul className="mt-0.5 space-y-0.5">
                         {opt.additionalAssessmentsRequired.map((item) => (
                           <li key={item}>· {item}</li>
@@ -645,25 +679,25 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
 
       {/* Upload Laboratory Soil Report Modal */}
       {showUploadModal && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-50 bg-[#0B1F3A]/50 flex items-center justify-center p-4 overflow-y-auto">
           <form
             onSubmit={handleUploadReport}
-            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8"
+            className="bg-white border border-[#CBD5E1] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8"
           >
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Upload Laboratory Soil Report ({activeFarm?.name})
               </h3>
               <button
                 type="button"
                 onClick={() => setShowUploadModal(false)}
-                className="p-2 rounded-lg hover:bg-[#EDF2EC]"
+                className="p-2 rounded-lg hover:bg-[#F8FAFC] text-[#475569] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
-            <div className="bg-[#F6F7F4] border border-[#D4DDD2] rounded-xl p-3.5 text-xs text-[#35443B] flex flex-wrap items-center justify-between gap-2">
+            <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3.5 text-xs text-[#0B1F3A] flex flex-wrap items-center justify-between gap-2">
               <span>Optional: Attach CSV/TXT/PDF lab file (CSV values auto-populate below)</span>
               <input
                 type="file"
@@ -675,29 +709,29 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Laboratory Name *
                 </label>
                 <input
                   required
                   value={labName}
                   onChange={(e) => setLabName(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Sample Code
                 </label>
                 <input
                   value={sampleCode}
                   onChange={(e) => setSampleCode(e.target.value)}
                   placeholder="e.g. CED-2026-991"
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Sample Date *
                 </label>
                 <input
@@ -705,17 +739,17 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                   required
                   value={sampleDate}
                   onChange={(e) => setSampleDate(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Field (Optional)
                 </label>
                 <select
                   value={fieldId}
                   onChange={(e) => setFieldId(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white"
                 >
                   <option value="">Whole Farm Composite</option>
                   {activeFarm?.fields.map((fl) => (
@@ -726,61 +760,61 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Soil Texture Class *
                 </label>
                 <input
                   required
                   value={textureClass}
                   onChange={(e) => setTextureClass(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1]"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Sample Depth
                 </label>
                 <input
                   value={sampleDepth}
                   onChange={(e) => setSampleDepth(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1]"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">pH (H₂O)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">pH (H₂O)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={phWater}
                   onChange={(e) => setPhWater(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">pH (KCl)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">pH (KCl)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={phKcl}
                   onChange={(e) => setPhKcl(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">OM (%)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">OM (%)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={omPct}
                   onChange={(e) => setOmPct(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   CEC (cmol/kg)
                 </label>
                 <input
@@ -788,54 +822,54 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                   step="0.1"
                   value={cecVal}
                   onChange={(e) => setCecVal(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">N (mg/kg)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">N (mg/kg)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={nVal}
                   onChange={(e) => setNVal(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">P (mg/kg)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">P (mg/kg)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={pVal}
                   onChange={(e) => setPVal(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">K (mg/kg)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">K (mg/kg)</label>
                 <input
                   type="number"
                   step="0.1"
                   value={kVal}
                   onChange={(e) => setKVal(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">AWC (mm/m)</label>
+                <label className="block text-xs font-semibold text-[#334155] mb-1">AWC (mm/m)</label>
                 <input
                   type="number"
                   step="1"
                   value={awcMm}
                   onChange={(e) => setAwcMm(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2]"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] font-mono"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Clay / Silt / Sand (%)
                 </label>
                 <div className="grid grid-cols-3 gap-1">
@@ -844,26 +878,26 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                     placeholder="Clay"
                     value={clayPct}
                     onChange={(e) => setClayPct(e.target.value)}
-                    className="w-full px-2 py-2 rounded-lg border border-[#D4DDD2] text-xs"
+                    className="w-full px-2 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono"
                   />
                   <input
                     type="number"
                     placeholder="Silt"
                     value={siltPct}
                     onChange={(e) => setSiltPct(e.target.value)}
-                    className="w-full px-2 py-2 rounded-lg border border-[#D4DDD2] text-xs"
+                    className="w-full px-2 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono"
                   />
                   <input
                     type="number"
                     placeholder="Sand"
                     value={sandPct}
                     onChange={(e) => setSandPct(e.target.value)}
-                    className="w-full px-2 py-2 rounded-lg border border-[#D4DDD2] text-xs"
+                    className="w-full px-2 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono"
                   />
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Fertility Rating
                 </label>
                 <select
@@ -871,7 +905,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                   onChange={(e) =>
                     setFertility(e.target.value as 'Low' | 'Moderate' | 'High' | 'Very High')
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white"
                 >
                   <option value="Low">Low</option>
                   <option value="Moderate">Moderate</option>
@@ -880,7 +914,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                 </select>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                <label className="block text-xs font-semibold text-[#334155] mb-1">
                   Drainage Class
                 </label>
                 <select
@@ -894,7 +928,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                         | 'Poorly Drained'
                     )
                   }
-                  className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white"
+                  className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white"
                 >
                   <option value="Well Drained">Well Drained</option>
                   <option value="Moderately Well Drained">Moderately Well Drained</option>
@@ -905,7 +939,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
             </div>
 
             <div>
-              <label className="block text-xs font-semibold text-[#35443B] mb-1">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
                 Agronomist / Lab Recommendations
               </label>
               <textarea
@@ -913,7 +947,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 placeholder="e.g. Apply 1.5 t/ha dolomitic lime prior to planting..."
-                className="w-full px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
               />
             </div>
 
@@ -921,14 +955,14 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
               <button
                 type="button"
                 onClick={() => setShowUploadModal(false)}
-                className="px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+                className="px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#0B1F3A] cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={savingReport}
-                className="px-5 py-2.5 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer disabled:opacity-50"
               >
                 {savingReport ? 'Saving Report...' : 'Save Laboratory Report'}
               </button>
@@ -938,8 +972,8 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
       )}
 
       {!loading && data && !data.hasLabReport && (
-        <div className="bg-white border border-[#E2E6DF] rounded-xl px-4 py-3 flex items-center gap-2 text-xs text-[#4A5A50]">
-          <AlertTriangle className="w-4 h-4 text-[#9A5B13] shrink-0" />
+        <div className="bg-white border border-[#CBD5E1] rounded-xl px-4 py-3 flex items-center gap-2 text-xs text-[#475569]">
+          <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0" />
           <span>
             Tip: Upload an actual lab report for {data.farmName} to unlock verified N-P-K and KCl lime recommendations.
           </span>

@@ -3,7 +3,9 @@ import {
   Activity,
   BarChart3,
   BookOpen,
+  Building2,
   CheckCircle2,
+  Database,
   FileSpreadsheet,
   Globe,
   KeyRound,
@@ -13,6 +15,7 @@ import {
   Megaphone,
   Menu,
   Plus,
+  RefreshCw,
   Search,
   Settings,
   Shield,
@@ -23,7 +26,13 @@ import {
   Users,
   X,
 } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import {
+  AdminEntitiesPayload,
+  apiRequest,
+  fetchAdminEntities,
+  fetchPublicDatasets,
+  resetAdminDemoData,
+} from '../lib/api';
 import {
   AdminFarmOversightPayload,
   AdminLanguageAuditRow,
@@ -32,11 +41,20 @@ import {
   AuditLogItem,
   AuthUser,
   LanguageCode,
+  PublicDatasetRecord,
   RoleCode,
   SystemConfigPayload,
 } from '../types';
 
-type AdminSection = 'overview' | 'users' | 'farms' | 'languages' | 'config' | 'audit';
+type AdminSection =
+  | 'overview'
+  | 'users'
+  | 'entities'
+  | 'farms'
+  | 'datasets'
+  | 'languages'
+  | 'config'
+  | 'audit';
 
 interface PermissionCatalogItem {
   key: string;
@@ -45,6 +63,7 @@ interface PermissionCatalogItem {
 }
 
 interface AdminPortalViewProps {
+  embedded?: boolean;
   user: AuthUser;
   onNavigateWorkspace: (tab: 'learning' | 'reports' | 'profile' | 'settings') => void;
   onTranslationsUpdated: () => void;
@@ -52,6 +71,7 @@ interface AdminPortalViewProps {
 }
 
 export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
+  embedded = false,
   user,
   onNavigateWorkspace,
   onTranslationsUpdated,
@@ -65,6 +85,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
   // Overview state
   const [overview, setOverview] = useState<AdminPortalOverviewPayload | null>(null);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
+  const [resettingDemo, setResettingDemo] = useState(false);
 
   // Users & Permissions state
   const [usersList, setUsersList] = useState<AuthUser[]>([]);
@@ -76,6 +98,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     user: AuthUser;
     ownedFarmCount: number;
     activity: AuditLogItem[];
+  } | null>(null);
+
+  // Organisations & Specialists state
+  const [entities, setEntities] = useState<AdminEntitiesPayload | null>(null);
+
+  // Public Dataset Provenance state
+  const [datasetsMeta, setDatasetsMeta] = useState<{
+    datasets: PublicDatasetRecord[];
+    disclaimer: string;
   } | null>(null);
 
   // Farm Oversight state
@@ -119,6 +150,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           ]);
           setUsersList(uRes);
           setPermCatalog(catRes);
+        } else if (targetSection === 'entities') {
+          const ent = await fetchAdminEntities();
+          setEntities(ent);
+        } else if (targetSection === 'datasets') {
+          const ds = await fetchPublicDatasets();
+          setDatasetsMeta(ds);
         } else if (targetSection === 'farms') {
           const data = await apiRequest<AdminFarmOversightPayload>('/api/admin/farm-oversight');
           setFarmOversight(data);
@@ -153,6 +190,22 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   useEffect(() => {
     loadSectionData(section);
   }, [section, loadSectionData]);
+
+  const handleResetDemoData = async () => {
+    setResettingDemo(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await resetAdminDemoData();
+      setNotice(res.message);
+      setShowResetConfirm(false);
+      await loadSectionData(section);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to reset demonstration data.');
+    } finally {
+      setResettingDemo(false);
+    }
+  };
 
   const handleToggleUserStatus = async (target: AuthUser) => {
     setError(null);
@@ -356,18 +409,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
   }, [auditLogs, auditSearch]);
 
   const navItems: { id: AdminSection; label: string; icon: React.ReactNode }[] = [
-    { id: 'overview', label: 'Admin Dashboard', icon: <LayoutDashboard className="w-4 h-4" /> },
-    { id: 'users', label: 'User & Access Control', icon: <Users className="w-4 h-4" /> },
+    { id: 'overview', label: 'Overview', icon: <LayoutDashboard className="w-4 h-4" /> },
+    { id: 'users', label: 'Users & RBAC', icon: <Users className="w-4 h-4" /> },
+    { id: 'entities', label: 'Orgs & Specialists', icon: <Building2 className="w-4 h-4" /> },
     { id: 'farms', label: 'Farm Oversight', icon: <Sprout className="w-4 h-4" /> },
-    { id: 'languages', label: 'Languages & Translations', icon: <Globe className="w-4 h-4" /> },
-    { id: 'config', label: 'System Configuration', icon: <Sliders className="w-4 h-4" /> },
-    { id: 'audit', label: 'Audit & Security Logs', icon: <Activity className="w-4 h-4" /> },
+    { id: 'datasets', label: 'Public Datasets', icon: <Database className="w-4 h-4" /> },
+    { id: 'languages', label: '12 Languages', icon: <Globe className="w-4 h-4" /> },
+    { id: 'config', label: 'System Config', icon: <Sliders className="w-4 h-4" /> },
+    { id: 'audit', label: 'Audit Logs', icon: <Activity className="w-4 h-4" /> },
   ];
 
   const renderSidebarLinks = (closeMobile?: boolean) => (
     <>
       <div className="space-y-1">
-        <p className="px-3 pb-1 text-[11px] font-mono uppercase tracking-wider text-[#8EB89D]">
+        <p className="px-3 pb-1 text-[11px] font-mono uppercase tracking-wider text-[#93C5FD]">
           Administration
         </p>
         {navItems.map((item) => {
@@ -382,8 +437,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               }}
               className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
                 active
-                  ? 'bg-[#2D6A4F] text-white'
-                  : 'text-[#DCE8DF] hover:bg-[#1B4332] hover:text-white'
+                  ? 'bg-[#0B3D91] text-white'
+                  : 'text-[#CBD5E1] hover:bg-[#163055] hover:text-white'
               }`}
             >
               {item.icon}
@@ -393,14 +448,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         })}
       </div>
 
-      <div className="pt-4 mt-4 border-t border-[#244E3D] space-y-1">
-        <p className="px-3 pb-1 text-[11px] font-mono uppercase tracking-wider text-[#8EB89D]">
+      <div className="pt-4 mt-4 border-t border-[#163055] space-y-1">
+        <p className="px-3 pb-1 text-[11px] font-mono uppercase tracking-wider text-[#93C5FD]">
           Platform Tools
         </p>
         <button
           type="button"
           onClick={() => onNavigateWorkspace('learning')}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#DCE8DF] hover:bg-[#1B4332] hover:text-white cursor-pointer whitespace-nowrap"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#CBD5E1] hover:bg-[#163055] hover:text-white cursor-pointer whitespace-nowrap"
         >
           <BookOpen className="w-4 h-4" />
           <span>Learning Centre CMS</span>
@@ -408,7 +463,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <button
           type="button"
           onClick={() => onNavigateWorkspace('reports')}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#DCE8DF] hover:bg-[#1B4332] hover:text-white cursor-pointer whitespace-nowrap"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#CBD5E1] hover:bg-[#163055] hover:text-white cursor-pointer whitespace-nowrap"
         >
           <FileSpreadsheet className="w-4 h-4" />
           <span>Reports & Exports</span>
@@ -416,7 +471,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <button
           type="button"
           onClick={() => onNavigateWorkspace('profile')}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#DCE8DF] hover:bg-[#1B4332] hover:text-white cursor-pointer whitespace-nowrap"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#CBD5E1] hover:bg-[#163055] hover:text-white cursor-pointer whitespace-nowrap"
         >
           <User className="w-4 h-4" />
           <span>Admin Profile</span>
@@ -424,7 +479,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
         <button
           type="button"
           onClick={() => onNavigateWorkspace('settings')}
-          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#DCE8DF] hover:bg-[#1B4332] hover:text-white cursor-pointer whitespace-nowrap"
+          className="w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium text-[#CBD5E1] hover:bg-[#163055] hover:text-white cursor-pointer whitespace-nowrap"
         >
           <Settings className="w-4 h-4" />
           <span>Accessibility Settings</span>
@@ -433,142 +488,95 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
     </>
   );
 
-  return (
-    <div className="min-h-screen bg-[#F6F7F4] flex flex-col lg:flex-row">
-      {/* Dark Forest-Green Administrative Sidebar (Desktop) */}
-      <aside className="hidden lg:flex lg:w-68 lg:flex-col lg:fixed lg:inset-y-0 bg-[#143326] text-white border-r border-[#0E241A]">
-        <div className="h-16 px-6 flex items-center justify-between border-b border-[#244E3D]">
-          <div className="flex items-center gap-2.5">
-            <Shield className="w-5 h-5 text-[#95D5B2]" />
-            <div>
-              <p className="font-display text-lg font-bold tracking-tight leading-none">
-                Field Shift
-              </p>
-              <p className="text-[10px] font-mono uppercase tracking-wider text-[#95D5B2] mt-0.5">
-                Admin Portal
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <nav className="flex-1 px-4 py-5 overflow-y-auto">{renderSidebarLinks()}</nav>
-
-        <div className="p-4 border-t border-[#244E3D] space-y-3">
-          <div className="px-2">
-            <p className="text-sm font-semibold text-white truncate">
-              {user.profile?.fullName || user.email}
+  const renderMainContent = () => (
+    <div className="space-y-6">
+      {embedded && (
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
+              System Administration Portal
+            </h1>
+            <p className="text-sm text-[#475569] mt-0.5">
+              Governance, RBAC permissions, multi-province farm oversight, public dataset provenance & 12-language management
             </p>
-            <p className="text-xs text-[#B7DEC4] truncate">{user.email}</p>
           </div>
-          <button
-            type="button"
-            onClick={onLogout}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#8E2424] text-sm font-semibold text-white transition-colors cursor-pointer"
-          >
-            <LogOut className="w-4 h-4" />
-            <span>Sign Out</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-1.5 bg-white border border-[#CBD5E1] rounded-xl p-1">
+            {navItems.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setSection(tab.id)}
+                className={`inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg text-xs font-semibold whitespace-nowrap cursor-pointer transition-colors ${
+                  section === tab.id
+                    ? 'bg-[#0B3D91] text-white'
+                    : 'text-[#334155] hover:bg-[#F1F5F9] hover:text-[#0B1F3A]'
+                }`}
+              >
+                {tab.icon}
+                <span>{tab.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
-      </aside>
+      )}
 
-      {/* Light Neutral Workspace */}
-      <div className="flex-1 lg:pl-68 flex flex-col min-w-0">
-        <header className="sticky top-0 z-20 bg-white border-b border-[#E2E6DF] px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <button
-              type="button"
-              onClick={() => setMobileNavOpen(!mobileNavOpen)}
-              aria-label="Toggle admin menu"
-              className="lg:hidden p-2 rounded-lg border border-[#D4DDD2] text-[#143326]"
-            >
-              {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </button>
-            <div>
-              <h1 className="font-display text-lg font-bold text-[#143326]">
-                {navItems.find((n) => n.id === section)?.label}
-              </h1>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-3 text-xs text-[#4A5A50]">
-            <span className="hidden sm:inline font-mono">
-              System Administrator · {user.email}
-            </span>
-          </div>
-        </header>
-
-        {mobileNavOpen && (
-          <div className="lg:hidden bg-[#143326] text-white px-4 py-4 space-y-3">
-            {renderSidebarLinks(true)}
-            <button
-              type="button"
-              onClick={onLogout}
-              className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#1B4332] text-sm font-semibold text-white"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sign Out</span>
-            </button>
-          </div>
-        )}
-
-        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-6 space-y-6">
-          {error && (
-            <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
-              {error}
-            </div>
-          )}
-          {notice && (
-            <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4 text-[#1B4332] shrink-0" />
-              <span>{notice}</span>
-            </div>
-          )}
+      {error && (
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
+      {notice && (
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#0B1F3A] rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#174C3C] shrink-0" />
+          <span>{notice}</span>
+        </div>
+      )}
 
           {/* ============================================================== */}
           {/* 1. ADMINISTRATIVE DASHBOARD                                    */}
           {/* ============================================================== */}
           {section === 'overview' && overview && (
             <div className="space-y-6">
-              <div className="bg-white border border-[#E2E6DF] rounded-xl px-4 py-3 text-xs text-[#143326] flex items-center gap-2">
-                <Lock className="w-4 h-4 text-[#1B4332] shrink-0" />
+              <div className="bg-white border border-[#CBD5E1] rounded-xl px-4 py-3 text-xs text-[#0B1F3A] flex items-center gap-2">
+                <Lock className="w-4 h-4 text-[#0B3D91] shrink-0" />
                 <span>{overview.privacyNotice}</span>
               </div>
 
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                  <p className="text-xs text-[#4A5A50]">Total Registered Users</p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+                <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+                  <p className="text-xs text-[#475569]">Total Registered Users</p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                     {overview.stats.totalUsers}
                   </p>
-                  <p className="text-xs text-[#2D6A4F] mt-1 font-mono tabular-nums">
+                  <p className="text-xs text-[#0B3D91] mt-1 font-mono tabular-nums">
                     {overview.stats.realUsers ?? 0} real · {overview.stats.demonstrationUsers ?? 0} demo ·{' '}
                     {overview.stats.activeUsers} active
                   </p>
                 </div>
-                <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                  <p className="text-xs text-[#4A5A50]">Farmers Breakdown</p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+                <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+                  <p className="text-xs text-[#475569]">Farmers Breakdown</p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                     {overview.stats.existingFarmers + overview.stats.prospectiveFarmers}
                   </p>
-                  <p className="text-xs text-[#4A5A50] mt-1 font-mono tabular-nums">
+                  <p className="text-xs text-[#475569] mt-1 font-mono tabular-nums">
                     {overview.stats.existingFarmers} existing · {overview.stats.prospectiveFarmers} prospective
                   </p>
                 </div>
-                <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                  <p className="text-xs text-[#4A5A50]">Experts & Organisations</p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+                <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+                  <p className="text-xs text-[#475569]">Experts & Organisations</p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                     {overview.stats.agriculturalExperts + overview.stats.registeredOrganisations}
                   </p>
-                  <p className="text-xs text-[#4A5A50] mt-1 font-mono tabular-nums">
+                  <p className="text-xs text-[#475569] mt-1 font-mono tabular-nums">
                     {overview.stats.agriculturalExperts} experts · {overview.stats.registeredOrganisations} orgs
                   </p>
                 </div>
-                <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                  <p className="text-xs text-[#4A5A50]">Registered Farms</p>
-                  <p className="font-mono text-2xl font-bold tabular-nums text-[#143326] mt-1">
+                <div className="bg-white border border-[#CBD5E1] rounded-xl p-4">
+                  <p className="text-xs text-[#475569]">Registered Farms</p>
+                  <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                     {overview.stats.totalRegisteredFarms}
                   </p>
-                  <p className="text-xs text-[#4A5A50] mt-1 font-mono tabular-nums">
+                  <p className="text-xs text-[#475569] mt-1 font-mono tabular-nums">
                     {overview.stats.realFarms ?? 0} real · {overview.stats.demonstrationFarms ?? 0} demo ·{' '}
                     {overview.stats.totalHectares} ha
                   </p>
@@ -577,15 +585,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Farms by Province */}
-                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+                <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                   <div className="flex items-center gap-2">
-                    <BarChart3 className="w-5 h-5 text-[#1B4332]" />
-                    <h2 className="font-display text-lg font-bold text-[#143326]">
+                    <BarChart3 className="w-5 h-5 text-[#0B3D91]" />
+                    <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                       Farms by Province
                     </h2>
                   </div>
                   {overview.farmsByProvince.length === 0 ? (
-                    <p className="text-sm text-[#4A5A50]">No farms registered yet.</p>
+                    <p className="text-sm text-[#475569]">No farms registered yet.</p>
                   ) : (
                     <div className="space-y-3">
                       {(() => {
@@ -596,15 +604,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         return overview.farmsByProvince.map((prov) => (
                           <div key={prov.province} className="space-y-1 text-xs">
                             <div className="flex justify-between">
-                              <span className="font-semibold text-[#143326]">{prov.province}</span>
-                              <span className="font-mono tabular-nums text-[#4A5A50]">
+                              <span className="font-semibold text-[#0B1F3A]">{prov.province}</span>
+                              <span className="font-mono tabular-nums text-[#475569]">
                                 {prov.farmCount} farm(s) · {prov.totalHectares} ha ·{' '}
                                 {prov.incidentCount} incident(s)
                               </span>
                             </div>
-                            <div className="h-2.5 bg-[#EDF2EC] rounded-full overflow-hidden">
+                            <div className="h-2.5 bg-[#E2E8F0] rounded-full overflow-hidden">
                               <div
-                                className="h-full bg-[#1B4332]"
+                                className="h-full bg-[#174C3C]"
                                 style={{
                                   width: `${Math.max(8, Math.round((prov.farmCount / maxF) * 100))}%`,
                                 }}
@@ -618,20 +626,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </section>
 
                 {/* User & Farm Registration Trends */}
-                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     User & Farm Registration Trends
                   </h2>
                   <div className="space-y-2.5">
                     {overview.registrationTrends.map((tr) => (
                       <div
                         key={tr.period}
-                        className="flex items-center justify-between text-xs border-b border-[#EDF2EC] pb-2"
+                        className="flex items-center justify-between text-xs border-b border-[#E2E8F0] pb-2"
                       >
-                        <span className="font-mono font-semibold text-[#143326]">{tr.period}</span>
+                        <span className="font-mono font-semibold text-[#0B1F3A]">{tr.period}</span>
                         <div className="flex items-center gap-4 font-mono tabular-nums">
-                          <span className="text-[#1B4332]">+{tr.newUsers} user(s)</span>
-                          <span className="text-[#35443B]">+{tr.newFarms} farm(s)</span>
+                          <span className="text-[#0B3D91]">+{tr.newUsers} user(s)</span>
+                          <span className="text-[#334155]">+{tr.newFarms} farm(s)</span>
                         </div>
                       </div>
                     ))}
@@ -640,38 +648,83 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               {/* Recent System Activity */}
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex items-center justify-between">
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Recent System Activity
                   </h2>
                   <button
                     type="button"
                     onClick={() => setSection('audit')}
-                    className="text-xs font-semibold text-[#1B4332] hover:underline cursor-pointer"
+                    className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
                   >
                     Open Full Audit Log →
                   </button>
                 </div>
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {overview.recentActivity.slice(0, 10).map((log) => (
                     <div
                       key={log.id}
                       className="py-2.5 flex flex-wrap items-center justify-between gap-2 text-xs"
                     >
                       <div>
-                        <span className="font-mono font-semibold text-[#143326]">
+                        <span className="font-mono font-semibold text-[#0B1F3A]">
                           {log.action}
                         </span>{' '}
-                        <span className="text-[#4A5A50]">
+                        <span className="text-[#475569]">
                           · {log.actorEmail} · {log.entityType}
                         </span>
                       </div>
-                      <span className="font-mono tabular-nums text-[#4A5A50]">
+                      <span className="font-mono tabular-nums text-[#475569]">
                         {new Date(log.createdAt).toLocaleString()}
                       </span>
                     </div>
                   ))}
+                </div>
+              </section>
+
+              {/* Demonstration Seed Management */}
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <h2 className="font-display text-base font-bold text-[#0B1F3A]">
+                      Demonstration Data Maintenance (All 9 Provinces & 9 Specialist Categories)
+                    </h2>
+                    <p className="text-xs text-[#475569] mt-0.5">
+                      Cleanly resets seeded demonstration accounts and sample provincial records while preserving all genuine registered customer accounts and farms.
+                    </p>
+                  </div>
+                  {!showResetConfirm ? (
+                    <button
+                      type="button"
+                      onClick={() => setShowResetConfirm(true)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#E2E8F0] text-xs font-semibold text-[#0B1F3A] cursor-pointer"
+                    >
+                      <RefreshCw className="w-3.5 h-3.5" />
+                      <span>Reset Demonstration Data</span>
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-[#B91C1C]">
+                        Confirm reset of demo-only records?
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setShowResetConfirm(false)}
+                        className="px-3 py-1.5 min-h-[38px] rounded-lg border border-[#CBD5E1] text-xs font-semibold cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={resettingDemo}
+                        onClick={handleResetDemoData}
+                        className="px-3.5 py-1.5 min-h-[38px] rounded-lg bg-[#FC3D21] hover:bg-[#DC2626] text-white text-xs font-semibold cursor-pointer"
+                      >
+                        {resettingDemo ? 'Resetting...' : 'Yes, Reset Demo Records'}
+                      </button>
+                    </div>
+                  )}
                 </div>
               </section>
             </div>
@@ -682,26 +735,26 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           {/* ============================================================== */}
           {section === 'users' && (
             <div className="space-y-6">
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     User Directory ({usersList.length})
                   </h2>
                   <div className="flex flex-wrap items-center gap-2">
                     <div className="relative">
-                      <Search className="w-4 h-4 text-[#4A5A50] absolute left-3 top-1/2 -translate-y-1/2" />
+                      <Search className="w-4 h-4 text-[#475569] absolute left-3 top-1/2 -translate-y-1/2" />
                       <input
                         type="text"
                         value={userSearch}
                         onChange={(e) => setUserSearch(e.target.value)}
                         placeholder="Search name, email, province..."
-                        className="pl-9 pr-3 py-2 rounded-lg border border-[#D4DDD2] text-sm"
+                        className="pl-9 pr-3 py-2 min-h-[40px] rounded-lg border border-[#CBD5E1] text-sm"
                       />
                     </div>
                     <select
                       value={roleFilter}
                       onChange={(e) => setRoleFilter(e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                      className="px-3 py-2 min-h-[40px] rounded-lg border border-[#CBD5E1] bg-white text-sm"
                     >
                       <option value="">All Roles</option>
                       <option value="prospective_farmer">Prospective Farmer</option>
@@ -713,7 +766,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <select
                       value={statusFilter}
                       onChange={(e) => setStatusFilter(e.target.value)}
-                      className="px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-sm"
+                      className="px-3 py-2 min-h-[40px] rounded-lg border border-[#CBD5E1] bg-white text-sm"
                     >
                       <option value="">All Statuses</option>
                       <option value="active">Active</option>
@@ -725,7 +778,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs sm:text-sm">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-xs text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-xs text-[#475569]">
                         <th className="py-2.5 pr-4 font-semibold">User</th>
                         <th className="py-2.5 pr-4 font-semibold">Province / Lang</th>
                         <th className="py-2.5 pr-4 font-semibold">Role Assignment</th>
@@ -733,16 +786,21 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <th className="py-2.5 text-right font-semibold">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {usersList.map((u) => (
                         <tr key={u.id}>
                           <td className="py-3 pr-4">
-                            <p className="font-semibold text-[#143326]">
+                            <p className="font-semibold text-[#0B1F3A]">
                               {u.profile?.fullName || 'Unnamed User'}
+                              {u.isDemonstration && (
+                                <span className="ml-2 text-[10px] font-mono uppercase text-[#0B3D91]">
+                                  DEMO
+                                </span>
+                              )}
                             </p>
-                            <p className="text-xs text-[#4A5A50]">{u.email}</p>
+                            <p className="text-xs text-[#475569]">{u.email}</p>
                           </td>
-                          <td className="py-3 pr-4 text-xs text-[#35443B]">
+                          <td className="py-3 pr-4 text-xs text-[#334155]">
                             {u.profile?.province || 'Unassigned'} · {u.preferredLanguageCode.toUpperCase()}
                           </td>
                           <td className="py-3 pr-4">
@@ -750,7 +808,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               value={u.roleCode}
                               disabled={u.id === user.id}
                               onChange={(e) => handleAssignRole(u, e.target.value as RoleCode)}
-                              className="px-2.5 py-1.5 rounded-lg border border-[#D4DDD2] bg-white text-xs font-medium disabled:opacity-60"
+                              className="px-2.5 py-1.5 min-h-[36px] rounded-lg border border-[#CBD5E1] bg-white text-xs font-medium disabled:opacity-60"
                             >
                               <option value="prospective_farmer">Prospective Farmer</option>
                               <option value="existing_farmer">Existing Farmer</option>
@@ -760,7 +818,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             </select>
                           </td>
                           <td className="py-3 pr-4 text-xs font-semibold">
-                            <span className={u.isActive ? 'text-[#1B4332]' : 'text-[#8E2424]'}>
+                            <span className={u.isActive ? 'text-[#174C3C]' : 'text-[#FC3D21]'}>
                               {u.isActive ? 'Active' : 'Deactivated'}
                             </span>
                           </td>
@@ -768,7 +826,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <button
                               type="button"
                               onClick={() => handleInspectUser(u.id)}
-                              className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] text-xs font-semibold text-[#143326] hover:bg-[#EDF5EF] cursor-pointer"
+                              className="px-3 py-1.5 min-h-[36px] rounded-lg border border-[#CBD5E1] text-xs font-semibold text-[#0B1F3A] hover:bg-[#EFF6FF] cursor-pointer"
                             >
                               Profile & Permissions
                             </button>
@@ -776,10 +834,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               <button
                                 type="button"
                                 onClick={() => handleToggleUserStatus(u)}
-                                className={`px-3 py-1.5 rounded-lg text-xs font-semibold border cursor-pointer ${
+                                className={`px-3 py-1.5 min-h-[36px] rounded-lg text-xs font-semibold border cursor-pointer ${
                                   u.isActive
-                                    ? 'border-[#E8B4B4] text-[#8E2424] hover:bg-[#FDF2F2]'
-                                    : 'border-[#BFD6C5] text-[#1B4332] hover:bg-[#EDF5EF]'
+                                    ? 'border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2]'
+                                    : 'border-[#A7D7C5] text-[#174C3C] hover:bg-[#ECF5F2]'
                                 }`}
                               >
                                 {u.isActive ? 'Deactivate' : 'Activate'}
@@ -795,16 +853,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
 
               {/* Inspected User Profile, Permissions & Activity */}
               {inspectedUser && (
-                <section className="bg-white border border-[#1B4332] rounded-2xl p-6 space-y-5">
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E2E6DF] pb-4">
+                <section className="bg-white border border-[#0B3D91] rounded-2xl p-6 space-y-5">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#E2E8F0] pb-4">
                     <div>
-                      <p className="text-xs font-mono text-[#2D6A4F]">
+                      <p className="text-xs font-mono text-[#0B3D91]">
                         Account Profile & Granular Permissions
                       </p>
-                      <h3 className="font-display text-xl font-bold text-[#143326]">
+                      <h3 className="font-display text-xl font-bold text-[#0B1F3A]">
                         {inspectedUser.user.profile?.fullName} ({inspectedUser.user.email})
                       </h3>
-                      <p className="text-xs text-[#4A5A50] mt-1">
+                      <p className="text-xs text-[#475569] mt-1">
                         Role: {inspectedUser.user.roleName} · Province:{' '}
                         {inspectedUser.user.profile?.province || 'Unassigned'} · Owned Farms:{' '}
                         <span className="font-mono font-bold tabular-nums">
@@ -815,7 +873,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     <button
                       type="button"
                       onClick={() => setInspectedUser(null)}
-                      className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] text-xs font-semibold cursor-pointer"
+                      className="px-3 py-1.5 min-h-[36px] rounded-lg border border-[#CBD5E1] text-xs font-semibold cursor-pointer"
                     >
                       Close Drawer
                     </button>
@@ -824,8 +882,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   {/* Permission Toggles */}
                   <div className="space-y-3">
                     <div className="flex items-center gap-2">
-                      <KeyRound className="w-4 h-4 text-[#1B4332]" />
-                      <h4 className="font-display font-bold text-[#143326] text-sm">
+                      <KeyRound className="w-4 h-4 text-[#0B3D91]" />
+                      <h4 className="font-display font-bold text-[#0B1F3A] text-sm">
                         Manage Individual Permissions (All Changes Audited)
                       </h4>
                     </div>
@@ -838,10 +896,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             key={perm.key}
                             className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 cursor-pointer ${
                               isSensitive
-                                ? 'bg-[#FFF6EB] border-[#F0D3A8]'
+                                ? 'bg-[#FEF2F2] border-[#FECACA]'
                                 : granted
-                                ? 'bg-[#EDF5EF] border-[#BFD6C5]'
-                                : 'bg-[#F6F7F4] border-[#E2E6DF]'
+                                ? 'bg-[#ECF5F2] border-[#A7D7C5]'
+                                : 'bg-[#F8FAFC] border-[#CBD5E1]'
                             }`}
                           >
                             <input
@@ -854,11 +912,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                   e.target.checked
                                 )
                               }
-                              className="mt-0.5 accent-[#1B4332]"
+                              className="mt-0.5 accent-[#0B3D91]"
                             />
                             <div>
-                              <p className="font-semibold text-[#143326]">{perm.label}</p>
-                              <p className="font-mono text-[11px] text-[#4A5A50]">
+                              <p className="font-semibold text-[#0B1F3A]">{perm.label}</p>
+                              <p className="font-mono text-[11px] text-[#475569]">
                                 {perm.group} · {perm.key}
                               </p>
                             </div>
@@ -869,23 +927,23 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
 
                   {/* User Account Activity */}
-                  <div className="space-y-2 pt-3 border-t border-[#E2E6DF]">
-                    <h4 className="font-display font-bold text-[#143326] text-sm">
+                  <div className="space-y-2 pt-3 border-t border-[#E2E8F0]">
+                    <h4 className="font-display font-bold text-[#0B1F3A] text-sm">
                       Recent Account Activity ({inspectedUser.activity.length})
                     </h4>
                     {inspectedUser.activity.length === 0 ? (
-                      <p className="text-xs text-[#4A5A50]">No recorded activity for this user yet.</p>
+                      <p className="text-xs text-[#475569]">No recorded activity for this user yet.</p>
                     ) : (
-                      <div className="divide-y divide-[#EDF2EC] max-h-56 overflow-y-auto">
+                      <div className="divide-y divide-[#E2E8F0] max-h-56 overflow-y-auto">
                         {inspectedUser.activity.map((act) => (
                           <div key={act.id} className="py-2 flex justify-between text-xs gap-2">
                             <span>
-                              <span className="font-mono font-semibold text-[#143326]">
+                              <span className="font-mono font-semibold text-[#0B1F3A]">
                                 {act.action}
                               </span>{' '}
                               · {act.entityType}
                             </span>
-                            <span className="font-mono tabular-nums text-[#4A5A50]">
+                            <span className="font-mono tabular-nums text-[#475569]">
                               {new Date(act.createdAt).toLocaleString()}
                             </span>
                           </div>
@@ -906,8 +964,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div
                 className={`rounded-xl border px-4 py-3 text-xs flex items-center gap-2 ${
                   farmOversight.hasPrivateRecordPermission
-                    ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
-                    : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+                    ? 'bg-[#FEF2F2] border-[#FECACA] text-[#B91C1C]'
+                    : 'bg-[#EFF6FF] border-[#BFDBFE] text-[#0B1F3A]'
                 }`}
               >
                 <Lock className="w-4 h-4 shrink-0" />
@@ -915,18 +973,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Farming Categories Distribution
                   </h2>
                   <div className="space-y-2.5">
                     {farmOversight.byCategory.map((c) => (
                       <div
                         key={c.category}
-                        className="flex items-center justify-between text-xs border-b border-[#EDF2EC] pb-2"
+                        className="flex items-center justify-between text-xs border-b border-[#E2E8F0] pb-2"
                       >
-                        <span className="font-semibold text-[#143326]">{c.category}</span>
-                        <span className="font-mono tabular-nums text-[#1B4332]">
+                        <span className="font-semibold text-[#0B1F3A]">{c.category}</span>
+                        <span className="font-mono tabular-nums text-[#0B3D91]">
                           {c.farmCount} farm(s)
                         </span>
                       </div>
@@ -934,18 +992,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                 </section>
 
-                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Provincial Distribution
                   </h2>
                   <div className="space-y-2.5">
                     {farmOversight.byProvince.map((p) => (
                       <div
                         key={p.province}
-                        className="flex items-center justify-between text-xs border-b border-[#EDF2EC] pb-2"
+                        className="flex items-center justify-between text-xs border-b border-[#E2E8F0] pb-2"
                       >
-                        <span className="font-semibold text-[#143326]">{p.province}</span>
-                        <span className="font-mono tabular-nums text-[#35443B]">
+                        <span className="font-semibold text-[#0B1F3A]">{p.province}</span>
+                        <span className="font-mono tabular-nums text-[#334155]">
                           {p.farmCount} farm(s) · {p.hectares} ha
                         </span>
                       </div>
@@ -954,15 +1012,15 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </section>
               </div>
 
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Registered Farms Oversight ({farmOversight.farms.length})
                   </h2>
                   <select
                     value={farmProvFilter}
                     onChange={(e) => setFarmProvFilter(e.target.value)}
-                    className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white text-xs"
+                    className="px-3 py-1.5 min-h-[38px] rounded-lg border border-[#CBD5E1] bg-white text-xs"
                   >
                     <option value="">All Provinces</option>
                     {farmOversight.byProvince.map((p) => (
@@ -976,7 +1034,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
                         <th className="py-2 pr-4 font-semibold">Reference</th>
                         <th className="py-2 pr-4 font-semibold">Province & District</th>
                         <th className="py-2 pr-4 font-semibold">Categories</th>
@@ -985,23 +1043,23 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <th className="py-2 font-semibold text-right">Incidents</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {farmOversight.farms
                         .filter((f) => !farmProvFilter || f.province === farmProvFilter)
                         .map((f) => (
                           <tr key={f.farmId}>
-                            <td className="py-2.5 pr-4 font-semibold text-[#143326]">
+                            <td className="py-2.5 pr-4 font-semibold text-[#0B1F3A]">
                               <span>{f.farmNameDisplay}</span>
                               {f.isDemonstration && (
-                                <span className="ml-2 px-1.5 py-0.5 rounded bg-[#EDF5EF] text-[#2D6A4F] text-[10px] font-mono uppercase">
-                                  Demo
+                                <span className="ml-2 text-[10px] font-mono uppercase text-[#0B3D91]">
+                                  · DEMO
                                 </span>
                               )}
                             </td>
-                            <td className="py-2.5 pr-4 text-[#35443B]">
+                            <td className="py-2.5 pr-4 text-[#334155]">
                               {f.districtMunicipality}, {f.province}
                             </td>
-                            <td className="py-2.5 pr-4 text-[#4A5A50]">
+                            <td className="py-2.5 pr-4 text-[#475569]">
                               {f.farmingCategories.join(' · ')}
                             </td>
                             <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
@@ -1020,14 +1078,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
               </section>
 
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-                <h2 className="font-display text-lg font-bold text-[#143326]">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Reported Incidents Oversight Summary ({farmOversight.reportedIncidentsSummary.length})
                 </h2>
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
                         <th className="py-2 pr-4 font-semibold">Farm Ref</th>
                         <th className="py-2 pr-4 font-semibold">Province</th>
                         <th className="py-2 pr-4 font-semibold">Incident Type</th>
@@ -1036,10 +1094,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <th className="py-2 font-semibold text-right">Date</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {farmOversight.reportedIncidentsSummary.map((inc) => (
                         <tr key={inc.id}>
-                          <td className="py-2 pr-4 font-mono font-semibold text-[#143326]">
+                          <td className="py-2 pr-4 font-mono font-semibold text-[#0B1F3A]">
                             {inc.farmReferenceCode}
                           </td>
                           <td className="py-2 pr-4">{inc.province}</td>
@@ -1067,20 +1125,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           {/* ============================================================== */}
           {section === 'languages' && (
             <div className="space-y-6">
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
-                    <h2 className="font-display text-lg font-bold text-[#143326]">
+                    <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                       12 Official South African Languages & Translation Readiness
                     </h2>
-                    <p className="text-xs text-[#4A5A50]">
+                    <p className="text-xs text-[#475569]">
                       Manage active status, voice/SASL support flags, and inspect missing translation keys.
                     </p>
                   </div>
                   <button
                     type="button"
                     onClick={() => onNavigateWorkspace('learning')}
-                    className="px-3.5 py-2 rounded-xl bg-[#EDF5EF] text-[#143326] text-xs font-semibold cursor-pointer whitespace-nowrap"
+                    className="px-3.5 py-2 min-h-[38px] rounded-xl bg-[#EFF6FF] text-[#0B3D91] text-xs font-semibold cursor-pointer whitespace-nowrap"
                   >
                     Open Learning Material Translations →
                   </button>
@@ -1089,7 +1147,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 <div className="overflow-x-auto">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
                         <th className="py-2 pr-3 font-semibold">Language</th>
                         <th className="py-2 pr-3 font-semibold">Active</th>
                         <th className="py-2 pr-3 font-semibold">Audio</th>
@@ -1099,14 +1157,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <th className="py-2 font-semibold text-right">Learning Reviewed</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-[#E2E6DF]">
+                    <tbody className="divide-y divide-[#E2E8F0]">
                       {languagesAudit.map((lang) => (
                         <tr key={lang.code}>
                           <td className="py-2.5 pr-3">
                             <button
                               type="button"
                               onClick={() => setSelectedLangCode(lang.code)}
-                              className="text-left font-semibold text-[#143326] hover:underline cursor-pointer"
+                              className="text-left font-semibold text-[#0B1F3A] hover:underline cursor-pointer"
                             >
                               {lang.name} ({lang.code.toUpperCase()})
                             </button>
@@ -1117,7 +1175,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               checked={lang.isActive}
                               disabled={lang.code === 'en'}
                               onChange={() => handleToggleLanguageFlag(lang, 'isActive')}
-                              className="accent-[#1B4332]"
+                              className="accent-[#0B3D91]"
                             />
                           </td>
                           <td className="py-2.5 pr-3">
@@ -1125,7 +1183,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               type="checkbox"
                               checked={lang.hasAudioSupport}
                               onChange={() => handleToggleLanguageFlag(lang, 'hasAudioSupport')}
-                              className="accent-[#1B4332]"
+                              className="accent-[#0B3D91]"
                             />
                           </td>
                           <td className="py-2.5 pr-3">
@@ -1135,7 +1193,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               onChange={() =>
                                 handleToggleLanguageFlag(lang, 'hasSignLanguageSupport')
                               }
-                              className="accent-[#1B4332]"
+                              className="accent-[#0B3D91]"
                             />
                           </td>
                           <td className="py-2.5 pr-3 text-right font-mono tabular-nums">
@@ -1145,8 +1203,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             <span
                               className={
                                 lang.missingUiKeys.length > 0
-                                  ? 'text-[#9A5B13] font-bold'
-                                  : 'text-[#1B4332]'
+                                  ? 'text-[#B45309] font-bold'
+                                  : 'text-[#174C3C]'
                               }
                             >
                               {lang.missingUiKeys.length}
@@ -1163,16 +1221,16 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               </section>
 
               {/* Inline UI Translation Key Editor */}
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <h3 className="font-display text-lg font-bold text-[#143326]">
+                    <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                       UI Translation Editor
                     </h3>
                     <select
                       value={selectedLangCode}
                       onChange={(e) => setSelectedLangCode(e.target.value as LanguageCode)}
-                      className="px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white text-xs font-semibold"
+                      className="px-3 py-1.5 min-h-[38px] rounded-lg border border-[#CBD5E1] bg-white text-xs font-semibold"
                     >
                       {languagesAudit.map((l) => (
                         <option key={l.code} value={l.code}>
@@ -1181,26 +1239,26 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       ))}
                     </select>
                   </div>
-                  <label className="inline-flex items-center gap-2 text-xs font-medium text-[#143326] cursor-pointer">
+                  <label className="inline-flex items-center gap-2 text-xs font-medium text-[#0B1F3A] cursor-pointer">
                     <input
                       type="checkbox"
                       checked={onlyMissingKeys}
                       onChange={(e) => setOnlyMissingKeys(e.target.checked)}
-                      className="accent-[#1B4332]"
+                      className="accent-[#0B3D91]"
                     />
                     <span>Show Missing / Unreviewed Keys Only</span>
                   </label>
                 </div>
 
-                <div className="divide-y divide-[#E2E6DF] max-h-[520px] overflow-y-auto">
+                <div className="divide-y divide-[#E2E8F0] max-h-[520px] overflow-y-auto">
                   {filteredTranslationEntries.map((entry) => (
                     <div
                       key={entry.key}
                       className="py-3 grid grid-cols-1 lg:grid-cols-12 gap-3 items-center text-xs"
                     >
                       <div className="lg:col-span-4">
-                        <p className="font-mono font-semibold text-[#143326]">{entry.key}</p>
-                        <p className="text-[#4A5A50] mt-0.5">{entry.englishDefault}</p>
+                        <p className="font-mono font-semibold text-[#0B1F3A]">{entry.key}</p>
+                        <p className="text-[#475569] mt-0.5">{entry.englishDefault}</p>
                       </div>
                       <div className="lg:col-span-6">
                         <input
@@ -1211,7 +1269,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           }
                           placeholder={`Enter ${selectedLangCode.toUpperCase()} translation...`}
                           className={`w-full px-3 py-2 rounded-lg border text-xs ${
-                            entry.isMissing ? 'border-[#E5A952] bg-[#FFF6EB]' : 'border-[#D4DDD2]'
+                            entry.isMissing ? 'border-[#E5A952] bg-[#FFFBEB]' : 'border-[#CBD5E1]'
                           }`}
                         />
                       </div>
@@ -1219,10 +1277,10 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <span
                           className={`text-[11px] font-semibold ${
                             entry.isMissing
-                              ? 'text-[#9A5B13]'
+                              ? 'text-[#B45309]'
                               : entry.reviewed
-                              ? 'text-[#1B4332]'
-                              : 'text-[#4A5A50]'
+                              ? 'text-[#174C3C]'
+                              : 'text-[#475569]'
                           }`}
                         >
                           {entry.isMissing ? 'Missing' : entry.reviewed ? 'Reviewed' : 'Draft'}
@@ -1230,7 +1288,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         <button
                           type="button"
                           onClick={() => handleSaveTranslationKey(entry.key)}
-                          className="px-3 py-1.5 rounded-lg bg-[#1B4332] text-white font-semibold cursor-pointer"
+                          className="px-3 py-1.5 min-h-[34px] rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold cursor-pointer"
                         >
                           Save
                         </button>
@@ -1249,20 +1307,20 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             <div className="space-y-6">
               <form
                 onSubmit={handleSaveSystemConfig}
-                className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-6"
+                className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-6"
               >
-                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E6DF] pb-4">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#E2E8F0] pb-4">
                   <div>
-                    <h2 className="font-display text-lg font-bold text-[#143326]">
+                    <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                       Application, Notification, Reference & AI Configuration
                     </h2>
-                    <p className="text-xs text-[#4A5A50]">
+                    <p className="text-xs text-[#475569]">
                       Last updated: {new Date(sysPayload.config.updatedAt).toLocaleString()}
                     </p>
                   </div>
                   <button
                     type="submit"
-                    className="px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-semibold cursor-pointer"
+                    className="px-5 py-2.5 min-h-[40px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer"
                   >
                     Save System Configuration
                   </button>
@@ -1271,7 +1329,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 {/* Application Settings */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   <div>
-                    <label className="block text-xs font-semibold text-[#143326] mb-1">
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                       Platform Name
                     </label>
                     <input
@@ -1289,11 +1347,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-sm"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-sm"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#143326] mb-1">
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                       Max Media Upload (MB)
                     </label>
                     <input
@@ -1313,11 +1371,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-sm font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-sm font-mono"
                     />
                   </div>
                   <div className="flex flex-col justify-end space-y-2 text-xs">
-                    <label className="inline-flex items-center gap-2 font-medium text-[#143326]">
+                    <label className="inline-flex items-center gap-2 font-medium text-[#0B1F3A]">
                       <input
                         type="checkbox"
                         checked={sysPayload.config.application.allowSelfRegistration}
@@ -1333,11 +1391,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             },
                           })
                         }
-                        className="accent-[#1B4332]"
+                        className="accent-[#0B3D91]"
                       />
                       <span>Allow Farmer Self-Registration</span>
                     </label>
-                    <label className="inline-flex items-center gap-2 font-medium text-[#143326]">
+                    <label className="inline-flex items-center gap-2 font-medium text-[#0B1F3A]">
                       <input
                         type="checkbox"
                         checked={sysPayload.config.application.maintenanceMode}
@@ -1353,7 +1411,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             },
                           })
                         }
-                        className="accent-[#1B4332]"
+                        className="accent-[#0B3D91]"
                       />
                       <span>Maintenance Banner Active</span>
                     </label>
@@ -1361,9 +1419,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
 
                 {/* Notification & Weather Alert Thresholds */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-[#E2E6DF]">
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-4 pt-4 border-t border-[#E2E8F0]">
                   <div>
-                    <label className="block text-xs font-semibold text-[#143326] mb-1">
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                       Heavy Rain Alert Threshold (mm)
                     </label>
                     <input
@@ -1381,11 +1439,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-sm font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-sm font-mono"
                     />
                   </div>
                   <div>
-                    <label className="block text-xs font-semibold text-[#143326] mb-1">
+                    <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                       Heat Stress Threshold (°C)
                     </label>
                     <input
@@ -1403,11 +1461,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-sm font-mono"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-sm font-mono"
                     />
                   </div>
                   <div className="md:col-span-2 flex flex-wrap items-center gap-5 text-xs pt-4">
-                    <label className="inline-flex items-center gap-2 font-medium text-[#143326]">
+                    <label className="inline-flex items-center gap-2 font-medium text-[#0B1F3A]">
                       <input
                         type="checkbox"
                         checked={sysPayload.config.notifications.inAppAlertsEnabled}
@@ -1423,11 +1481,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             },
                           })
                         }
-                        className="accent-[#1B4332]"
+                        className="accent-[#0B3D91]"
                       />
                       <span>In-App Alerts Enabled</span>
                     </label>
-                    <label className="inline-flex items-center gap-2 font-medium text-[#143326]">
+                    <label className="inline-flex items-center gap-2 font-medium text-[#0B1F3A]">
                       <input
                         type="checkbox"
                         checked={sysPayload.config.notifications.incidentEscalationNotify}
@@ -1443,7 +1501,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                             },
                           })
                         }
-                        className="accent-[#1B4332]"
+                        className="accent-[#0B3D91]"
                       />
                       <span>Incident Escalation Notifications</span>
                     </label>
@@ -1451,9 +1509,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                 </div>
 
                 {/* Agricultural Reference & AI Config */}
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4 border-t border-[#E2E6DF]">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 pt-4 border-t border-[#E2E8F0]">
                   <div className="space-y-3">
-                    <label className="block text-xs font-semibold text-[#143326]">
+                    <label className="block text-xs font-semibold text-[#0B1F3A]">
                       Soil Lab & Agricultural Reference Guidance Note
                     </label>
                     <textarea
@@ -1471,9 +1529,9 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-xs"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs"
                     />
-                    <label className="block text-xs font-semibold text-[#143326]">
+                    <label className="block text-xs font-semibold text-[#0B1F3A]">
                       Valuation Estimation Disclaimer
                     </label>
                     <textarea
@@ -1491,14 +1549,14 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-xs"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs"
                     />
                   </div>
 
                   <div className="space-y-3">
                     <div className="grid grid-cols-2 gap-3">
                       <div>
-                        <label className="block text-xs font-semibold text-[#143326] mb-1">
+                        <label className="block text-xs font-semibold text-[#0B1F3A] mb-1">
                           Primary Gemini Model
                         </label>
                         <input
@@ -1513,11 +1571,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                               },
                             })
                           }
-                          className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-xs font-mono"
+                          className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs font-mono"
                         />
                       </div>
                       <div className="flex flex-col justify-end space-y-1.5 text-xs">
-                        <label className="inline-flex items-center gap-2 font-medium text-[#143326]">
+                        <label className="inline-flex items-center gap-2 font-medium text-[#0B1F3A]">
                           <input
                             type="checkbox"
                             checked={sysPayload.config.ai.aiEnabled}
@@ -1530,11 +1588,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                 },
                               })
                             }
-                            className="accent-[#1B4332]"
+                            className="accent-[#0B3D91]"
                           />
                           <span>Gemini AI Features Enabled</span>
                         </label>
-                        <label className="inline-flex items-center gap-2 font-medium text-[#143326]">
+                        <label className="inline-flex items-center gap-2 font-medium text-[#0B1F3A]">
                           <input
                             type="checkbox"
                             checked={sysPayload.config.ai.visualAnalysisEnabled}
@@ -1550,13 +1608,13 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                                 },
                               })
                             }
-                            className="accent-[#1B4332]"
+                            className="accent-[#0B3D91]"
                           />
                           <span>Visual Photo/Video Analysis Enabled</span>
                         </label>
                       </div>
                     </div>
-                    <label className="block text-xs font-semibold text-[#143326]">
+                    <label className="block text-xs font-semibold text-[#0B1F3A]">
                       AI Diagnostic Safety Notice
                     </label>
                     <textarea
@@ -1574,53 +1632,53 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           },
                         })
                       }
-                      className="w-full px-3 py-2 rounded-lg border border-[#D4DDD2] text-xs"
+                      className="w-full px-3 py-2 rounded-lg border border-[#CBD5E1] text-xs"
                     />
                   </div>
                 </div>
               </form>
 
               {/* External Integration Status */}
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-                <h3 className="font-display text-lg font-bold text-[#143326]">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                   External Integration Status
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {sysPayload.integrations.map((intg) => (
                     <div
                       key={intg.id}
-                      className="border border-[#E2E6DF] rounded-xl p-4 space-y-1.5"
+                      className="border border-[#E2E8F0] rounded-xl p-4 space-y-1.5"
                     >
                       <div className="flex items-center justify-between gap-2">
-                        <p className="font-semibold text-sm text-[#143326]">{intg.name}</p>
+                        <p className="font-semibold text-sm text-[#0B1F3A]">{intg.name}</p>
                         <span
                           className={`text-[11px] font-mono font-bold uppercase ${
                             intg.status === 'connected' || intg.status === 'active'
-                              ? 'text-[#1B4332]'
-                              : 'text-[#9A5B13]'
+                              ? 'text-[#174C3C]'
+                              : 'text-[#B45309]'
                           }`}
                         >
                           {intg.status.replace(/_/g, ' ')}
                         </span>
                       </div>
-                      <p className="text-xs text-[#4A5A50]">{intg.detail}</p>
+                      <p className="text-xs text-[#475569]">{intg.detail}</p>
                     </div>
                   ))}
                 </div>
               </section>
 
               {/* System Announcements */}
-              <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
                 <div className="flex items-center gap-2">
-                  <Megaphone className="w-5 h-5 text-[#1B4332]" />
-                  <h3 className="font-display text-lg font-bold text-[#143326]">
+                  <Megaphone className="w-5 h-5 text-[#0B3D91]" />
+                  <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                     System Announcements ({sysPayload.announcements.length})
                   </h3>
                 </div>
 
                 <form
                   onSubmit={handleCreateAnnouncement}
-                  className="bg-[#F6F7F4] border border-[#D4DDD2] rounded-xl p-4 space-y-3"
+                  className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-4 space-y-3"
                 >
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <input
@@ -1629,12 +1687,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       value={newAnnTitle}
                       onChange={(e) => setNewAnnTitle(e.target.value)}
                       placeholder="Announcement headline..."
-                      className="px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-xs"
+                      className="px-3 py-2 min-h-[38px] rounded-lg border border-[#CBD5E1] bg-white text-xs"
                     />
                     <select
                       value={newAnnRole}
                       onChange={(e) => setNewAnnRole(e.target.value as RoleCode | 'all')}
-                      className="px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-xs"
+                      className="px-3 py-2 min-h-[38px] rounded-lg border border-[#CBD5E1] bg-white text-xs"
                     >
                       <option value="all">All Users</option>
                       <option value="existing_farmer">Existing Farmers</option>
@@ -1647,7 +1705,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       onChange={(e) =>
                         setNewAnnSeverity(e.target.value as 'info' | 'advisory' | 'warning')
                       }
-                      className="px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-xs"
+                      className="px-3 py-2 min-h-[38px] rounded-lg border border-[#CBD5E1] bg-white text-xs"
                     >
                       <option value="info">Info</option>
                       <option value="advisory">Advisory</option>
@@ -1661,11 +1719,11 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       value={newAnnMsg}
                       onChange={(e) => setNewAnnMsg(e.target.value)}
                       placeholder="Announcement message shown on farmer dashboards..."
-                      className="flex-1 min-w-[240px] px-3 py-2 rounded-lg border border-[#D4DDD2] bg-white text-xs"
+                      className="flex-1 min-w-[240px] px-3 py-2 min-h-[38px] rounded-lg border border-[#CBD5E1] bg-white text-xs"
                     />
                     <button
                       type="submit"
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B4332] text-white text-xs font-semibold cursor-pointer"
+                      className="inline-flex items-center gap-1.5 px-4 py-2 min-h-[38px] rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer"
                     >
                       <Plus className="w-4 h-4" />
                       <span>Publish Announcement</span>
@@ -1673,17 +1731,17 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                   </div>
                 </form>
 
-                <div className="divide-y divide-[#E2E6DF]">
+                <div className="divide-y divide-[#E2E8F0]">
                   {sysPayload.announcements.map((a) => (
                     <div
                       key={a.id}
                       className="py-3 flex flex-wrap items-center justify-between gap-3 text-xs"
                     >
                       <div>
-                        <p className="font-semibold text-[#143326]">
+                        <p className="font-semibold text-[#0B1F3A]">
                           {a.title} ({a.severity} · target: {a.targetRole})
                         </p>
-                        <p className="text-[#4A5A50] mt-0.5">{a.message}</p>
+                        <p className="text-[#475569] mt-0.5">{a.message}</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -1691,8 +1749,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           onClick={() => handleToggleAnnouncement(a.id, a.isActive)}
                           className={`px-3 py-1 rounded-lg border font-semibold cursor-pointer ${
                             a.isActive
-                              ? 'border-[#BFD6C5] text-[#1B4332]'
-                              : 'border-[#D4DDD2] text-[#4A5A50]'
+                              ? 'border-[#A7D7C5] text-[#174C3C]'
+                              : 'border-[#CBD5E1] text-[#475569]'
                           }`}
                         >
                           {a.isActive ? 'Active' : 'Paused'}
@@ -1701,7 +1759,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                           type="button"
                           onClick={() => handleDeleteAnnouncement(a.id)}
                           aria-label="Delete announcement"
-                          className="p-1.5 rounded-lg text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                          className="p-1.5 rounded-lg text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>
@@ -1717,24 +1775,24 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
           {/* 6. AUDIT & SECURITY LOGS                                       */}
           {/* ============================================================== */}
           {section === 'audit' && (
-            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                     Administrative & Security Audit Logs ({filteredAuditLogs.length})
                   </h2>
-                  <p className="text-xs text-[#4A5A50]">
+                  <p className="text-xs text-[#475569]">
                     Immutable chronological record of logins, permission grants/revocations, oversight views, configuration changes, and report exports.
                   </p>
                 </div>
                 <div className="relative">
-                  <Search className="w-4 h-4 text-[#4A5A50] absolute left-3 top-1/2 -translate-y-1/2" />
+                  <Search className="w-4 h-4 text-[#475569] absolute left-3 top-1/2 -translate-y-1/2" />
                   <input
                     type="text"
                     value={auditSearch}
                     onChange={(e) => setAuditSearch(e.target.value)}
                     placeholder="Filter action, actor, entity..."
-                    className="pl-9 pr-3 py-2 rounded-lg border border-[#D4DDD2] text-sm"
+                    className="pl-9 pr-3 py-2 min-h-[38px] rounded-lg border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
@@ -1742,7 +1800,7 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                    <tr className="border-b border-[#E2E8F0] text-[#475569]">
                       <th className="py-2 pr-4 font-semibold">Timestamp</th>
                       <th className="py-2 pr-4 font-semibold">Action</th>
                       <th className="py-2 pr-4 font-semibold">Actor</th>
@@ -1750,18 +1808,18 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                       <th className="py-2 font-semibold">Metadata</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E6DF]">
+                  <tbody className="divide-y divide-[#E2E8F0]">
                     {filteredAuditLogs.map((log) => (
                       <tr key={log.id}>
-                        <td className="py-2.5 pr-4 font-mono tabular-nums text-[#4A5A50] whitespace-nowrap">
+                        <td className="py-2.5 pr-4 font-mono tabular-nums text-[#475569] whitespace-nowrap">
                           {new Date(log.createdAt).toLocaleString()}
                         </td>
-                        <td className="py-2.5 pr-4 font-mono font-semibold text-[#143326]">
+                        <td className="py-2.5 pr-4 font-mono font-semibold text-[#0B1F3A]">
                           {log.action}
                         </td>
-                        <td className="py-2.5 pr-4 text-[#35443B]">{log.actorEmail || 'System'}</td>
-                        <td className="py-2.5 pr-4 text-[#4A5A50]">{log.entityType}</td>
-                        <td className="py-2.5 font-mono text-[11px] text-[#4A5A50]">
+                        <td className="py-2.5 pr-4 text-[#334155]">{log.actorEmail || 'System'}</td>
+                        <td className="py-2.5 pr-4 text-[#475569]">{log.entityType}</td>
+                        <td className="py-2.5 font-mono text-[11px] text-[#475569]">
                           {JSON.stringify(log.details)}
                         </td>
                       </tr>
@@ -1772,11 +1830,270 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
             </section>
           )}
 
-          {loading && !overview && !usersList.length && !farmOversight && !sysPayload && (
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center text-sm text-[#4A5A50]">
+          {/* ============================================================== */}
+          {/* 7. ORGANISATIONS & AGRICULTURAL SPECIALISTS DIRECTORY          */}
+          {/* ============================================================== */}
+          {section === 'entities' && entities && (
+            <div className="space-y-6">
+              <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl px-4 py-3 text-xs text-[#0B1F3A]">
+                <strong className="font-mono uppercase text-[#0B3D91]">Verification Policy:</strong>{' '}
+                Demonstration specialists are clearly marked{' '}
+                <span className="font-mono font-semibold">DEMONSTRATION DATA</span> and do not claim
+                real SACNASP or SAVC accreditation.
+              </div>
+
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                  Registered & Demonstration Organisations ({entities.organisations.length})
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
+                        <th className="py-2 pr-4 font-semibold">Organisation</th>
+                        <th className="py-2 pr-4 font-semibold">Type & Focus</th>
+                        <th className="py-2 pr-4 font-semibold">Province / District</th>
+                        <th className="py-2 pr-4 font-semibold text-right">Members</th>
+                        <th className="py-2 pr-4 font-semibold text-right">Authorised Farms</th>
+                        <th className="py-2 font-semibold text-right">Projects</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E2E8F0]">
+                      {entities.organisations.map((org) => (
+                        <tr key={org.id}>
+                          <td className="py-2.5 pr-4 font-semibold text-[#0B1F3A]">
+                            <div>{org.name}</div>
+                            {org.isDemonstration && (
+                              <span className="text-[10px] font-mono uppercase text-[#0B3D91]">
+                                DEMONSTRATION DATA
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#334155]">
+                            {org.organisationType.replace(/_/g, ' ')} · {org.primaryFocus}
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#475569]">
+                            {org.province} · {org.district}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                            {org.membersCount}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                            {org.authorisedFarmsCount}
+                          </td>
+                          <td className="py-2.5 text-right font-mono tabular-nums">
+                            {org.projectsCount}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                  Agricultural Specialists Directory ({entities.specialists.length})
+                </h2>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#E2E8F0] text-[#475569]">
+                        <th className="py-2 pr-4 font-semibold">Specialist</th>
+                        <th className="py-2 pr-4 font-semibold">Category</th>
+                        <th className="py-2 pr-4 font-semibold">Provinces Served</th>
+                        <th className="py-2 pr-4 font-semibold">Verification / Regulatory</th>
+                        <th className="py-2 pr-4 font-semibold text-right">Grants</th>
+                        <th className="py-2 font-semibold text-right">Consultations</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E2E8F0]">
+                      {entities.specialists.map((sp) => (
+                        <tr key={sp.userId}>
+                          <td className="py-2.5 pr-4">
+                            <p className="font-semibold text-[#0B1F3A]">{sp.fullName}</p>
+                            <p className="text-[#475569]">{sp.email}</p>
+                            {sp.isDemonstration && (
+                              <span className="text-[10px] font-mono uppercase text-[#0B3D91]">
+                                DEMONSTRATION DATA
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4 capitalize text-[#0B3D91] font-semibold">
+                            {sp.specialisation.replace(/_/g, ' ')}
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#334155]">
+                            {sp.provincesServed.join(', ') || 'South Africa'}
+                          </td>
+                          <td className="py-2.5 pr-4 text-[#475569]">
+                            <span className="font-mono">{sp.verificationStatus}</span>
+                            {sp.regulatedService && sp.regulatoryBodyName
+                              ? ` · Regulated (${sp.regulatoryBodyName})`
+                              : ''}
+                          </td>
+                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                            {sp.activeFarmGrantsCount}
+                          </td>
+                          <td className="py-2.5 text-right font-mono tabular-nums">
+                            {sp.consultationsCount}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+          )}
+
+          {/* ============================================================== */}
+          {/* 8. PUBLIC SOUTH AFRICAN DATASET PROVENANCE                     */}
+          {/* ============================================================== */}
+          {section === 'datasets' && datasetsMeta && (
+            <div className="space-y-6">
+              <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl px-4 py-3 text-xs text-[#0B1F3A]">
+                {datasetsMeta.disclaimer}
+              </div>
+
+              <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                  Integrated & Referenced Public Datasets ({datasetsMeta.datasets.length})
+                </h2>
+                <div className="divide-y divide-[#E2E8F0]">
+                  {datasetsMeta.datasets.map((ds) => (
+                    <div key={ds.id} className="py-4 space-y-2 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                          <p className="font-display text-sm font-bold text-[#0B1F3A]">
+                            {ds.sourceName} — {ds.datasetOrApiName}
+                          </p>
+                          <p className="font-mono text-[#0B3D91] break-all">{ds.sourceUrl}</p>
+                        </div>
+                        <span
+                          className={`font-mono font-semibold uppercase ${
+                            ds.status === 'active'
+                              ? 'text-[#174C3C]'
+                              : ds.status === 'reference_only'
+                              ? 'text-[#0B3D91]'
+                              : 'text-[#B91C1C]'
+                          }`}
+                        >
+                          {ds.integrationMode.replace(/_/g, ' ')} · {ds.status.replace(/_/g, ' ')}
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-[#334155]">
+                        <p>
+                          <strong>Coverage:</strong> {ds.geographicCoverage}
+                        </p>
+                        <p>
+                          <strong>Units:</strong> {ds.units}
+                        </p>
+                        <p>
+                          <strong>Retrieved:</strong>{' '}
+                          <span className="font-mono">{ds.retrievedAt}</span>
+                        </p>
+                      </div>
+                      <p className="text-[#475569]">
+                        <strong>Licence / Terms:</strong> {ds.licenceAndTerms}
+                      </p>
+                      <p className="text-[#475569]">
+                        <strong>Limitations:</strong> {ds.limitations}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            </div>
+          )}
+
+          {loading && !overview && !usersList.length && !farmOversight && !sysPayload && !entities && !datasetsMeta && (
+            <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center text-sm text-[#475569]">
               Loading administration module...
             </div>
           )}
+    </div>
+  );
+
+  if (embedded) {
+    return renderMainContent();
+  }
+
+  return (
+    <div className="min-h-screen bg-[#F1F5F9] flex flex-col lg:flex-row">
+      <aside className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0 bg-[#0B1F3A] text-white border-r border-[#163055]">
+        <div className="h-16 px-6 flex items-center justify-between border-b border-[#163055]">
+          <div className="flex items-center gap-2.5">
+            <Shield className="w-5 h-5 text-[#93C5FD]" />
+            <div>
+              <p className="font-display text-lg font-bold tracking-tight leading-none">
+                Field Shift
+              </p>
+              <p className="text-[10px] font-mono uppercase tracking-wider text-[#93C5FD] mt-0.5">
+                Admin Portal
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 px-4 py-5 overflow-y-auto">{renderSidebarLinks()}</nav>
+
+        <div className="p-4 border-t border-[#163055] space-y-3">
+          <div className="px-2">
+            <p className="text-sm font-semibold text-white truncate">
+              {user.profile?.fullName || user.email}
+            </p>
+            <p className="text-xs text-[#93C5FD] truncate">{user.email}</p>
+          </div>
+          <button
+            type="button"
+            onClick={onLogout}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#FC3D21] text-sm font-semibold text-white transition-colors cursor-pointer"
+          >
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
+          </button>
+        </div>
+      </aside>
+
+      <div className="flex-1 lg:pl-64 flex flex-col min-w-0">
+        <header className="sticky top-0 z-20 bg-white border-b border-[#CBD5E1] px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setMobileNavOpen(!mobileNavOpen)}
+              aria-label="Toggle admin menu"
+              className="lg:hidden p-2 rounded-lg border border-[#CBD5E1] text-[#0B1F3A]"
+            >
+              {mobileNavOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            </button>
+            <h1 className="font-display text-lg font-bold text-[#0B1F3A]">
+              {navItems.find((n) => n.id === section)?.label}
+            </h1>
+          </div>
+
+          <div className="flex items-center gap-3 text-xs text-[#475569]">
+            <span className="hidden sm:inline font-mono">
+              System Administrator · {user.email}
+            </span>
+          </div>
+        </header>
+
+        {mobileNavOpen && (
+          <div className="lg:hidden bg-[#0B1F3A] text-white px-4 py-4 space-y-3">
+            {renderSidebarLinks(true)}
+            <button
+              type="button"
+              onClick={onLogout}
+              className="w-full flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-[#0B3D91] text-sm font-semibold text-white"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sign Out</span>
+            </button>
+          </div>
+        )}
+
+        <main className="flex-1 max-w-6xl w-full mx-auto px-4 sm:px-8 py-6 space-y-6">
+          {renderMainContent()}
         </main>
       </div>
     </div>

@@ -6,11 +6,20 @@
   --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
 }
 
+:root {
+  --fs-primary: #0b3d91;
+  --fs-navy: #0b1f3a;
+  --fs-green: #174c3c;
+  --fs-red: #fc3d21;
+  --fs-bg: #f1f5f9;
+  --fs-surface: #ffffff;
+}
+
 @layer base {
   body {
     font-family: var(--font-sans);
-    background-color: #f6f7f4;
-    color: #17201b;
+    background-color: #f1f5f9;
+    color: #0f172a;
   }
 
   h1, h2, h3, h4, .font-display {
@@ -22,7 +31,7 @@
   }
 
   :focus-visible {
-    outline: 3px solid #2d6a4f;
+    outline: 3px solid #0b3d91;
     outline-offset: 2px;
   }
 }

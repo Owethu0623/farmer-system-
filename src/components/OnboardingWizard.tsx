@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Check, Sprout, Tractor } from 'lucide-react';
 import { LANGUAGE_LIST, t } from '../i18n/translations';
 import { apiRequest } from '../lib/api';
 import { AuthUser, LanguageCode, ProvinceInfo } from '../types';
-import { SpeakButton, VoiceInputButton } from './AccessibilityControls';
+import { LanguageSelector, SpeakButton, VoiceInputButton } from './AccessibilityControls';
 import { InteractiveFarmMap, SpatialUpdatePayload } from './InteractiveFarmMap';
 
 interface OnboardingWizardProps {
@@ -113,8 +113,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState(user.profile?.fullName || '');
-  const [selectedLang, setSelectedLang] = useState<LanguageCode>(languageCode);
   const [province, setProvince] = useState(user.profile?.province || provinces[0]?.name || 'KwaZulu-Natal');
+  const activeLanguageInfo = useMemo(
+    () => LANGUAGE_LIST.find((l) => l.code === languageCode) || LANGUAGE_LIST[0],
+    [languageCode]
+  );
 
   const provinceObj = useMemo(
     () => provinces.find((p) => p.name === province) || provinces[0],
@@ -188,7 +191,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
         method: 'POST',
         body: JSON.stringify({
           fullName,
-          preferredLanguageCode: selectedLang,
+          preferredLanguageCode: languageCode,
           province,
           district,
           preferredFarmingType,
@@ -200,7 +203,6 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           farmingGoals,
         }),
       });
-      onLanguageChange(selectedLang);
       onCompleted(res.user);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not save onboarding profile.');
@@ -228,6 +230,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           latitude: currentLat,
           longitude: currentLng,
           locationSource: spatial?.locationSource || 'municipal_center',
+          locationDescription: spatial?.locationDescription || '',
+          locationConfirmed: Boolean(spatial?.locationConfirmed),
           gpsLatitude: spatial?.gpsLatitude ?? null,
           gpsLongitude: spatial?.gpsLongitude ?? null,
           gpsAccuracyMeters: spatial?.gpsAccuracyMeters ?? null,
@@ -239,10 +243,9 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           existingCrops,
           existingLivestock,
           boundaryGeojson: spatial?.boundaryGeojson || null,
-          preferredLanguageCode: selectedLang,
+          preferredLanguageCode: languageCode,
         }),
       });
-      onLanguageChange(selectedLang);
       onCompleted(res.user);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Could not complete farm registration.');
@@ -252,31 +255,34 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-[#F6F7F4] py-8 px-4 sm:px-6">
+    <div className="min-h-screen bg-[#F1F5F9] py-8 px-4 sm:px-6">
       <div className="max-w-3xl mx-auto space-y-6">
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
+        <div className="bg-white border border-[#CBD5E1] rounded-2xl p-5 flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-[#EDF5EF] text-[#1B4332] flex items-center justify-center shrink-0">
+            <div className="w-11 h-11 rounded-xl bg-[#EFF6FF] text-[#0B3D91] flex items-center justify-center shrink-0">
               {isProspective ? <Sprout className="w-6 h-6" /> : <Tractor className="w-6 h-6" />}
             </div>
             <div>
-              <p className="text-xs font-semibold text-[#2D6A4F]">
+              <p className="text-xs font-semibold text-[#0B3D91]">
                 {isProspective ? 'Prospective Farmer Journey' : 'Existing Farmer Journey'} · Step {step} of {totalSteps}
               </p>
-              <h1 className="font-display text-xl font-bold text-[#143326]">
+              <h1 className="font-display text-xl font-bold text-[#0B1F3A]">
                 {isProspective ? 'Start Your Farming Plan' : 'Register Your First Farm'}
               </h1>
             </div>
           </div>
 
-          <SpeakButton
-            text={stepNarration}
-            languageCode={languageCode}
-            isSpeaking={isSpeaking}
-            onSpeak={onSpeak}
-            onStop={onStopSpeaking}
-            supported={speechSupported}
-          />
+          <div className="flex flex-wrap items-center gap-3">
+            <LanguageSelector value={languageCode} onChange={onLanguageChange} compact />
+            <SpeakButton
+              text={stepNarration}
+              languageCode={languageCode}
+              isSpeaking={isSpeaking}
+              onSpeak={onSpeak}
+              onStop={onStopSpeaking}
+              supported={speechSupported}
+            />
+          </div>
         </div>
 
         <div className="grid grid-cols-4 gap-2">
@@ -284,25 +290,25 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
             <div
               key={idx}
               className={`h-2 rounded-full transition-colors ${
-                idx <= step ? 'bg-[#1B4332]' : 'bg-[#DCE3DA]'
+                idx <= step ? 'bg-[#0B3D91]' : 'bg-[#CBD5E1]'
               }`}
             />
           ))}
         </div>
 
         {error && (
-          <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm font-medium">
+          <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm font-medium">
             {error}
           </div>
         )}
 
-        <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 sm:p-8 space-y-6">
+        <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 sm:p-8 space-y-6">
           {/* PROSPECTIVE FARMER WIZARD */}
           {isProspective && step === 1 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
-                  1. What is your full name?
+                <label className="block text-base font-bold text-[#0B1F3A]">
+                  Confirm Your Full Name
                 </label>
                 <div className="flex gap-2">
                   <input
@@ -310,10 +316,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
                     placeholder="Tap here or use Speak Answer"
-                    className="flex-1 px-4 py-3.5 rounded-xl border border-[#D4DDD2] text-base"
+                    className="flex-1 px-4 py-3.5 rounded-xl border border-[#CBD5E1] text-base"
                   />
                   <VoiceInputButton
-                    languageCode={selectedLang}
+                    languageCode={languageCode}
                     isListening={isListening}
                     supported={recognitionSupported}
                     onStart={() => onStartVoiceInput((txt) => setFullName(txt))}
@@ -322,39 +328,42 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
-                  2. Choose your preferred language
+                <label className="block text-base font-bold text-[#0B1F3A]">
+                  Farming Experience
                 </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
-                  {LANGUAGE_LIST.map((l) => (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {[
+                    'No prior experience (Complete beginner)',
+                    'Home garden or family plot',
+                    'Worked on a farm (1-3 years)',
+                    'Agricultural training / college',
+                  ].map((exp) => (
                     <button
-                      key={l.code}
+                      key={exp}
                       type="button"
-                      onClick={() => {
-                        setSelectedLang(l.code);
-                        onLanguageChange(l.code);
-                      }}
-                      className={`p-3 rounded-xl border text-left transition-colors cursor-pointer ${
-                        selectedLang === l.code
-                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                          : 'bg-white text-[#17201B] border-[#D4DDD2] hover:border-[#1B4332]'
+                      onClick={() => setFarmingExperience(exp)}
+                      className={`p-3.5 rounded-xl border text-left text-sm font-semibold transition-colors cursor-pointer ${
+                        farmingExperience === exp
+                          ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                          : 'bg-white text-[#0F172A] border-[#CBD5E1] hover:border-[#0B3D91]'
                       }`}
                     >
-                      <p className="font-semibold text-sm">{l.nativeName}</p>
-                      <p className={`text-xs ${selectedLang === l.code ? 'text-[#D8E9DC]' : 'text-[#4A5A50]'}`}>
-                        {l.name}
-                      </p>
+                      {exp}
                     </button>
                   ))}
                 </div>
               </div>
+
+              <p className="text-xs text-[#475569] bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-4 py-3">
+                Preferred language: <strong className="text-[#0B1F3A]">{activeLanguageInfo.nativeName}</strong> ({activeLanguageInfo.name}). You can switch languages anytime using the dropdown in the top bar.
+              </p>
             </div>
           )}
 
           {isProspective && step === 2 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Where do you plan to farm? (Province)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
@@ -365,8 +374,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       onClick={() => handleProvinceSelect(p.name)}
                       className={`p-3.5 rounded-xl border text-left font-semibold text-sm transition-colors cursor-pointer ${
                         province === p.name
-                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                          : 'bg-white border-[#D4DDD2] hover:border-[#1B4332]'
+                          ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                          : 'bg-white border-[#CBD5E1] hover:border-[#0B3D91]'
                       }`}
                     >
                       {p.name}
@@ -376,7 +385,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">Select District</label>
+                <label className="block text-base font-bold text-[#0B1F3A]">Select District</label>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                   {(provinceObj?.districts || []).map((d) => (
                     <button
@@ -385,8 +394,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       onClick={() => handleDistrictSelect(d.name)}
                       className={`p-3.5 rounded-xl border text-left font-medium text-sm transition-colors cursor-pointer ${
                         district === d.name
-                          ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                          : 'bg-white border-[#D4DDD2] hover:border-[#1B4332]'
+                          ? 'bg-[#EFF6FF] border-[#0B3D91] text-[#0B1F3A] font-semibold'
+                          : 'bg-white border-[#CBD5E1] hover:border-[#0B3D91]'
                       }`}
                     >
                       {d.name}
@@ -400,7 +409,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {isProspective && step === 3 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Preferred Farming Type
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -411,8 +420,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       onClick={() => setPreferredFarmingType(ft)}
                       className={`p-3.5 rounded-xl border text-left text-sm font-semibold transition-colors cursor-pointer ${
                         preferredFarmingType === ft
-                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                          : 'bg-white border-[#D4DDD2] hover:border-[#1B4332]'
+                          ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                          : 'bg-white border-[#CBD5E1] hover:border-[#0B3D91]'
                       }`}
                     >
                       {ft}
@@ -421,48 +430,30 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-[#143326]">
-                    Available or Intended Land Size (Hectares)
-                  </label>
-                  <div className="flex flex-wrap gap-2">
-                    {[0.5, 1, 2, 5, 10, 25].map((ha) => (
-                      <button
-                        key={ha}
-                        type="button"
-                        onClick={() => setIntendedLandSize(ha)}
-                        className={`px-3.5 py-2.5 rounded-lg border text-sm font-mono font-semibold cursor-pointer ${
-                          intendedLandSize === ha
-                            ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                            : 'bg-white border-[#D4DDD2]'
-                        }`}
-                      >
-                        {ha} ha
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="block text-sm font-bold text-[#143326]">
-                    Farming Experience
-                  </label>
-                  <select
-                    value={farmingExperience}
-                    onChange={(e) => setFarmingExperience(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#D4DDD2] bg-white text-sm"
-                  >
-                    <option>No prior experience (Complete beginner)</option>
-                    <option>Home garden or family plot</option>
-                    <option>Worked on a farm (1-3 years)</option>
-                    <option>Agricultural training / college</option>
-                  </select>
+              <div className="space-y-2">
+                <label className="block text-sm font-bold text-[#0B1F3A]">
+                  Available or Intended Land Size (Hectares)
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {[0.5, 1, 2, 5, 10, 25].map((ha) => (
+                    <button
+                      key={ha}
+                      type="button"
+                      onClick={() => setIntendedLandSize(ha)}
+                      className={`px-3.5 py-2.5 rounded-lg border text-sm font-mono font-semibold cursor-pointer ${
+                        intendedLandSize === ha
+                          ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                          : 'bg-white border-[#CBD5E1]'
+                      }`}
+                    >
+                      {ha} ha
+                    </button>
+                  ))}
                 </div>
               </div>
 
               <div className="space-y-2">
-                <label className="block text-sm font-bold text-[#143326]">
+                <label className="block text-sm font-bold text-[#0B1F3A]">
                   Land Access Situation
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -478,8 +469,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       onClick={() => setLandAccessStatus(opt)}
                       className={`p-3 rounded-xl border text-left text-sm font-medium cursor-pointer ${
                         landAccessStatus === opt
-                          ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                          : 'bg-white border-[#D4DDD2]'
+                          ? 'bg-[#EFF6FF] border-[#0B3D91] text-[#0B1F3A] font-semibold'
+                          : 'bg-white border-[#CBD5E1]'
                       }`}
                     >
                       {opt}
@@ -493,7 +484,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {isProspective && step === 4 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Available Resources (Tap all that apply)
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -506,12 +497,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         onClick={() => toggleItem(availableResources, setAvailableResources, res)}
                         className={`p-3 rounded-xl border text-left text-sm flex items-center justify-between cursor-pointer ${
                           checked
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                            : 'bg-white border-[#D4DDD2]'
+                            ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A] font-semibold'
+                            : 'bg-white border-[#CBD5E1]'
                         }`}
                       >
                         <span>{res}</span>
-                        {checked && <Check className="w-4 h-4 text-[#1B4332]" />}
+                        {checked && <Check className="w-4 h-4 text-[#174C3C]" />}
                       </button>
                     );
                   })}
@@ -519,7 +510,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Agricultural Interests
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -532,12 +523,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         onClick={() => toggleItem(agriculturalInterests, setAgriculturalInterests, item)}
                         className={`p-3 rounded-xl border text-left text-sm flex items-center justify-between cursor-pointer ${
                           checked
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                            : 'bg-white border-[#D4DDD2]'
+                            ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A] font-semibold'
+                            : 'bg-white border-[#CBD5E1]'
                         }`}
                       >
                         <span>{item}</span>
-                        {checked && <Check className="w-4 h-4 text-[#1B4332]" />}
+                        {checked && <Check className="w-4 h-4 text-[#174C3C]" />}
                       </button>
                     );
                   })}
@@ -545,7 +536,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">Your Farming Goals</label>
+                <label className="block text-base font-bold text-[#0B1F3A]">Your Farming Goals</label>
                 <div className="grid grid-cols-1 gap-2">
                   {GOAL_OPTIONS.map((g) => {
                     const checked = farmingGoals.includes(g);
@@ -556,12 +547,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         onClick={() => toggleItem(farmingGoals, setFarmingGoals, g)}
                         className={`p-3 rounded-xl border text-left text-sm flex items-center justify-between cursor-pointer ${
                           checked
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                            : 'bg-white border-[#D4DDD2]'
+                            ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A] font-semibold'
+                            : 'bg-white border-[#CBD5E1]'
                         }`}
                       >
                         <span>{g}</span>
-                        {checked && <Check className="w-4 h-4 text-[#1B4332]" />}
+                        {checked && <Check className="w-4 h-4 text-[#174C3C]" />}
                       </button>
                     );
                   })}
@@ -574,7 +565,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {!isProspective && step === 1 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   1. Farm Name
                 </label>
                 <div className="flex gap-2">
@@ -583,10 +574,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     value={farmName}
                     onChange={(e) => setFarmName(e.target.value)}
                     placeholder="e.g. Vlakfontein Family Farm"
-                    className="flex-1 px-4 py-3.5 rounded-xl border border-[#D4DDD2] text-base"
+                    className="flex-1 px-4 py-3.5 rounded-xl border border-[#CBD5E1] text-base"
                   />
                   <VoiceInputButton
-                    languageCode={selectedLang}
+                    languageCode={languageCode}
                     isListening={isListening}
                     supported={recognitionSupported}
                     onStart={() => onStartVoiceInput((txt) => setFarmName(txt))}
@@ -596,7 +587,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-bold text-[#143326]">
+                  <label className="block text-sm font-bold text-[#0B1F3A]">
                     Farm Size (Hectares)
                   </label>
                   <input
@@ -605,11 +596,11 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     step={0.5}
                     value={farmSizeHectares}
                     onChange={(e) => setFarmSizeHectares(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl border border-[#D4DDD2] font-mono"
+                    className="w-full px-4 py-3 rounded-xl border border-[#CBD5E1] font-mono"
                   />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-bold text-[#143326]">
+                  <label className="block text-sm font-bold text-[#0B1F3A]">
                     Years of Farming Experience
                   </label>
                   <input
@@ -617,42 +608,21 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     min={0}
                     value={yearsOfExperience}
                     onChange={(e) => setYearsOfExperience(Number(e.target.value))}
-                    className="w-full px-4 py-3 rounded-xl border border-[#D4DDD2] font-mono"
+                    className="w-full px-4 py-3 rounded-xl border border-[#CBD5E1] font-mono"
                   />
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="block text-sm font-bold text-[#143326]">
-                  Preferred Language
-                </label>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                  {LANGUAGE_LIST.map((l) => (
-                    <button
-                      key={l.code}
-                      type="button"
-                      onClick={() => {
-                        setSelectedLang(l.code);
-                        onLanguageChange(l.code);
-                      }}
-                      className={`p-2.5 rounded-xl border text-left text-xs font-semibold cursor-pointer ${
-                        selectedLang === l.code
-                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                          : 'bg-white border-[#D4DDD2]'
-                      }`}
-                    >
-                      {l.nativeName}
-                    </button>
-                  ))}
-                </div>
-              </div>
+              <p className="text-xs text-[#475569] bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl px-4 py-3">
+                Preferred language: <strong className="text-[#0B1F3A]">{activeLanguageInfo.nativeName}</strong> ({activeLanguageInfo.name}). You can change this anytime using the dropdown in the top bar.
+              </p>
             </div>
           )}
 
           {!isProspective && step === 2 && (
             <div className="space-y-5">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">Province</label>
+                <label className="block text-base font-bold text-[#0B1F3A]">Province</label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
                   {provinces.map((p) => (
                     <button
@@ -661,8 +631,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       onClick={() => handleProvinceSelect(p.name)}
                       className={`p-3 rounded-xl border text-left text-sm font-semibold cursor-pointer ${
                         province === p.name
-                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                          : 'bg-white border-[#D4DDD2]'
+                          ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                          : 'bg-white border-[#CBD5E1]'
                       }`}
                     >
                       {p.name}
@@ -673,13 +643,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-bold text-[#143326]">
+                  <label className="block text-sm font-bold text-[#0B1F3A]">
                     District Municipality
                   </label>
                   <select
                     value={district}
                     onChange={(e) => handleDistrictSelect(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {(provinceObj?.districts || []).map((d) => (
                       <option key={d.name} value={d.name}>
@@ -690,13 +660,13 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="block text-sm font-bold text-[#143326]">
+                  <label className="block text-sm font-bold text-[#0B1F3A]">
                     Local Municipality
                   </label>
                   <select
                     value={localMunicipality}
                     onChange={(e) => setLocalMunicipality(e.target.value)}
-                    className="w-full px-4 py-3 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-4 py-3 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {(districtObj?.localMunicipalities || []).map((m) => (
                       <option key={m} value={m}>
@@ -708,7 +678,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-1.5">
-                <label className="block text-sm font-bold text-[#143326]">
+                <label className="block text-sm font-bold text-[#0B1F3A]">
                   Town or Village Name
                 </label>
                 <div className="flex gap-2">
@@ -717,10 +687,10 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                     value={townOrVillage}
                     onChange={(e) => setTownOrVillage(e.target.value)}
                     placeholder="e.g. Mooi River / Bergville"
-                    className="flex-1 px-4 py-3 rounded-xl border border-[#D4DDD2]"
+                    className="flex-1 px-4 py-3 rounded-xl border border-[#CBD5E1]"
                   />
                   <VoiceInputButton
-                    languageCode={selectedLang}
+                    languageCode={languageCode}
                     isListening={isListening}
                     supported={recognitionSupported}
                     onStart={() => onStartVoiceInput((txt) => setTownOrVillage(txt))}
@@ -733,7 +703,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {!isProspective && step === 3 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Water Availability
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
@@ -744,8 +714,8 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                       onClick={() => setWaterAvailability(w)}
                       className={`p-3.5 rounded-xl border text-left text-sm font-semibold cursor-pointer ${
                         waterAvailability === w
-                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
-                          : 'bg-white border-[#D4DDD2]'
+                          ? 'bg-[#0B3D91] text-white border-[#0B3D91]'
+                          : 'bg-white border-[#CBD5E1]'
                       }`}
                     >
                       {w}
@@ -755,7 +725,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Farming Activities
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -768,12 +738,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         onClick={() => toggleItem(farmingActivities, setFarmingActivities, act)}
                         className={`p-3 rounded-xl border text-left text-sm flex items-center justify-between cursor-pointer ${
                           active
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                            : 'bg-white border-[#D4DDD2]'
+                            ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A] font-semibold'
+                            : 'bg-white border-[#CBD5E1]'
                         }`}
                       >
                         <span>{act}</span>
-                        {active && <Check className="w-4 h-4 text-[#1B4332]" />}
+                        {active && <Check className="w-4 h-4 text-[#174C3C]" />}
                       </button>
                     );
                   })}
@@ -785,7 +755,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
           {!isProspective && step === 4 && (
             <div className="space-y-6">
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Existing Crops (Tap all grown on this farm)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -798,12 +768,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         onClick={() => toggleItem(existingCrops, setExistingCrops, crop)}
                         className={`p-2.5 rounded-xl border text-left text-sm flex items-center justify-between cursor-pointer ${
                           active
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                            : 'bg-white border-[#D4DDD2]'
+                            ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A] font-semibold'
+                            : 'bg-white border-[#CBD5E1]'
                         }`}
                       >
                         <span>{crop}</span>
-                        {active && <Check className="w-4 h-4 text-[#1B4332]" />}
+                        {active && <Check className="w-4 h-4 text-[#174C3C]" />}
                       </button>
                     );
                   })}
@@ -811,7 +781,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               </div>
 
               <div className="space-y-2">
-                <label className="block text-base font-bold text-[#143326]">
+                <label className="block text-base font-bold text-[#0B1F3A]">
                   Existing Livestock (Optional)
                 </label>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
@@ -824,12 +794,12 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                         onClick={() => toggleItem(existingLivestock, setExistingLivestock, stock)}
                         className={`p-2.5 rounded-xl border text-left text-sm flex items-center justify-between cursor-pointer ${
                           active
-                            ? 'bg-[#EDF5EF] border-[#1B4332] text-[#143326] font-semibold'
-                            : 'bg-white border-[#D4DDD2]'
+                            ? 'bg-[#ECF5F2] border-[#174C3C] text-[#0B1F3A] font-semibold'
+                            : 'bg-white border-[#CBD5E1]'
                         }`}
                       >
                         <span>{stock}</span>
-                        {active && <Check className="w-4 h-4 text-[#1B4332]" />}
+                        {active && <Check className="w-4 h-4 text-[#174C3C]" />}
                       </button>
                     );
                   })}
@@ -840,23 +810,25 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 latitude={currentLat}
                 longitude={currentLng}
                 locationSource={spatial?.locationSource || 'municipal_center'}
+                locationDescription={spatial?.locationDescription || ''}
+                locationConfirmed={Boolean(spatial?.locationConfirmed)}
                 gpsLatitude={spatial?.gpsLatitude}
                 gpsLongitude={spatial?.gpsLongitude}
                 gpsAccuracyMeters={spatial?.gpsAccuracyMeters}
                 gpsCapturedAt={spatial?.gpsCapturedAt}
                 boundary={spatial?.boundaryGeojson || null}
                 onSpatialChange={setSpatial}
-                title="GPS Farm Location & Boundary Drawing"
+                title="GPS Farm Location, Search & Boundary Drawing"
               />
             </div>
           )}
 
-          <div className="pt-4 border-t border-[#E2E6DF] flex items-center justify-between gap-4">
+          <div className="pt-4 border-t border-[#E2E8F0] flex items-center justify-between gap-4">
             <button
               type="button"
               disabled={step === 1}
               onClick={() => setStep((s) => Math.max(1, s - 1))}
-              className="inline-flex items-center gap-2 px-5 py-3 rounded-xl border border-[#D4DDD2] bg-white hover:bg-[#F6F7F4] disabled:opacity-40 font-semibold text-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 min-h-[44px] rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] disabled:opacity-40 font-semibold text-sm text-[#0B1F3A] cursor-pointer"
             >
               <ArrowLeft className="w-4 h-4" />
               <span>{t(languageCode, 'backLabel')}</span>
@@ -866,7 +838,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
               <button
                 type="button"
                 onClick={() => setStep((s) => Math.min(totalSteps, s + 1))}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white font-semibold text-sm cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 min-h-[44px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer"
               >
                 <span>{t(languageCode, 'saveAndContinue')}</span>
                 <ArrowRight className="w-4 h-4" />
@@ -876,7 +848,7 @@ export const OnboardingWizard: React.FC<OnboardingWizardProps> = ({
                 type="button"
                 disabled={submitting}
                 onClick={isProspective ? submitProspective : submitExisting}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-[#1B4332] hover:bg-[#143326] disabled:opacity-60 text-white font-semibold text-sm cursor-pointer"
+                className="inline-flex items-center gap-2 px-6 min-h-[44px] rounded-xl bg-[#174C3C] hover:bg-[#113B2E] disabled:opacity-60 text-white font-semibold text-sm cursor-pointer"
               >
                 <Check className="w-4 h-4" />
                 <span>{submitting ? 'Saving...' : t(languageCode, 'completeSetup')}</span>

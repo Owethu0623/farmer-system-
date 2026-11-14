@@ -867,11 +867,11 @@ export function buildProspectiveFarmerDashboard(params: {
   const recommendedNextSteps = [
     {
       id: 'next-loc',
-      title: 'Bookmark candidate farm locations and verify water access',
-      detail: `${savedLocations.length} location(s) saved. Confirm borehole yield or municipal water before signing a lease.`,
+      title: 'Bookmark candidate farm locations and verify NASA climate & soil fit',
+      detail: `${savedLocations.length} location(s) saved. Check seasonal rainfall shifts, borehole reliability, and crop rotation suitability.`,
       completed: savedLocations.length > 0,
-      actionTab: 'advisor' as const,
-      actionLabel: 'Ask Land Advisor',
+      actionTab: 'soil' as const,
+      actionLabel: 'Explore Land & Rotation',
     },
     {
       id: 'next-plan',
@@ -883,11 +883,14 @@ export function buildProspectiveFarmerDashboard(params: {
     },
     {
       id: 'next-learn',
-      title: 'Complete foundational Soil Preparation & Beginner Farming lessons',
-      detail: `${learningPayload.learnerStats.completedCount} of ${learningPayload.learnerStats.totalPublished} official guides completed (${learningPayload.learnerStats.overallPercent}%).`,
-      completed: learningPayload.learnerStats.completedCount > 0,
+      title: 'Complete required foundational guides and the Readiness Assessment',
+      detail: learningPayload.learningReadiness.isReady
+        ? learningPayload.learningReadiness.completionMessage ||
+          'Required guides and readiness check complete.'
+        : `${learningPayload.learningReadiness.requiredGuidesCompleted} of ${learningPayload.learningReadiness.requiredGuidesTotal} required starter guides complete · Readiness check ${learningPayload.learningReadiness.assessmentPassed ? 'passed' : 'pending'}.`,
+      completed: learningPayload.learningReadiness.isReady,
       actionTab: 'learning' as const,
-      actionLabel: 'Open Learning Centre',
+      actionLabel: 'Open Learning & Readiness',
     },
   ];
 
@@ -921,6 +924,7 @@ export function buildProspectiveFarmerDashboard(params: {
       ...learningPayload.learnerStats,
       recentMaterials: learningPayload.materials.slice(0, 6),
     },
+    learningReadiness: learningPayload.learningReadiness,
     recommendedNextSteps,
     recentAiInsights,
     announcements,

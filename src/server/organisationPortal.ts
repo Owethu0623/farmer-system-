@@ -5,6 +5,9 @@ import {
   OrganisationMemberRole,
   OrganisationMembership,
   OrganisationProfile,
+  OrganisationProgrammeActivity,
+  OrganisationProject,
+  OrganisationSpecialistAssignment,
   OrganisationType,
   SanitizedUser,
 } from './types.ts';
@@ -242,6 +245,7 @@ export function buildOrganisationOverview(user: SanitizedUser) {
     livestockHead: number;
     activeIncidentsCount: number;
     authorisedBasis: string;
+    isDemonstration: boolean;
   }[] = [];
 
   let refCounter = 1;
@@ -275,6 +279,7 @@ export function buildOrganisationOverview(user: SanitizedUser) {
       livestockHead: livestock.reduce((s, lg) => s + lg.quantity, 0),
       activeIncidentsCount: activeInc,
       authorisedBasis: grant.authorisedBasis,
+      isDemonstration: Boolean(farm.isDemonstration),
     });
     refCounter++;
   }
@@ -391,11 +396,77 @@ export function buildOrganisationOverview(user: SanitizedUser) {
     a.period.localeCompare(b.period)
   );
 
+  const projects = organisation
+    ? (store.db.organisationProjects || []).filter((p) => p.organisationId === organisation.id)
+    : [];
+  const programmeActivities = organisation
+    ? (store.db.organisationProgrammeActivities || [])
+        .filter((a) => a.organisationId === organisation.id)
+        .sort((a, b) => b.activityDate.localeCompare(a.activityDate))
+    : [];
+  const assignedSpecialists = organisation
+    ? (store.db.organisationSpecialistAssignments || []).filter(
+        (s) => s.organisationId === organisation.id
+      )
+    : [];
+
+  // Financial summary ONLY aggregates farms that explicitly granted financialSummary scope
+  const financialConsentedFarmIds = new Set(
+    activeGrants
+      .filter((g) => g.scopes.financialSummary)
+      .map((g) => g.farmId)
+  );
+  const recordedFarmExpensesZar = Number(
+    (
+      store.db.mixedFarmingEntries
+        .filter((m) => financialConsentedFarmIds.has(m.farmId))
+        .reduce((s, m) => s + m.expenseZar, 0) +
+      store.db.cropActivities
+        .filter((a) => financialConsentedFarmIds.has(a.farmId) && a.activityType !== 'harvest')
+        .reduce((s, a) => s + a.valueZar, 0) +
+      store.db.livestockRecords
+        .filter(
+          (r) =>
+            financialConsentedFarmIds.has(r.farmId) &&
+            ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType)
+        )
+        .reduce((s, r) => s + r.valueZar, 0)
+    ).toFixed(2)
+  );
+  const estimatedCropAndStockValueZar = Number(
+    (
+      store.db.crops
+        .filter((c) => financialConsentedFarmIds.has(c.farmId))
+        .reduce((s, c) => s + c.estimatedValueZar, 0) +
+      store.db.livestockGroups
+        .filter((lg) => financialConsentedFarmIds.has(lg.farmId))
+        .reduce((s, lg) => s + lg.quantity * lg.estimatedUnitValueZar, 0)
+    ).toFixed(2)
+  );
+  const programmeBudgetAllocatedZar = Number(
+    projects.reduce((s, p) => s + p.budgetAllocatedZar, 0).toFixed(2)
+  );
+  const programmeBudgetSpentZar = Number(
+    projects.reduce((s, p) => s + p.budgetSpentZar, 0).toFixed(2)
+  );
+
   return {
     organisation,
     privacyNotice:
-      'Privacy Protection Active: Individual farmer identities, personal contact details, and private farm financial records are hidden. Data shown reflects only authorised farms with active farmer consent or cooperative basis.',
+      'Privacy Protection Active: Individual farmer identities and private farm financial records are hidden unless the farmer explicitly grants financialSummary scope. Non-financial grants remain strictly anonymised.',
     members,
+    projects,
+    programmeActivities,
+    assignedSpecialists,
+    financialSummary: {
+      financialScopedFarmsCount: financialConsentedFarmIds.size,
+      totalAuthorisedFarmsCount: authorisedFarms.length,
+      recordedFarmExpensesZar,
+      estimatedCropAndStockValueZar,
+      programmeBudgetAllocatedZar,
+      programmeBudgetSpentZar,
+      scopeNote: `Includes recorded farm financial totals ONLY from ${financialConsentedFarmIds.size} of ${authorisedFarms.length} authorised farms with explicit financialSummary consent, plus organisation programme budgets.`,
+    },
     kpis: {
       totalAuthorisedFarms: authorisedFarms.length,
       totalHectares: Number(authorisedFarms.reduce((s, f) => s + f.hectares, 0).toFixed(1)),
@@ -404,6 +475,8 @@ export function buildOrganisationOverview(user: SanitizedUser) {
       totalLivestockHead: authorisedFarms.reduce((s, f) => s + f.livestockHead, 0),
       totalHarvestedKg: Number(authorisedFarms.reduce((s, f) => s + f.harvestedKg, 0).toFixed(1)),
       openIncidentsCount: authorisedFarms.reduce((s, f) => s + f.activeIncidentsCount, 0),
+      activeProjectsCount: projects.filter((p) => p.status === 'active').length,
+      programmeParticipantsCount: programmeActivities.reduce((s, a) => s + a.participantsCount, 0),
     },
     authorisedFarms,
     farmingCategoriesSummary: Array.from(catMap.values()),
@@ -418,6 +491,147 @@ export function buildOrganisationOverview(user: SanitizedUser) {
     weatherComparisons,
     trendAnalysis,
   };
+}
+
+export function createOrganisationProject(params: {
+  actorUser: SanitizedUser;
+  title: string;
+  programmeCode: string;
+  province: string;
+  focusArea: string;
+  startDate: string;
+  targetEndDate: string;
+  targetFarmsCount: number;
+  targetHectares: number;
+  budgetAllocatedZar: number;
+  summary: string;
+}): OrganisationProject {
+  const org = getUserOrganisation(params.actorUser.id);
+  if (!org) throw new Error('Register an organisation profile first.');
+  const now = new Date().toISOString();
+  const project: OrganisationProject = {
+    id: `orgproj-${crypto.randomUUID()}`,
+    organisationId: org.id,
+    title: params.title.trim(),
+    programmeCode: params.programmeCode.trim() || `ORG-${Date.now().toString().slice(-4)}`,
+    province: params.province.trim() || org.province,
+    focusArea: params.focusArea.trim(),
+    status: 'active',
+    startDate: params.startDate || now.slice(0, 10),
+    targetEndDate: params.targetEndDate || now.slice(0, 10),
+    targetFarmsCount: Math.max(1, Number(params.targetFarmsCount) || 1),
+    targetHectares: Math.max(0.5, Number(params.targetHectares) || 1),
+    budgetAllocatedZar: Math.max(0, Number(params.budgetAllocatedZar) || 0),
+    budgetSpentZar: 0,
+    leadSpecialistUserId: null,
+    summary: params.summary.trim(),
+    isDemonstration: Boolean(params.actorUser.isDemonstration || org.isDemonstration),
+    createdAt: now,
+    updatedAt: now,
+  };
+  store.db.organisationProjects.unshift(project);
+  store.logAudit(
+    params.actorUser.id,
+    'ORGANISATION_PROJECT_CREATED',
+    'OrganisationProject',
+    project.id,
+    { title: project.title, programmeCode: project.programmeCode },
+    '127.0.0.1'
+  );
+  store.save();
+  return project;
+}
+
+export function createOrganisationProgrammeActivity(params: {
+  actorUser: SanitizedUser;
+  projectId?: string | null;
+  title: string;
+  activityType: OrganisationProgrammeActivity['activityType'];
+  activityDate: string;
+  province: string;
+  district: string;
+  participantsCount: number;
+  farmsReachedCount: number;
+  costZar: number;
+  facilitatorName: string;
+  outcomesSummary: string;
+}): OrganisationProgrammeActivity {
+  const org = getUserOrganisation(params.actorUser.id);
+  if (!org) throw new Error('Register an organisation profile first.');
+  const now = new Date().toISOString();
+  const activity: OrganisationProgrammeActivity = {
+    id: `orgact-${crypto.randomUUID()}`,
+    organisationId: org.id,
+    projectId: params.projectId || null,
+    title: params.title.trim(),
+    activityType: params.activityType,
+    activityDate: params.activityDate || now.slice(0, 10),
+    province: params.province.trim() || org.province,
+    district: params.district.trim() || org.district,
+    participantsCount: Math.max(0, Number(params.participantsCount) || 0),
+    farmsReachedCount: Math.max(0, Number(params.farmsReachedCount) || 0),
+    costZar: Math.max(0, Number(params.costZar) || 0),
+    facilitatorName: params.facilitatorName.trim() || params.actorUser.profile?.fullName || 'Facilitator',
+    outcomesSummary: params.outcomesSummary.trim(),
+    isDemonstration: Boolean(params.actorUser.isDemonstration || org.isDemonstration),
+    createdAt: now,
+  };
+  store.db.organisationProgrammeActivities.unshift(activity);
+  if (activity.projectId) {
+    const proj = store.db.organisationProjects.find((p) => p.id === activity.projectId);
+    if (proj) {
+      proj.budgetSpentZar = Number((proj.budgetSpentZar + activity.costZar).toFixed(2));
+      proj.updatedAt = now;
+    }
+  }
+  store.logAudit(
+    params.actorUser.id,
+    'ORGANISATION_ACTIVITY_LOGGED',
+    'OrganisationProgrammeActivity',
+    activity.id,
+    { title: activity.title, costZar: activity.costZar },
+    '127.0.0.1'
+  );
+  store.save();
+  return activity;
+}
+
+export function assignOrganisationSpecialist(params: {
+  actorUser: SanitizedUser;
+  projectId?: string | null;
+  expertUserId: string;
+  assignedRegion: string;
+}): OrganisationSpecialistAssignment {
+  const org = getUserOrganisation(params.actorUser.id);
+  if (!org) throw new Error('Register an organisation profile first.');
+  const expertUser = store.db.users.find((u) => u.id === params.expertUserId);
+  const expertProf = store.db.userProfiles.find((p) => p.userId === params.expertUserId);
+  const expertMeta = store.db.expertProfiles.find((ep) => ep.userId === params.expertUserId);
+  if (!expertUser || !expertMeta) throw new Error('Selected specialist profile not found.');
+
+  const assignment: OrganisationSpecialistAssignment = {
+    id: `orgspec-${crypto.randomUUID()}`,
+    organisationId: org.id,
+    projectId: params.projectId || null,
+    expertUserId: expertUser.id,
+    expertName: expertProf?.fullName || expertUser.email,
+    specialisation: expertMeta.specialisation,
+    assignedRegion: params.assignedRegion.trim() || org.province,
+    status: 'active',
+    assignedAt: new Date().toISOString().slice(0, 10),
+    isDemonstration: Boolean(params.actorUser.isDemonstration || org.isDemonstration),
+  };
+  store.db.organisationSpecialistAssignments.unshift(assignment);
+  store.logAudit(
+    params.actorUser.id,
+    'ORGANISATION_SPECIALIST_ASSIGNED',
+    'OrganisationSpecialistAssignment',
+    assignment.id,
+    { expertUserId: expertUser.id, region: assignment.assignedRegion },
+    '127.0.0.1'
+  );
+  store.save();
+  return assignment;
 }
 
 export function broadcastOrganisationCommunication(params: {

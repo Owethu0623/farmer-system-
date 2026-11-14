@@ -160,17 +160,17 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
   return (
     <div className="space-y-6">
       {/* Header & Workspace Switcher */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+      <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-[#EDF5EF] text-[#1B4332] flex items-center justify-center shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#0B3D91] flex items-center justify-center shrink-0">
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="font-display text-xl sm:text-2xl font-bold text-[#143326]">
+              <h1 className="font-display text-xl sm:text-2xl font-bold text-[#0B1F3A]">
                 Agricultural Decision-Support Assistant
               </h1>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 Grounded strictly in your farm location, soil reports, live weather, crops, livestock, incidents, and expenses.
               </p>
             </div>
@@ -180,7 +180,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
             <select
               value={responseLang}
               onChange={(e) => setResponseLang(e.target.value as LanguageCode)}
-              className="px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-xs font-semibold min-h-[40px]"
+              className="px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-xs font-semibold text-[#0B1F3A] min-h-[40px]"
             >
               {LANGUAGE_LIST.map((l) => (
                 <option key={l.code} value={l.code}>
@@ -196,7 +196,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                   setFarmId(e.target.value);
                   setAnalyticsReport(null);
                 }}
-                className="px-3 py-2 rounded-xl border border-[#D4DDD2] bg-white text-xs font-semibold min-h-[40px]"
+                className="px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-xs font-semibold text-[#0B1F3A] min-h-[40px]"
               >
                 {farms.map((f) => (
                   <option key={f.id} value={f.id}>
@@ -209,15 +209,15 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
         </div>
 
         {/* Sub-Tabs */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#E2E6DF]">
-          <div className="flex items-center gap-1 p-1 bg-[#F6F7F4] rounded-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#E2E8F0]">
+          <div className="flex items-center gap-1 p-1 bg-[#F1F5F9] rounded-xl">
             <button
               type="button"
               onClick={() => setSubTab('chat')}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 subTab === 'chat'
-                  ? 'bg-white text-[#143326] border border-[#D4DDD2]'
-                  : 'text-[#4A5A50] hover:text-[#143326]'
+                  ? 'bg-[#0B3D91] text-white'
+                  : 'text-[#475569] hover:text-[#0B1F3A]'
               }`}
             >
               <MessageSquare className="w-4 h-4" />
@@ -233,8 +233,8 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
               }}
               className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors cursor-pointer ${
                 subTab === 'analytics'
-                  ? 'bg-white text-[#143326] border border-[#D4DDD2]'
-                  : 'text-[#4A5A50] hover:text-[#143326]'
+                  ? 'bg-[#0B3D91] text-white'
+                  : 'text-[#475569] hover:text-[#0B1F3A]'
               }`}
             >
               <BarChart3 className="w-4 h-4" />
@@ -242,8 +242,8 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
             </button>
           </div>
 
-          <p className="text-xs text-[#4A5A50]">
-            Context: <strong className="text-[#143326]">{activeFarm?.name || user.profile?.province || 'South Africa'}</strong>
+          <p className="text-xs text-[#475569]">
+            Context: <strong className="text-[#0B1F3A]">{activeFarm?.name || user.profile?.province || 'South Africa'}</strong>
           </p>
         </div>
       </div>
@@ -252,9 +252,9 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
       {subTab === 'chat' && (
         <div className="space-y-6">
           {/* Input & Suggested Questions */}
-          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <section className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
             <div className="space-y-2">
-              <p className="text-xs font-semibold text-[#4A5A50]">
+              <p className="text-xs font-semibold text-[#475569]">
                 Suggested questions using your selected farm records:
               </p>
               <div className="flex flex-wrap gap-2">
@@ -264,7 +264,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                     type="button"
                     disabled={loadingChat}
                     onClick={() => handleAsk(qp)}
-                    className="text-left px-3.5 py-2 rounded-xl border border-[#D4DDD2] bg-[#F6F7F4] hover:bg-[#EDF5EF] hover:border-[#2D6A4F] text-xs font-medium text-[#17201B] transition-colors cursor-pointer disabled:opacity-50"
+                    className="text-left px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#EFF6FF] hover:border-[#0B3D91] text-xs font-medium text-[#0F172A] transition-colors cursor-pointer disabled:opacity-50"
                   >
                     {qp}
                   </button>
@@ -272,13 +272,13 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
               </div>
             </div>
 
-            <div className="space-y-3 pt-2 border-t border-[#E2E6DF]">
+            <div className="space-y-3 pt-2 border-t border-[#E2E8F0]">
               <textarea
                 rows={3}
                 value={question}
                 onChange={(e) => setQuestion(e.target.value)}
                 placeholder="Ask about your crops, soil pH, weather window, livestock feed, storm damage, or expenses..."
-                className="w-full px-4 py-3 rounded-xl border border-[#D4DDD2] bg-white text-sm focus:outline-none focus:border-[#1B4332]"
+                className="w-full px-4 py-3 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A] focus:outline-none focus:border-[#0B3D91]"
               />
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <VoiceInputButton
@@ -295,7 +295,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                   type="button"
                   disabled={loadingChat || !question.trim()}
                   onClick={() => handleAsk()}
-                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] disabled:opacity-50 text-white font-semibold text-sm min-h-[42px] cursor-pointer"
+                  className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white font-semibold text-sm min-h-[42px] cursor-pointer"
                 >
                   <Send className="w-4 h-4" />
                   <span>{loadingChat ? 'Analysing farm records...' : 'Ask Decision Assistant'}</span>
@@ -304,7 +304,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
             </div>
 
             {chatError && (
-              <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+              <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
                 {chatError}
               </div>
             )}
@@ -312,7 +312,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
 
           {/* Conversational Response Cards */}
           {turns.length === 0 ? (
-            <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-2xl p-6 text-sm text-[#4A5A50]">
+            <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-2xl p-6 text-sm text-[#475569]">
               Tap any suggested question above or ask your own question. Every answer cites your farm’s actual records, lists assumptions and missing data, and never guarantees yields or profits.
             </div>
           ) : (
@@ -320,18 +320,18 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
               {turns.map((turn) => (
                 <article
                   key={turn.id}
-                  className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4"
+                  className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4"
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-[#E2E6DF]">
+                  <div className="flex flex-wrap items-start justify-between gap-3 pb-3 border-b border-[#E2E8F0]">
                     <div>
-                      <p className="text-xs text-[#4A5A50]">
+                      <p className="text-xs text-[#475569]">
                         {turn.response.farmName || 'General Advisory'} ·{' '}
                         {turn.response.poweredBy === 'gemini'
                           ? 'Gemini AI Grounded'
                           : 'Farm Record Summary Engine'}{' '}
-                        · {new Date(turn.response.generatedAt).toLocaleTimeString()}
+                        · <span className="font-mono tabular-nums">{new Date(turn.response.generatedAt).toLocaleTimeString()}</span>
                       </p>
-                      <h3 className="font-display text-base font-bold text-[#143326] mt-0.5">
+                      <h3 className="font-display text-base font-bold text-[#0B1F3A] mt-0.5">
                         “{turn.question}”
                       </h3>
                     </div>
@@ -346,14 +346,14 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                     />
                   </div>
 
-                  <div className="text-sm text-[#17201B] whitespace-pre-line leading-relaxed">
+                  <div className="text-sm text-[#0F172A] whitespace-pre-line leading-relaxed">
                     {turn.response.answer}
                   </div>
 
                   {turn.response.suggestedActions.length > 0 && (
-                    <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-4 space-y-1.5">
-                      <p className="text-xs font-bold text-[#143326]">Suggested Next Actions</p>
-                      <ul className="text-xs text-[#17201B] space-y-1">
+                    <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-4 space-y-1.5">
+                      <p className="text-xs font-bold text-[#174C3C]">Suggested Next Actions</p>
+                      <ul className="text-xs text-[#0F172A] space-y-1">
                         {turn.response.suggestedActions.map((a) => (
                           <li key={a}>· {a}</li>
                         ))}
@@ -361,10 +361,10 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                     </div>
                   )}
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-[#E2E6DF] text-xs">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-3 border-t border-[#E2E8F0] text-xs">
                     <div>
-                      <p className="font-semibold text-[#143326]">Supporting Information Used</p>
-                      <ul className="mt-1 space-y-1 text-[#35443B]">
+                      <p className="font-semibold text-[#0B1F3A]">Supporting Information Used</p>
+                      <ul className="mt-1 space-y-1 text-[#334155]">
                         {turn.response.supportingInformation.map((s) => (
                           <li key={s}>· {s}</li>
                         ))}
@@ -372,8 +372,8 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                     </div>
 
                     <div>
-                      <p className="font-semibold text-[#9A5B13]">Missing Information</p>
-                      <ul className="mt-1 space-y-1 text-[#35443B]">
+                      <p className="font-semibold text-[#92400E]">Missing Information</p>
+                      <ul className="mt-1 space-y-1 text-[#334155]">
                         {turn.response.missingInformation.map((m) => (
                           <li key={m}>· {m}</li>
                         ))}
@@ -382,8 +382,8 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
 
                     <div className="space-y-2">
                       <div>
-                        <p className="font-semibold text-[#143326]">Assumptions</p>
-                        <ul className="mt-1 space-y-1 text-[#35443B]">
+                        <p className="font-semibold text-[#0B1F3A]">Assumptions</p>
+                        <ul className="mt-1 space-y-1 text-[#334155]">
                           {turn.response.assumptions.length > 0 ? (
                             turn.response.assumptions.map((a) => <li key={a}>· {a}</li>)
                           ) : (
@@ -391,7 +391,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                           )}
                         </ul>
                       </div>
-                      <p className="text-[#4A5A50] italic">{turn.response.uncertaintyNote}</p>
+                      <p className="text-[#475569] italic">{turn.response.uncertaintyNote}</p>
                     </div>
                   </div>
                 </article>
@@ -404,12 +404,12 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
       {/* AI FARM ANALYTICS TAB */}
       {subTab === 'analytics' && (
         <div className="space-y-5">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h2 className="font-display text-lg font-bold text-[#143326]">
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                 AI Farm Performance & Decision Analytics
               </h2>
-              <p className="text-xs text-[#4A5A50]">
+              <p className="text-xs text-[#475569]">
                 Synthesises farm crops, livestock, weather warnings, soil status, production, and expenses.
               </p>
             </div>
@@ -417,7 +417,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
               type="button"
               disabled={loadingAnalytics}
               onClick={handleGenerateAnalytics}
-              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold min-h-[42px] cursor-pointer disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold min-h-[42px] cursor-pointer disabled:opacity-50"
             >
               <RefreshCw className={`w-4 h-4 ${loadingAnalytics ? 'animate-spin' : ''}`} />
               <span>{loadingAnalytics ? 'Generating Report...' : 'Refresh AI Analytics'}</span>
@@ -425,22 +425,22 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
           </div>
 
           {analyticsError && (
-            <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+            <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
               {analyticsError}
             </div>
           )}
 
           {loadingAnalytics && !analyticsReport && (
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-sm text-[#4A5A50]">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-8 text-sm text-[#475569]">
               Compiling farm performance, crop, livestock, weather, and expense insights...
             </div>
           )}
 
           {analyticsReport && (
             <div className="space-y-5">
-              <div className="bg-[#143326] text-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
+              <div className="bg-[#0B1F3A] text-white rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4 border border-[#163055]">
                 <div className="space-y-1 max-w-3xl">
-                  <p className="text-xs text-[#B7DEC4] font-mono">
+                  <p className="text-xs text-[#93C5FD] font-mono">
                     {analyticsReport.farmName} ·{' '}
                     {analyticsReport.poweredBy === 'gemini'
                       ? 'Gemini AI Analytics'
@@ -463,61 +463,61 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-1.5">
-                  <p className="text-xs font-semibold text-[#1B4332]">Crop Performance Insights</p>
-                  <p className="text-sm text-[#17201B] leading-relaxed">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#0B3D91]">Crop Performance Insights</p>
+                  <p className="text-sm text-[#0F172A] leading-relaxed">
                     {analyticsReport.cropPerformanceInsights}
                   </p>
                 </div>
 
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-1.5">
-                  <p className="text-xs font-semibold text-[#1B4332]">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#0B3D91]">
                     Livestock Performance Insights
                   </p>
-                  <p className="text-sm text-[#17201B] leading-relaxed">
+                  <p className="text-sm text-[#0F172A] leading-relaxed">
                     {analyticsReport.livestockPerformanceInsights}
                   </p>
                 </div>
 
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-1.5">
-                  <p className="text-xs font-semibold text-[#1B4332]">Weather Impact Summary</p>
-                  <p className="text-sm text-[#17201B] leading-relaxed">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#0B3D91]">Weather Impact Summary</p>
+                  <p className="text-sm text-[#0F172A] leading-relaxed">
                     {analyticsReport.weatherImpactSummary}
                   </p>
                 </div>
 
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-1.5">
-                  <p className="text-xs font-semibold text-[#1B4332]">Stock & Inventory Summary</p>
-                  <p className="text-sm text-[#17201B] leading-relaxed font-mono tabular-nums">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#0B3D91]">Stock & Inventory Summary</p>
+                  <p className="text-sm text-[#0F172A] leading-relaxed font-mono tabular-nums">
                     {analyticsReport.stockSummary}
                   </p>
                 </div>
 
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-1.5">
-                  <p className="text-xs font-semibold text-[#1B4332]">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#0B3D91]">
                     Production Estimates (Non-Guaranteed)
                   </p>
-                  <p className="text-sm text-[#17201B] leading-relaxed">
+                  <p className="text-sm text-[#0F172A] leading-relaxed">
                     {analyticsReport.productionEstimates}
                   </p>
                 </div>
 
-                <div className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-1.5">
-                  <p className="text-xs font-semibold text-[#1B4332]">Expense Summary</p>
-                  <p className="text-sm text-[#17201B] leading-relaxed font-mono tabular-nums">
+                <div className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-1.5">
+                  <p className="text-xs font-semibold text-[#0B3D91]">Expense Summary</p>
+                  <p className="text-sm text-[#0F172A] leading-relaxed font-mono tabular-nums">
                     {analyticsReport.expenseSummary}
                   </p>
                 </div>
               </div>
 
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-3">
-                  <h3 className="font-display font-bold text-base text-[#143326]">
+                <section className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-3">
+                  <h3 className="font-display font-bold text-base text-[#0B1F3A]">
                     Agricultural Opportunities & Next Actions
                   </h3>
-                  <div className="space-y-3 text-xs text-[#17201B]">
+                  <div className="space-y-3 text-xs text-[#0F172A]">
                     <div>
-                      <p className="font-semibold text-[#2D6A4F]">Opportunities Identified</p>
+                      <p className="font-semibold text-[#174C3C]">Opportunities Identified</p>
                       <ul className="mt-1 space-y-1">
                         {analyticsReport.agriculturalOpportunities.map((o) => (
                           <li key={o}>· {o}</li>
@@ -525,7 +525,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                       </ul>
                     </div>
                     <div>
-                      <p className="font-semibold text-[#143326]">Recommended Next Actions</p>
+                      <p className="font-semibold text-[#0B1F3A]">Recommended Next Actions</p>
                       <ul className="mt-1 space-y-1">
                         {analyticsReport.suggestedNextActions.map((a) => (
                           <li key={a}>· {a}</li>
@@ -535,13 +535,13 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                   </div>
                 </section>
 
-                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-5 space-y-3">
-                  <h3 className="font-display font-bold text-base text-[#143326]">
+                <section className="bg-white border border-[#E2E8F0] rounded-2xl p-5 space-y-3">
+                  <h3 className="font-display font-bold text-base text-[#0B1F3A]">
                     Evidence, Assumptions & Missing Records
                   </h3>
-                  <div className="space-y-3 text-xs text-[#35443B]">
+                  <div className="space-y-3 text-xs text-[#334155]">
                     <div>
-                      <p className="font-semibold text-[#143326]">Supporting Records Used</p>
+                      <p className="font-semibold text-[#0B1F3A]">Supporting Records Used</p>
                       <ul className="mt-1 space-y-1">
                         {analyticsReport.supportingInformation.map((s) => (
                           <li key={s}>· {s}</li>
@@ -549,7 +549,7 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
                       </ul>
                     </div>
                     <div>
-                      <p className="font-semibold text-[#9A5B13]">
+                      <p className="font-semibold text-[#92400E]">
                         Assumptions & Missing Information
                       </p>
                       <ul className="mt-1 space-y-1">

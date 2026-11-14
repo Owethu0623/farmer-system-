@@ -434,12 +434,12 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
+          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
             {section === 'livestock'
               ? 'Livestock Management & Herd Ledger'
               : 'Mixed Farming Integration'}
           </h1>
-          <p className="text-sm text-[#4A5A50]">
+          <p className="text-sm text-[#475569]">
             {section === 'livestock'
               ? 'Manage Cattle, Sheep, Goats, Pigs, and Poultry across farms with births, deaths, sales, vet & production records.'
               : 'Coordinate shared land, grazing camps, crop-to-feed production, water management, and combined farm finances.'}
@@ -447,12 +447,12 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1 p-1 bg-[#EAEFE8] rounded-xl">
+          <div className="flex items-center gap-1 p-1 bg-[#F1F5F9] border border-[#CBD5E1] rounded-xl">
             <button
               type="button"
               onClick={() => setSection('livestock')}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer ${
-                section === 'livestock' ? 'bg-white text-[#143326] shadow-sm' : 'text-[#4A5A50]'
+                section === 'livestock' ? 'bg-[#0B3D91] text-white' : 'text-[#475569]'
               }`}
             >
               Livestock
@@ -461,7 +461,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
               type="button"
               onClick={() => setSection('mixed')}
               className={`px-3.5 py-2 rounded-lg text-xs font-semibold cursor-pointer ${
-                section === 'mixed' ? 'bg-white text-[#143326] shadow-sm' : 'text-[#4A5A50]'
+                section === 'mixed' ? 'bg-[#0B3D91] text-white' : 'text-[#475569]'
               }`}
             >
               Mixed Farming
@@ -471,7 +471,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
           <select
             value={farmFilter}
             onChange={(e) => setFarmFilter(e.target.value)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0F172A] min-h-[42px]"
           >
             <option value="all">All Registered Farms</option>
             {farms.map((f) => (
@@ -492,7 +492,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   setShowMixedModal(true);
                 }
               }}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white font-semibold text-sm cursor-pointer"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer min-h-[42px]"
             >
               <Plus className="w-4 h-4" />
               <span>{section === 'livestock' ? 'Register Livestock' : 'Add Mixed Log'}</span>
@@ -502,13 +502,13 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
       </div>
 
       {notice && (
-        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#174C3C] rounded-xl px-4 py-3 text-sm">
           {notice}
         </div>
       )}
 
       {error && (
-        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+        <div className="bg-[#FEF2F2] border border-[#FECACA] text-[#B91C1C] rounded-xl px-4 py-3 text-sm">
           {error}
         </div>
       )}
@@ -518,39 +518,39 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
         <div className="space-y-6">
           {livestockStats && (
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Total Animals</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Total Animals</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                   {livestockStats.totalAnimals.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Births</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Births</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
                   +{livestockStats.births}
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Deaths</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#8E2424] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Deaths</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#B91C1C] mt-1">
                   -{livestockStats.deaths}
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Purchases</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Purchases</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                   +{livestockStats.purchases}
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Sales</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Sales</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                   -{livestockStats.sales}
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Est. Livestock Value</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Est. Livestock Value</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
                   R {livestockStats.estimatedLivestockValueZar.toLocaleString()}
                 </p>
               </div>
@@ -559,8 +559,8 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
 
           {/* Category Breakdown Chart */}
           {livestockStats && (
-            <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-              <h2 className="font-display font-bold text-base text-[#143326]">
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
+              <h2 className="font-display font-bold text-base text-[#0B1F3A]">
                 Animals by Category
               </h2>
               <div className="grid grid-cols-1 sm:grid-cols-5 gap-4">
@@ -569,14 +569,14 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   return (
                     <div key={cat.category} className="space-y-1.5">
                       <div className="flex justify-between text-xs">
-                        <span className="font-semibold text-[#143326]">{cat.category}</span>
-                        <span className="font-mono tabular-nums text-[#35443B]">{cat.count}</span>
+                        <span className="font-semibold text-[#0B1F3A]">{cat.category}</span>
+                        <span className="font-mono tabular-nums text-[#334155]">{cat.count}</span>
                       </div>
-                      <div className="h-2.5 bg-[#EFF3EE] rounded-full overflow-hidden">
-                        <div className="h-full bg-[#1B4332] rounded-full" style={{ width: `${pct}%` }} />
+                      <div className="h-2.5 bg-[#F1F5F9] rounded-full overflow-hidden">
+                        <div className="h-full bg-[#174C3C] rounded-full" style={{ width: `${pct}%` }} />
                       </div>
-                      <p className="font-mono text-[11px] tabular-nums text-[#4A5A50]">
-                        R {cat.valueZar.toLocaleString()}
+                      <p className="font-mono text-[11px] tabular-nums text-[#475569]">
+                        Est. R {cat.valueZar.toLocaleString()}
                       </p>
                     </div>
                   );
@@ -586,20 +586,20 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
           )}
 
           {/* Livestock Groups Table */}
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-            <h2 className="font-display text-lg font-bold text-[#143326]">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
+            <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
               Registered Herds, Flocks & Individual Animals ({groups.length})
             </h2>
 
             {groups.length === 0 ? (
-              <p className="text-sm text-[#4A5A50] py-6">
+              <p className="text-sm text-[#475569] py-6">
                 No livestock registered yet. Click Register Livestock to add cattle, sheep, goats, pigs, or poultry.
               </p>
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-left text-sm">
                   <thead>
-                    <tr className="border-b border-[#E2E6DF] text-xs text-[#4A5A50]">
+                    <tr className="border-b border-[#E2E8F0] text-xs text-[#475569]">
                       <th className="py-2.5 pr-4 font-semibold">Group / Animal</th>
                       <th className="py-2.5 pr-4 font-semibold">Farm & ID</th>
                       <th className="py-2.5 pr-4 font-semibold">Health & Housing</th>
@@ -608,29 +608,29 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                       <th className="py-2.5 text-right font-semibold">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-[#E2E6DF]">
+                  <tbody className="divide-y divide-[#E2E8F0]">
                     {groups.map((g) => (
-                      <tr key={g.id} className="hover:bg-[#FAFBF9]">
+                      <tr key={g.id} className="hover:bg-[#F8FAFC]">
                         <td className="py-3.5 pr-4">
-                          <p className="font-semibold text-[#143326]">{g.groupName}</p>
-                          <p className="text-xs text-[#4A5A50]">
+                          <p className="font-semibold text-[#0B1F3A]">{g.groupName}</p>
+                          <p className="text-xs text-[#475569]">
                             {g.animalType} · {g.breed}
                           </p>
                         </td>
-                        <td className="py-3.5 pr-4 text-xs text-[#35443B]">
+                        <td className="py-3.5 pr-4 text-xs text-[#334155]">
                           <p className="font-medium">{g.farmName}</p>
-                          <p className="font-mono text-[#4A5A50]">
+                          <p className="font-mono text-[#475569]">
                             {g.identificationNumber || 'No tag ID'}
                           </p>
                         </td>
                         <td className="py-3.5 pr-4 text-xs">
-                          <p className="font-semibold text-[#1B4332]">{g.healthStatus}</p>
-                          <p className="text-[#4A5A50]">{g.grazingInformation}</p>
+                          <p className="font-semibold text-[#174C3C]">{g.healthStatus}</p>
+                          <p className="text-[#475569]">{g.grazingInformation}</p>
                         </td>
-                        <td className="py-3.5 pr-4 text-right font-mono font-bold tabular-nums text-[#143326]">
+                        <td className="py-3.5 pr-4 text-right font-mono font-bold tabular-nums text-[#0B1F3A]">
                           {g.quantity.toLocaleString()}
                         </td>
-                        <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-[#2D6A4F]">
+                        <td className="py-3.5 pr-4 text-right font-mono tabular-nums text-[#174C3C]">
                           R {(g.quantity * g.estimatedUnitValueZar).toLocaleString()}
                         </td>
                         <td className="py-3.5 text-right whitespace-nowrap">
@@ -645,7 +645,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                                 setRecValueZar(0);
                                 setRecNotes('');
                               }}
-                              className="px-2.5 py-1.5 rounded-lg bg-[#EDF5EF] hover:bg-[#DCEBDD] text-[#143326] text-xs font-semibold cursor-pointer"
+                              className="px-2.5 py-1.5 rounded-lg bg-[#EFF6FF] hover:bg-[#DBEAFE] text-[#0B3D91] text-xs font-semibold cursor-pointer min-h-[34px]"
                             >
                               Add Record
                             </button>
@@ -653,7 +653,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                               type="button"
                               onClick={() => openHistory(g)}
                               title="View records ledger"
-                              className="p-1.5 rounded-lg border border-[#D4DDD2] hover:bg-[#F6F7F4] cursor-pointer"
+                              className="p-2 rounded-lg border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#334155] cursor-pointer"
                             >
                               <History className="w-3.5 h-3.5" />
                             </button>
@@ -661,7 +661,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                               type="button"
                               onClick={() => openEditGroup(g)}
                               title="Edit livestock"
-                              className="p-1.5 rounded-lg border border-[#D4DDD2] hover:bg-[#F6F7F4] cursor-pointer"
+                              className="p-2 rounded-lg border border-[#CBD5E1] hover:bg-[#F8FAFC] text-[#334155] cursor-pointer"
                             >
                               <Edit3 className="w-3.5 h-3.5" />
                             </button>
@@ -669,7 +669,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                               type="button"
                               onClick={() => handleDeleteGroup(g.id)}
                               title="Delete livestock"
-                              className="p-1.5 rounded-lg border border-[#E8B4B4] hover:bg-[#FDF2F2] text-[#8E2424] cursor-pointer"
+                              className="p-2 rounded-lg border border-[#FECACA] hover:bg-[#FEF2F2] text-[#B91C1C] cursor-pointer"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                             </button>
@@ -690,87 +690,87 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
         <div className="space-y-6">
           {mixedSummary && (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Shared Land Allocation</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Shared Land Allocation</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                   {mixedSummary.cropCultivatedHa} ha crops · {mixedSummary.grazingFieldsHa} ha grazing
                 </p>
-                <p className="text-xs text-[#4A5A50] mt-1">
+                <p className="text-xs text-[#475569] mt-1">
                   Out of {mixedSummary.totalFarmAreaHa} ha farm total
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Combined Farm Output & Stock</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Combined Est. Output & Stock</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#174C3C] mt-1">
                   R {mixedSummary.combinedAssetAndHarvestValueZar.toLocaleString()}
                 </p>
-                <p className="text-xs text-[#4A5A50] mt-1">
+                <p className="text-xs text-[#475569] mt-1">
                   Crops R {mixedSummary.cropValueZar.toLocaleString()} · Livestock R{' '}
                   {mixedSummary.livestockValueZar.toLocaleString()}
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Feed Production & Water</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Feed Production & Water</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#0B1F3A] mt-1">
                   {mixedSummary.totalFeedProducedKg.toLocaleString()} kg feed
                 </p>
-                <p className="text-xs text-[#4A5A50] mt-1">
+                <p className="text-xs text-[#475569] mt-1">
                   {mixedSummary.totalWaterManagedLiters.toLocaleString()} L water tracked
                 </p>
               </div>
-              <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
-                <p className="text-xs text-[#4A5A50]">Combined Expenses Logged</p>
-                <p className="font-mono text-xl font-bold tabular-nums text-[#8E2424] mt-1">
+              <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
+                <p className="text-xs text-[#475569]">Combined Expenses Logged</p>
+                <p className="font-mono text-xl font-bold tabular-nums text-[#B91C1C] mt-1">
                   R {mixedSummary.combinedExpensesZar.toLocaleString()}
                 </p>
-                <p className="text-xs text-[#4A5A50] mt-1">
+                <p className="text-xs text-[#475569] mt-1">
                   {mixedSummary.totalCrops} crops · {mixedSummary.totalLivestockHead} animals
                 </p>
               </div>
             </div>
           )}
 
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+          <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
             <div className="flex items-center gap-2">
-              <Layers className="w-5 h-5 text-[#1B4332]" />
-              <h2 className="font-display text-lg font-bold text-[#143326]">
+              <Layers className="w-5 h-5 text-[#0B3D91]" />
+              <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Mixed Farming Activity & Resource Ledger ({mixedEntries.length})
               </h2>
             </div>
 
             {mixedEntries.length === 0 ? (
-              <p className="text-sm text-[#4A5A50] py-6">
+              <p className="text-sm text-[#475569] py-6">
                 No mixed farming logs yet. Add feed production, water distribution, shared land, or combined expense entries.
               </p>
             ) : (
-              <div className="divide-y divide-[#E2E6DF]">
+              <div className="divide-y divide-[#E2E8F0]">
                 {mixedEntries.map((entry) => (
                   <div
                     key={entry.id}
                     className="py-4 flex flex-wrap items-start justify-between gap-4"
                   >
                     <div className="space-y-1">
-                      <p className="text-xs font-semibold text-[#2D6A4F] capitalize">
+                      <p className="text-xs font-semibold text-[#0B3D91] capitalize">
                         {entry.entryCategory.replace(/_/g, ' ')} · {entry.farmName} ·{' '}
                         <span className="font-mono">{entry.entryDate}</span>
                       </p>
-                      <p className="font-semibold text-[#143326]">{entry.title}</p>
-                      {entry.notes && <p className="text-xs text-[#4A5A50]">{entry.notes}</p>}
+                      <p className="font-semibold text-[#0B1F3A]">{entry.title}</p>
+                      {entry.notes && <p className="text-xs text-[#475569]">{entry.notes}</p>}
                     </div>
                     <div className="flex items-center gap-4 text-right">
                       <div className="font-mono text-xs tabular-nums space-y-0.5">
                         {entry.expenseZar > 0 && (
-                          <p className="text-[#8E2424] font-semibold">
+                          <p className="text-[#B91C1C] font-semibold">
                             -R {entry.expenseZar.toLocaleString()}
                           </p>
                         )}
                         {entry.productionQuantity > 0 && (
-                          <p className="text-[#1B4332] font-semibold">
+                          <p className="text-[#174C3C] font-semibold">
                             +{entry.productionQuantity.toLocaleString()} {entry.productionUnit}
                           </p>
                         )}
                         {entry.waterLiters > 0 && (
-                          <p className="text-[#35443B]">
+                          <p className="text-[#334155]">
                             {entry.waterLiters.toLocaleString()} L water
                           </p>
                         )}
@@ -778,7 +778,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                       <button
                         type="button"
                         onClick={() => handleDeleteMixed(entry.id)}
-                        className="p-1.5 rounded-lg border border-[#E8B4B4] text-[#8E2424] hover:bg-[#FDF2F2] cursor-pointer"
+                        className="p-2 rounded-lg border border-[#FECACA] text-[#B91C1C] hover:bg-[#FEF2F2] cursor-pointer"
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
@@ -794,15 +794,15 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
       {/* Register / Edit Livestock Modal */}
       {groupModalMode && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-2xl w-full p-6 space-y-4 my-8">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-xl font-bold text-[#143326]">
+              <h3 className="font-display text-xl font-bold text-[#0B1F3A]">
                 {groupModalMode === 'create' ? 'Register Livestock' : 'Edit Livestock Record'}
               </h3>
               <button
                 type="button"
                 onClick={() => setGroupModalMode(null)}
-                className="p-2 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-2 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -815,7 +815,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   <select
                     value={gFarmId}
                     onChange={(e) => setGFarmId(e.target.value)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {farms.map((f) => (
                       <option key={f.id} value={f.id}>
@@ -829,7 +829,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   <select
                     value={gAnimalType}
                     onChange={(e) => setGAnimalType(e.target.value as LivestockAnimalType)}
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white"
                   >
                     {ANIMAL_TYPES.map((t) => (
                       <option key={t} value={t}>
@@ -849,7 +849,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     value={gName}
                     onChange={(e) => setGName(e.target.value)}
                     placeholder="e.g. Nguni Breeding Herd or Bull #104"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
                 <div className="space-y-1">
@@ -860,7 +860,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     value={gBreed}
                     onChange={(e) => setGBreed(e.target.value)}
                     placeholder="e.g. Nguni, Dorper, Boer Goat"
-                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#CBD5E1]"
                   />
                 </div>
               </div>
@@ -873,7 +873,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     min={1}
                     value={gQuantity}
                     onChange={(e) => setGQuantity(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -883,7 +883,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     value={gIdNum}
                     onChange={(e) => setGIdNum(e.target.value)}
                     placeholder="Tag / Batch"
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                   />
                 </div>
                 <div className="space-y-1">
@@ -891,7 +891,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   <select
                     value={gHealth}
                     onChange={(e) => setGHealth(e.target.value as LivestockHealthStatus)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-xs"
                   >
                     {HEALTH_STATUSES.map((h) => (
                       <option key={h} value={h}>
@@ -907,7 +907,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     min={0}
                     value={gUnitValue}
                     onChange={(e) => setGUnitValue(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
               </div>
@@ -919,7 +919,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     type="text"
                     value={gFeeding}
                     onChange={(e) => setGFeeding(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -928,7 +928,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     type="text"
                     value={gGrazing}
                     onChange={(e) => setGGrazing(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -937,7 +937,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     type="text"
                     value={gHousing}
                     onChange={(e) => setGHousing(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
@@ -946,14 +946,14 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setGroupModalMode(null)}
-                  className="px-4 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2.5 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer min-h-[40px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingGroup}
-                  className="px-5 py-2.5 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer min-h-[40px]"
                 >
                   {savingGroup ? 'Saving...' : 'Save Livestock'}
                 </button>
@@ -966,20 +966,20 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
       {/* Add Livestock Record Modal */}
       {recordTarget && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-lg font-bold text-[#143326]">
+                <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Add Livestock Record
                 </h3>
-                <p className="text-xs text-[#4A5A50]">
+                <p className="text-xs text-[#475569]">
                   {recordTarget.groupName} (Current Qty: {recordTarget.quantity})
                 </p>
               </div>
               <button
                 type="button"
                 onClick={() => setRecordTarget(null)}
-                className="p-1.5 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -992,7 +992,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   <select
                     value={recType}
                     onChange={(e) => setRecType(e.target.value as LivestockRecordType)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {RECORD_TYPES.map((rt) => (
                       <option key={rt} value={rt}>
@@ -1007,7 +1007,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     type="date"
                     value={recDate}
                     onChange={(e) => setRecDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
               </div>
@@ -1025,7 +1025,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                       min={1}
                       value={recCount}
                       onChange={(e) => setRecCount(Number(e.target.value))}
-                      className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                      className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                     />
                   ) : (
                     <div className="flex gap-2">
@@ -1034,14 +1034,14 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                         min={0}
                         value={recProdAmt}
                         onChange={(e) => setRecProdAmt(Number(e.target.value))}
-                        className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                        className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                       />
                       <input
                         type="text"
                         value={recProdUnit}
                         onChange={(e) => setRecProdUnit(e.target.value)}
                         placeholder="unit"
-                        className="w-24 px-2 py-2.5 rounded-xl border border-[#D4DDD2] text-xs"
+                        className="w-24 px-2 py-2.5 rounded-xl border border-[#CBD5E1] text-xs"
                       />
                     </div>
                   )}
@@ -1054,7 +1054,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     min={0}
                     value={recValueZar}
                     onChange={(e) => setRecValueZar(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
               </div>
@@ -1065,7 +1065,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   rows={2}
                   value={recNotes}
                   onChange={(e) => setRecNotes(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                  className="w-full px-3.5 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                 />
               </div>
 
@@ -1073,14 +1073,14 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setRecordTarget(null)}
-                  className="px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer min-h-[40px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingRec}
-                  className="px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer min-h-[40px]"
                 >
                   {savingRec ? 'Saving...' : 'Save Record'}
                 </button>
@@ -1093,31 +1093,31 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
       {/* Livestock Ledger History Modal */}
       {historyGroup && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-xl w-full p-6 space-y-4 max-h-[80vh] flex flex-col">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-xl w-full p-6 space-y-4 max-h-[80vh] flex flex-col">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Records Ledger — {historyGroup.groupName}
               </h3>
               <button
                 type="button"
                 onClick={() => setHistoryGroup(null)}
-                className="p-1.5 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
-            <div className="overflow-y-auto divide-y divide-[#E2E6DF] flex-1">
+            <div className="overflow-y-auto divide-y divide-[#E2E8F0] flex-1">
               {historyRecords.length === 0 ? (
-                <p className="text-sm text-[#4A5A50] py-6">No records logged yet.</p>
+                <p className="text-sm text-[#475569] py-6">No records logged yet.</p>
               ) : (
                 historyRecords.map((r) => (
                   <div key={r.id} className="py-3 text-sm space-y-1">
                     <div className="flex justify-between">
-                      <span className="font-semibold text-[#143326]">{r.recordType}</span>
-                      <span className="font-mono text-xs text-[#4A5A50]">{r.recordDate}</span>
+                      <span className="font-semibold text-[#0B1F3A]">{r.recordType}</span>
+                      <span className="font-mono text-xs text-[#475569]">{r.recordDate}</span>
                     </div>
-                    {r.notes && <p className="text-xs text-[#35443B]">{r.notes}</p>}
-                    <p className="font-mono text-xs text-[#2D6A4F]">
+                    {r.notes && <p className="text-xs text-[#334155]">{r.notes}</p>}
+                    <p className="font-mono text-xs text-[#174C3C]">
                       {r.quantityChange !== 0
                         ? `Head change: ${r.quantityChange > 0 ? '+' : ''}${r.quantityChange}`
                         : ''}
@@ -1137,15 +1137,15 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
       {/* Add Mixed Farming Log Modal */}
       {showMixedModal && (
         <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4">
+          <div className="bg-white border border-[#CBD5E1] rounded-2xl max-w-lg w-full p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-bold text-[#143326]">
+              <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                 Log Mixed Farming Activity
               </h3>
               <button
                 type="button"
                 onClick={() => setShowMixedModal(false)}
-                className="p-1.5 rounded-lg hover:bg-[#F1F3EF] cursor-pointer"
+                className="p-1.5 rounded-lg hover:bg-[#F1F5F9] cursor-pointer"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -1158,7 +1158,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   <select
                     value={mFarmId}
                     onChange={(e) => setMFarmId(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {farms.map((f) => (
                       <option key={f.id} value={f.id}>
@@ -1172,7 +1172,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                   <select
                     value={mCategory}
                     onChange={(e) => setMCategory(e.target.value as MixedEntryCategory)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm"
                   >
                     {MIXED_CATEGORIES.map((c) => (
                       <option key={c.value} value={c.value}>
@@ -1192,7 +1192,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     value={mTitle}
                     onChange={(e) => setMTitle(e.target.value)}
                     placeholder="e.g. Lucerne hay baled for cattle"
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1201,7 +1201,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     type="date"
                     value={mDate}
                     onChange={(e) => setMDate(e.target.value)}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-xs"
                   />
                 </div>
               </div>
@@ -1214,7 +1214,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     min={0}
                     value={mExpense}
                     onChange={(e) => setMExpense(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1224,7 +1224,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     min={0}
                     value={mProdQty}
                     onChange={(e) => setMProdQty(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
                 <div className="space-y-1">
@@ -1234,7 +1234,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     min={0}
                     value={mWaterLiters}
                     onChange={(e) => setMWaterLiters(Number(e.target.value))}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-sm"
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#CBD5E1] font-mono text-sm"
                   />
                 </div>
               </div>
@@ -1247,14 +1247,14 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                     value={mProdUnit}
                     onChange={(e) => setMProdUnit(e.target.value)}
                     placeholder="kg / bales"
-                    className="w-28 px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="w-28 px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                   <input
                     type="text"
                     value={mNotes}
                     onChange={(e) => setMNotes(e.target.value)}
                     placeholder="Additional notes..."
-                    className="flex-1 px-3 py-2 rounded-xl border border-[#D4DDD2] text-sm"
+                    className="flex-1 px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
                   />
                 </div>
               </div>
@@ -1263,14 +1263,14 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
                 <button
                   type="button"
                   onClick={() => setShowMixedModal(false)}
-                  className="px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold cursor-pointer"
+                  className="px-4 py-2 rounded-xl border border-[#CBD5E1] text-sm font-semibold text-[#334155] cursor-pointer min-h-[40px]"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={savingMixed}
-                  className="px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+                  className="px-5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold cursor-pointer min-h-[40px]"
                 >
                   {savingMixed ? 'Saving...' : 'Save Entry'}
                 </button>

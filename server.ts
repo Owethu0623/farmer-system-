@@ -18,6 +18,7 @@ import {
   validatePasswordStrength,
 } from './src/server/auth.ts';
 import {
+  buildAdminEntitiesDirectory,
   buildAdminFarmOversight,
   buildAdminPortalOverview,
   buildLanguageTranslationAudit,
@@ -33,14 +34,24 @@ import { addIncidentFollowUp, buildIncidentDashboard, createFarmIncident } from 
 import {
   LEARNING_CATEGORIES,
   buildLearningCentrePayload,
+  computeLearningReadiness,
+  gradeReadinessAssessment,
   resolveMaterialForUser,
   userCanManageLearning,
 } from './src/server/learningCentre.ts';
 import { REPORT_TYPES, generateAndSaveReport } from './src/server/reporting.ts';
-import { getFarmSoilAndLandIntelligence } from './src/server/soilLandIntelligence.ts';
+import { getPublicDatasetRegistry } from './src/server/publicDatasets.ts';
+import {
+  getFarmSoilAndLandIntelligence,
+  getSiteSoilAndLandIntelligence,
+} from './src/server/soilLandIntelligence.ts';
+import {
+  SOUTH_AFRICA_ROTATION_CATALOG,
+  analyzeCropRotationScenario,
+} from './src/server/cropRotation.ts';
 import { computeCropStoredAndSold, buildStockOverview, recordCropStockMovement, updateStockUnitPrice } from './src/server/stockInventory.ts';
 import { enrichVisualAnalysis, runVisualAgriculturalAnalysis } from './src/server/visualAnalysis.ts';
-import { getFarmWeatherIntelligence } from './src/server/weather.ts';
+import { getFarmWeatherIntelligence, getSiteWeatherIntelligence } from './src/server/weather.ts';
 import {
   buildWeatherFeedbackOverview,
   generateAiLocalWeatherSummary,
@@ -75,12 +86,15 @@ import {
 import {
   buildExpertFarmReview,
   buildExpertOverview,
+  createConsultationRequest,
   getActiveFarmGrantForExpert,
   getActiveFarmGrantForOrganisationUser,
   getCollaborationDirectory,
   getOrCreateExpertProfile,
+  listConsultationsForUser,
   listFarmerAccessGrants,
   grantFarmAccess,
+  respondToConsultation,
   revokeFarmAccessGrant,
   submitExpertFeedback,
   updateExpertProfile,
@@ -89,14 +103,16 @@ import {
   NOTIFICATION_CATEGORY_META,
   dispatchNotification,
   generateDueRemindersForUser,
-  getChannelIntegrationReadiness,
   getOrCreateUserNotificationPreference,
   updateUserNotificationPreference,
 } from './src/server/notifications.ts';
 import {
   addOrganisationMember,
+  assignOrganisationSpecialist,
   broadcastOrganisationCommunication,
   buildOrganisationOverview,
+  createOrganisationProgrammeActivity,
+  createOrganisationProject,
   getOrganisationMembersView,
   getUserOrganisation,
   registerOrUpdateOrganisation,
@@ -332,6 +348,11 @@ async function startServer() {
         'soil_specialist',
         'livestock_specialist',
         'veterinarian',
+        'irrigation_water_specialist',
+        'agricultural_economist',
+        'pest_disease_specialist',
+        'extension_officer',
+        'horticultural_specialist',
         'agricultural_consultant',
       ];
       getOrCreateExpertProfile(userId);
@@ -837,6 +858,8 @@ async function startServer() {
       districtMunicipality,
       localMunicipality,
       townOrVillage,
+      locationDescription,
+      locationConfirmed,
       latitude,
       longitude,
       locationSource,
@@ -890,9 +913,12 @@ async function startServer() {
     const now = new Date().toISOString();
     const farmId = `farm-${crypto.randomUUID()}`;
     const sizeHa = Math.max(0.1, Number(parsedSize.toFixed(2)));
-    const validSource: LocationSource = ['gps', 'manual_map_pin', 'municipal_center'].includes(
-      locationSource
-    )
+    const validSource: LocationSource = [
+      'gps',
+      'manual_map_pin',
+      'geocoded_search',
+      'municipal_center',
+    ].includes(locationSource)
       ? locationSource
       : 'municipal_center';
 
@@ -919,6 +945,8 @@ async function startServer() {
       districtMunicipality: String(districtMunicipality),
       localMunicipality: String(localMunicipality),
       townOrVillage: String(townOrVillage),
+      locationDescription: typeof locationDescription === 'string' ? locationDescription.trim() : '',
+      locationConfirmed: typeof locationConfirmed === 'boolean' ? locationConfirmed : validSource !== 'municipal_center',
       latitude: lat,
       longitude: lng,
       locationSource: validSource,
@@ -1008,6 +1036,8 @@ async function startServer() {
         districtMunicipality,
         localMunicipality,
         townOrVillage,
+        locationDescription,
+        locationConfirmed,
         latitude,
         longitude,
         locationSource,
@@ -1021,6 +1051,8 @@ async function startServer() {
         waterAvailability,
         existingCrops,
         existingLivestock,
+        tenureType,
+        managementRelationshipNote,
         boundaryGeojson,
       } = req.body || {};
 
@@ -1058,11 +1090,20 @@ async function startServer() {
       const now = new Date().toISOString();
       const farmId = `farm-${crypto.randomUUID()}`;
       const sizeHa = Math.max(0.1, Number(parsedSize.toFixed(2)));
-      const validSource: LocationSource = ['gps', 'manual_map_pin', 'municipal_center'].includes(
-        locationSource
-      )
+      const validSource: LocationSource = [
+        'gps',
+        'manual_map_pin',
+        'geocoded_search',
+        'municipal_center',
+      ].includes(locationSource)
         ? locationSource
         : 'municipal_center';
+
+      const validTenure = ['owner', 'manager', 'lessee', 'communal_custodian', 'family_land'].includes(
+        tenureType
+      )
+        ? tenureType
+        : 'owner';
 
       store.db.farms.push({
         id: farmId,
@@ -1074,6 +1115,11 @@ async function startServer() {
         waterAvailability: String(waterAvailability || 'Borehole'),
         existingCrops: Array.isArray(existingCrops) ? existingCrops : [],
         existingLivestock: Array.isArray(existingLivestock) ? existingLivestock : [],
+        tenureType: validTenure,
+        managementRelationshipNote:
+          typeof managementRelationshipNote === 'string'
+            ? managementRelationshipNote.trim().slice(0, 300)
+            : '',
         status: 'active',
         isDemonstration: false,
         createdAt: now,
@@ -1087,6 +1133,8 @@ async function startServer() {
         districtMunicipality: String(districtMunicipality),
         localMunicipality: String(localMunicipality),
         townOrVillage: String(townOrVillage),
+        locationDescription: typeof locationDescription === 'string' ? locationDescription.trim() : '',
+        locationConfirmed: typeof locationConfirmed === 'boolean' ? locationConfirmed : validSource !== 'municipal_center',
         latitude: lat,
         longitude: lng,
         locationSource: validSource,
@@ -1161,6 +1209,8 @@ async function startServer() {
       districtMunicipality,
       localMunicipality,
       townOrVillage,
+      locationDescription,
+      locationConfirmed,
       latitude,
       longitude,
       locationSource,
@@ -1168,6 +1218,8 @@ async function startServer() {
       gpsLongitude,
       gpsAccuracyMeters,
       gpsCapturedAt,
+      tenureType,
+      managementRelationshipNote,
       boundaryGeojson,
     } = req.body || {};
 
@@ -1190,6 +1242,15 @@ async function startServer() {
     if (Array.isArray(farmingActivities)) farm.farmingActivities = farmingActivities;
     if (Array.isArray(existingCrops)) farm.existingCrops = existingCrops;
     if (Array.isArray(existingLivestock)) farm.existingLivestock = existingLivestock;
+    if (
+      typeof tenureType === 'string' &&
+      ['owner', 'manager', 'lessee', 'communal_custodian', 'family_land'].includes(tenureType)
+    ) {
+      farm.tenureType = tenureType as 'owner' | 'manager' | 'lessee' | 'communal_custodian' | 'family_land';
+    }
+    if (typeof managementRelationshipNote === 'string') {
+      farm.managementRelationshipNote = managementRelationshipNote.trim().slice(0, 300);
+    }
 
     const loc = store.db.farmLocations.find((l) => l.farmId === farm.id);
     if (loc && (latitude !== undefined || longitude !== undefined)) {
@@ -1211,7 +1272,12 @@ async function startServer() {
       if (districtMunicipality) loc.districtMunicipality = String(districtMunicipality);
       if (localMunicipality) loc.localMunicipality = String(localMunicipality);
       if (townOrVillage) loc.townOrVillage = String(townOrVillage);
-      if (locationSource && ['gps', 'manual_map_pin', 'municipal_center'].includes(locationSource)) {
+      if (typeof locationDescription === 'string') loc.locationDescription = locationDescription.trim();
+      if (typeof locationConfirmed === 'boolean') loc.locationConfirmed = locationConfirmed;
+      if (
+        locationSource &&
+        ['gps', 'manual_map_pin', 'geocoded_search', 'municipal_center'].includes(locationSource)
+      ) {
         loc.locationSource = locationSource;
       }
       if (typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude)) loc.gpsLatitude = gpsLatitude;
@@ -1276,6 +1342,8 @@ async function startServer() {
       latitude,
       longitude,
       locationSource,
+      locationDescription,
+      locationConfirmed,
       gpsLatitude,
       gpsLongitude,
       gpsAccuracyMeters,
@@ -1298,9 +1366,14 @@ async function startServer() {
         loc.latitude = coordCheck.lat;
         loc.longitude = coordCheck.lng;
       }
-      if (locationSource && ['gps', 'manual_map_pin', 'municipal_center'].includes(locationSource)) {
+      if (
+        locationSource &&
+        ['gps', 'manual_map_pin', 'geocoded_search', 'municipal_center'].includes(locationSource)
+      ) {
         loc.locationSource = locationSource;
       }
+      if (typeof locationDescription === 'string') loc.locationDescription = locationDescription.trim();
+      if (typeof locationConfirmed === 'boolean') loc.locationConfirmed = locationConfirmed;
       if (typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude)) loc.gpsLatitude = gpsLatitude;
       if (typeof gpsLongitude === 'number' && Number.isFinite(gpsLongitude)) loc.gpsLongitude = gpsLongitude;
       if (typeof gpsAccuracyMeters === 'number' && Number.isFinite(gpsAccuracyMeters)) {
@@ -2625,14 +2698,9 @@ async function startServer() {
   app.get('/api/notifications/feed', requireAuth, (req: AuthRequest, res) => {
     const userId = req.authUser!.id;
     const notifications = store.db.notifications.filter((n) => n.userId === userId);
-    const deliveries = store.db.notificationDeliveries
-      .filter((d) => d.userId === userId)
-      .slice(0, 60);
     res.json({
       notifications,
       unreadCount: notifications.filter((n) => !n.isRead).length,
-      deliveries,
-      integrationReadiness: getChannelIntegrationReadiness(),
     });
   });
 
@@ -2640,7 +2708,6 @@ async function startServer() {
     res.json({
       preferences: getOrCreateUserNotificationPreference(req.authUser!.id),
       categoriesMeta: NOTIFICATION_CATEGORY_META,
-      integrationReadiness: getChannelIntegrationReadiness(),
     });
   });
 
@@ -2657,7 +2724,6 @@ async function startServer() {
     res.json({
       preferences: updated,
       categoriesMeta: NOTIFICATION_CATEGORY_META,
-      integrationReadiness: getChannelIntegrationReadiness(),
     });
   });
 
@@ -2722,6 +2788,101 @@ async function startServer() {
       res.json(payload);
     } catch (err: unknown) {
       res.status(404).json({ error: err instanceof Error ? err.message : 'Unable to load soil intelligence.' });
+    }
+  });
+
+  app.get('/api/soil-land/site', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const province = String(req.query.province || req.authUser!.profile?.province || 'Free State');
+      const district = req.query.district ? String(req.query.district) : undefined;
+      const townOrArea = req.query.townOrArea ? String(req.query.townOrArea) : undefined;
+      const siteName = req.query.siteName ? String(req.query.siteName) : undefined;
+      const waterAvailability = req.query.waterAvailability
+        ? String(req.query.waterAvailability)
+        : undefined;
+      const selectedFarmingType = req.query.farmingType
+        ? String(req.query.farmingType)
+        : undefined;
+      const latRaw = req.query.latitude !== undefined ? Number(req.query.latitude) : undefined;
+      const lngRaw = req.query.longitude !== undefined ? Number(req.query.longitude) : undefined;
+      const haRaw =
+        req.query.farmSizeHectares !== undefined ? Number(req.query.farmSizeHectares) : undefined;
+
+      const payload = await getSiteSoilAndLandIntelligence({
+        province,
+        district,
+        townOrArea,
+        siteName,
+        waterAvailability,
+        selectedFarmingType,
+        latitude: Number.isFinite(latRaw) ? latRaw : undefined,
+        longitude: Number.isFinite(lngRaw) ? lngRaw : undefined,
+        farmSizeHectares: Number.isFinite(haRaw) ? haRaw : undefined,
+      });
+      res.json(payload);
+    } catch (err: unknown) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Unable to load candidate site soil intelligence.',
+      });
+    }
+  });
+
+  app.get('/api/crops/rotation-catalog', requireAuth, (_req: AuthRequest, res) => {
+    res.json(
+      SOUTH_AFRICA_ROTATION_CATALOG.map((c) => ({
+        id: c.id,
+        name: c.name,
+        botanicalFamily: c.botanicalFamily,
+        familyGroupLabel: c.familyGroupLabel,
+        preferredSeason: c.preferredSeason,
+        waterNeed: c.waterNeed,
+        idealPhRange: c.idealPhRange,
+        typicalCycleDays: c.typicalCycleDays,
+        nitrogenRole: c.nitrogenRole,
+        summary: c.summary,
+      }))
+    );
+  });
+
+  app.post('/api/crops/rotation-analysis', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const {
+        farmId,
+        province,
+        waterAvailability,
+        soilType,
+        soilPh,
+        farmSizeHectares,
+        farmerPriority,
+        selectedCrops,
+      } = req.body || {};
+
+      if (farmId && !userCanAccessFarm(req.authUser!, String(farmId), 'soil')) {
+        res.status(403).json({ error: 'You do not have soil access to this farm.' });
+        return;
+      }
+
+      const payload = await analyzeCropRotationScenario({
+        farmId: farmId ? String(farmId) : null,
+        province: province ? String(province) : undefined,
+        waterAvailability: waterAvailability ? String(waterAvailability) : undefined,
+        soilType: soilType ? String(soilType) : undefined,
+        soilPh:
+          soilPh !== undefined && soilPh !== null && soilPh !== '' ? Number(soilPh) : undefined,
+        farmSizeHectares:
+          farmSizeHectares !== undefined && farmSizeHectares !== null
+            ? Number(farmSizeHectares)
+            : undefined,
+        farmerPriority: farmerPriority ? String(farmerPriority) : undefined,
+        selectedCrops: Array.isArray(selectedCrops)
+          ? selectedCrops.slice(0, 5).map((v) => String(v))
+          : undefined,
+      });
+      res.json(payload);
+    } catch (err: unknown) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Unable to compute crop rotation scenario analysis.',
+      });
     }
   });
 
@@ -2868,6 +3029,35 @@ async function startServer() {
     } catch (err: unknown) {
       res.status(404).json({
         error: err instanceof Error ? err.message : 'Unable to retrieve weather telemetry.',
+      });
+    }
+  });
+
+  app.get('/api/weather/site', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const province = String(req.query.province || req.authUser!.profile?.province || 'Free State');
+      const district = req.query.district ? String(req.query.district) : undefined;
+      const townOrArea = req.query.townOrArea ? String(req.query.townOrArea) : undefined;
+      const siteName = req.query.siteName ? String(req.query.siteName) : undefined;
+      const waterAvailability = req.query.waterAvailability
+        ? String(req.query.waterAvailability)
+        : undefined;
+      const latRaw = req.query.latitude !== undefined ? Number(req.query.latitude) : undefined;
+      const lngRaw = req.query.longitude !== undefined ? Number(req.query.longitude) : undefined;
+
+      const payload = await getSiteWeatherIntelligence({
+        province,
+        district,
+        townOrArea,
+        siteName,
+        waterAvailability,
+        latitude: Number.isFinite(latRaw) ? latRaw : undefined,
+        longitude: Number.isFinite(lngRaw) ? lngRaw : undefined,
+      });
+      res.json(payload);
+    } catch (err: unknown) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Unable to retrieve candidate site weather telemetry.',
       });
     }
   });
@@ -4332,8 +4522,311 @@ async function startServer() {
     res.json({
       progress: prog,
       material: resolveMaterialForUser(material, req.authUser!, req.body?.languageCode),
+      learningReadiness: computeLearningReadiness(req.authUser!),
     });
   });
+
+  app.post('/api/learning/readiness-assessment', requireAuth, (req: AuthRequest, res) => {
+    const { answers } = req.body || {};
+    if (!answers || typeof answers !== 'object') {
+      res.status(400).json({ error: 'Please answer all readiness check questions before submitting.' });
+      return;
+    }
+
+    const sanitizedAnswers: Record<string, string> = {};
+    for (const [k, v] of Object.entries(answers as Record<string, unknown>)) {
+      if (typeof v === 'string') sanitizedAnswers[k] = v;
+    }
+
+    const graded = gradeReadinessAssessment(sanitizedAnswers);
+    const now = new Date().toISOString();
+
+    const profile = store.db.userProfiles.find((p) => p.userId === req.authUser!.id);
+    if (!profile) {
+      res.status(404).json({ error: 'User profile not found.' });
+      return;
+    }
+
+    profile.readinessAssessment = {
+      passed: graded.passed,
+      score: graded.score,
+      totalQuestions: graded.totalQuestions,
+      answers: sanitizedAnswers,
+      completedAt: now,
+    };
+    profile.updatedAt = now;
+
+    store.logAudit(
+      req.authUser!.id,
+      'LEARNING_READINESS_ASSESSMENT_SUBMITTED',
+      'UserProfile',
+      profile.id,
+      { score: graded.score, totalQuestions: graded.totalQuestions, passed: graded.passed },
+      req.ip || '127.0.0.1'
+    );
+    store.save();
+
+    res.json({
+      result: graded,
+      learningReadiness: computeLearningReadiness(req.authUser!),
+    });
+  });
+
+  // ------------------------------------------------------------------
+  // Farmer Journey Transition (Prospective <-> Existing Farm Operator)
+  // Preserves same user account, plans, locations, learning & prefs.
+  // ------------------------------------------------------------------
+  app.post(
+    '/api/farmer/transition-to-existing',
+    requireAuth,
+    requireRoles('prospective_farmer', 'existing_farmer'),
+    (req: AuthRequest, res) => {
+      const user = store.db.users.find((u) => u.id === req.authUser!.id);
+      const profile = store.db.userProfiles.find((p) => p.userId === req.authUser!.id);
+      const existingRole = store.db.roles.find((r) => r.code === 'existing_farmer');
+      if (!user || !profile || !existingRole) {
+        res.status(400).json({ error: 'Account configuration unavailable for farm transition.' });
+        return;
+      }
+
+      const {
+        farmName,
+        province,
+        districtMunicipality,
+        localMunicipality,
+        townOrVillage,
+        locationDescription,
+        locationConfirmed,
+        latitude,
+        longitude,
+        locationSource,
+        gpsLatitude,
+        gpsLongitude,
+        gpsAccuracyMeters,
+        gpsCapturedAt,
+        farmSizeHectares,
+        farmingActivities,
+        yearsOfExperience,
+        waterAvailability,
+        existingCrops,
+        existingLivestock,
+        tenureType,
+        managementRelationshipNote,
+        linkedBusinessPlanIds,
+        boundaryGeojson,
+      } = req.body || {};
+
+      if (!farmName || !province || !districtMunicipality || !townOrVillage) {
+        res.status(400).json({
+          error: 'Farm name, province, district municipality, and town/village are required.',
+        });
+        return;
+      }
+
+      const parsedSize = Number(farmSizeHectares || 1);
+      if (!Number.isFinite(parsedSize) || parsedSize <= 0) {
+        res.status(400).json({ error: 'Farm size in hectares must be a positive number.' });
+        return;
+      }
+
+      const coordCheck = validateSaCoordinates(latitude, longitude);
+      if (!coordCheck.valid || coordCheck.lat === null || coordCheck.lng === null) {
+        res.status(400).json({
+          error: coordCheck.error || 'Selected farm coordinates must lie within South Africa.',
+        });
+        return;
+      }
+
+      const validTenure = [
+        'owner',
+        'manager',
+        'lessee',
+        'communal_custodian',
+        'family_land',
+      ].includes(tenureType)
+        ? tenureType
+        : 'owner';
+
+      const now = new Date().toISOString();
+      const farmId = `farm-${crypto.randomUUID()}`;
+      const sizeHa = Math.max(0.1, Number(parsedSize.toFixed(2)));
+      const validSource: LocationSource = [
+        'gps',
+        'manual_map_pin',
+        'geocoded_search',
+        'municipal_center',
+      ].includes(locationSource)
+        ? locationSource
+        : 'manual_map_pin';
+
+      const planIdsToLink: string[] = Array.isArray(linkedBusinessPlanIds)
+        ? linkedBusinessPlanIds.map((id) => String(id))
+        : [];
+
+      let linkedPlansCount = 0;
+      for (const plan of store.db.businessPlans) {
+        if (plan.ownerId === user.id && planIdsToLink.includes(plan.id)) {
+          plan.farmId = farmId;
+          plan.updatedAt = now;
+          linkedPlansCount += 1;
+        }
+      }
+
+      store.db.farms.push({
+        id: farmId,
+        ownerId: user.id,
+        name: String(farmName).trim(),
+        farmingActivities: Array.isArray(farmingActivities) ? farmingActivities : [],
+        farmSizeHectares: sizeHa,
+        yearsOfExperience: Number.isFinite(Number(yearsOfExperience))
+          ? Math.max(0, Number(yearsOfExperience))
+          : 0,
+        waterAvailability: String(waterAvailability || 'Borehole & Tank'),
+        existingCrops: Array.isArray(existingCrops) ? existingCrops : [],
+        existingLivestock: Array.isArray(existingLivestock) ? existingLivestock : [],
+        tenureType: validTenure,
+        managementRelationshipNote:
+          typeof managementRelationshipNote === 'string'
+            ? managementRelationshipNote.trim().slice(0, 300)
+            : '',
+        linkedBusinessPlanIds: planIdsToLink,
+        status: 'active',
+        isDemonstration: false,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      store.db.farmLocations.push({
+        id: `loc-${crypto.randomUUID()}`,
+        farmId,
+        province: String(province),
+        districtMunicipality: String(districtMunicipality),
+        localMunicipality: String(localMunicipality || districtMunicipality),
+        townOrVillage: String(townOrVillage),
+        locationDescription: typeof locationDescription === 'string' ? locationDescription.trim() : '',
+        locationConfirmed:
+          typeof locationConfirmed === 'boolean' ? locationConfirmed : validSource !== 'municipal_center',
+        latitude: coordCheck.lat,
+        longitude: coordCheck.lng,
+        locationSource: validSource,
+        gpsLatitude: typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude) ? gpsLatitude : null,
+        gpsLongitude: typeof gpsLongitude === 'number' && Number.isFinite(gpsLongitude) ? gpsLongitude : null,
+        gpsAccuracyMeters:
+          typeof gpsAccuracyMeters === 'number' && Number.isFinite(gpsAccuracyMeters)
+            ? gpsAccuracyMeters
+            : null,
+        gpsCapturedAt: typeof gpsCapturedAt === 'string' ? gpsCapturedAt : null,
+        centroidWkt: pointToWkt(coordCheck.lat, coordCheck.lng),
+        elevationMeters: estimateSaElevationMeters(String(province), coordCheck.lat, coordCheck.lng),
+      });
+
+      if (isValidPolygon(boundaryGeojson)) {
+        store.db.farmBoundaries.push({
+          id: `bnd-${crypto.randomUUID()}`,
+          farmId,
+          boundaryWkt: polygonToWkt(boundaryGeojson),
+          geojson: boundaryGeojson,
+          calculatedAreaHectares: calculatePolygonAreaHectares(boundaryGeojson),
+          perimeterMeters: calculatePolygonPerimeterMeters(boundaryGeojson),
+          source: 'drawn_polygon',
+          updatedAt: now,
+        });
+      }
+
+      const previousRoleCode =
+        store.db.roles.find((r) => r.id === user.roleId)?.code || 'prospective_farmer';
+
+      user.roleId = existingRole.id;
+      user.onboardingCompleted = true;
+      user.updatedAt = now;
+
+      profile.province = String(province);
+      profile.district = String(districtMunicipality);
+      profile.journeyHistory = profile.journeyHistory || [];
+      profile.journeyHistory.unshift({
+        id: `jrn-${crypto.randomUUID()}`,
+        fromRole: previousRoleCode as 'prospective_farmer' | 'existing_farmer',
+        toRole: 'existing_farmer',
+        farmId,
+        farmName: String(farmName).trim(),
+        note: `Registered farm under "${validTenure}" relationship (${linkedPlansCount} business plan(s) linked). Preserved learning progress, saved locations, and preferences.`,
+        occurredAt: now,
+      });
+      profile.updatedAt = now;
+
+      store.logAudit(
+        user.id,
+        'FARMER_JOURNEY_TRANSITIONED_TO_EXISTING',
+        'Farm',
+        farmId,
+        {
+          fromRole: previousRoleCode,
+          toRole: 'existing_farmer',
+          tenureType: validTenure,
+          linkedPlansCount,
+          province,
+          sizeHa,
+        },
+        req.ip || '127.0.0.1'
+      );
+
+      res.status(201).json({
+        user: sanitizeUser(user),
+        farm: hydrateFarm(farmId),
+        linkedPlansCount,
+      });
+    }
+  );
+
+  app.post(
+    '/api/farmer/revert-to-prospective',
+    requireAuth,
+    requireRoles('existing_farmer'),
+    (req: AuthRequest, res) => {
+      const user = store.db.users.find((u) => u.id === req.authUser!.id);
+      const profile = store.db.userProfiles.find((p) => p.userId === req.authUser!.id);
+      const prospectiveRole = store.db.roles.find((r) => r.code === 'prospective_farmer');
+      if (!user || !profile || !prospectiveRole) {
+        res.status(400).json({ error: 'Account configuration unavailable for role switch.' });
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const reasonNote =
+        typeof req.body?.reason === 'string' && req.body.reason.trim()
+          ? req.body.reason.trim().slice(0, 200)
+          : 'User switched workspace mode back to Prospective Farmer (all farms, plans, and learning records preserved).';
+
+      user.roleId = prospectiveRole.id;
+      user.updatedAt = now;
+
+      profile.journeyHistory = profile.journeyHistory || [];
+      profile.journeyHistory.unshift({
+        id: `jrn-${crypto.randomUUID()}`,
+        fromRole: 'existing_farmer',
+        toRole: 'prospective_farmer',
+        farmId: null,
+        farmName: null,
+        note: reasonNote,
+        occurredAt: now,
+      });
+      profile.updatedAt = now;
+
+      store.logAudit(
+        user.id,
+        'FARMER_JOURNEY_REVERTED_TO_PROSPECTIVE',
+        'User',
+        user.id,
+        { note: reasonNote },
+        req.ip || '127.0.0.1'
+      );
+
+      res.json({
+        user: sanitizeUser(user),
+        preservedFarmsCount: store.db.farms.filter((f) => f.ownerId === user.id).length,
+      });
+    }
+  );
 
   app.post('/api/learning/admin/materials', requireAuth, (req: AuthRequest, res) => {
     if (!userCanManageLearning(req.authUser!)) {
@@ -5374,11 +5867,266 @@ async function startServer() {
   );
 
   // ------------------------------------------------------------------
+  // Public SA Dataset Provenance, Geocoding Search & Admin Demo Reset
+  // ------------------------------------------------------------------
+  app.get('/api/meta/datasets', (_req, res) => {
+    res.json({
+      datasets: getPublicDatasetRegistry(),
+      disclaimer:
+        'Regional weather grids, satellite agroclimatology, and SoilGrids estimates provide decision-support context only and never replace accredited on-farm soil tests or physical inspections.',
+    });
+  });
+
+  app.get('/api/geocode/search', requireAuth, async (req: AuthRequest, res) => {
+    const rawQuery = String(req.query.q || '').trim();
+    if (rawQuery.length < 2) {
+      res.status(400).json({ error: 'Enter at least 2 characters (address, town, village, or district).' });
+      return;
+    }
+
+    type GeoCandidate = {
+      id: string;
+      displayName: string;
+      latitude: number;
+      longitude: number;
+      province: string;
+      district: string;
+      townOrVillage: string;
+      precision: 'exact_place' | 'approximate_municipality';
+      source: string;
+      warningMessage: string | null;
+    };
+
+    const results: GeoCandidate[] = [];
+
+    // 1. OSM Nominatim South Africa query
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=za&limit=6&q=${encodeURIComponent(
+        rawQuery
+      )}`;
+      const nomRes = await fetch(url, {
+        headers: {
+          'User-Agent': 'FieldShift-SA-AgriPlatform/1.0',
+          Accept: 'application/json',
+        },
+        signal: AbortSignal.timeout(5000),
+      });
+      if (nomRes.ok) {
+        const nomData = (await nomRes.json()) as {
+          place_id?: number;
+          display_name?: string;
+          lat?: string;
+          lon?: string;
+          addresstype?: string;
+          type?: string;
+          address?: Record<string, string>;
+        }[];
+        for (const item of nomData || []) {
+          const lat = Number(item.lat);
+          const lng = Number(item.lon);
+          const check = validateSaCoordinates(lat, lng);
+          if (!check.valid) continue;
+          const addr = item.address || {};
+          const placeKind = (item.addresstype || item.type || '').toLowerCase();
+          const isBroadAdmin = [
+            'state',
+            'province',
+            'county',
+            'municipality',
+            'district',
+            'region',
+            'administrative',
+          ].includes(placeKind);
+          const town =
+            addr.village ||
+            addr.town ||
+            addr.city ||
+            addr.suburb ||
+            addr.hamlet ||
+            addr.road ||
+            rawQuery;
+          results.push({
+            id: `nom-${item.place_id || Math.random()}`,
+            displayName: item.display_name || rawQuery,
+            latitude: Number(lat.toFixed(6)),
+            longitude: Number(lng.toFixed(6)),
+            province: addr.state || '',
+            district: addr.county || addr.state_district || '',
+            townOrVillage: town,
+            precision: isBroadAdmin ? 'approximate_municipality' : 'exact_place',
+            source: 'OpenStreetMap Nominatim (ZA)',
+            warningMessage: isBroadAdmin
+              ? 'This match points to a broad municipal or district centre. Drag or click the map pin onto your actual farm gate or fields before confirming.'
+              : null,
+          });
+        }
+      }
+    } catch {
+      // Fall through cleanly to Open-Meteo and provincial reference matching
+    }
+
+    // 2. Open-Meteo South Africa Settlement Geocoding (supplement or fallback)
+    if (results.length < 3) {
+      try {
+        const omUrl = `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(
+          rawQuery
+        )}&count=5&language=en&format=json&countryCode=ZA`;
+        const omRes = await fetch(omUrl, { signal: AbortSignal.timeout(4500) });
+        if (omRes.ok) {
+          const omJson = (await omRes.json()) as {
+            results?: {
+              id?: number;
+              name?: string;
+              latitude?: number;
+              longitude?: number;
+              admin1?: string;
+              admin2?: string;
+            }[];
+          };
+          for (const item of omJson.results || []) {
+            if (typeof item.latitude !== 'number' || typeof item.longitude !== 'number') continue;
+            if (!validateSaCoordinates(item.latitude, item.longitude).valid) continue;
+            results.push({
+              id: `om-${item.id || Math.random()}`,
+              displayName: [item.name, item.admin2, item.admin1, 'South Africa']
+                .filter(Boolean)
+                .join(', '),
+              latitude: Number(item.latitude.toFixed(6)),
+              longitude: Number(item.longitude.toFixed(6)),
+              province: item.admin1 || '',
+              district: item.admin2 || '',
+              townOrVillage: item.name || rawQuery,
+              precision: 'approximate_municipality',
+              source: 'Open-Meteo GeoNames (ZA)',
+              warningMessage:
+                'Settlement/town centroid matched — refine the pin directly on your farm block before confirming.',
+            });
+          }
+        }
+      } catch {
+        // Ignore network errors and try local SA directory
+      }
+    }
+
+    // 3. Deterministic SA Province/District/Local Municipality fallback
+    const qLower = rawQuery.toLowerCase();
+    for (const prov of SOUTH_AFRICA_PROVINCES) {
+      for (const dist of prov.districts) {
+        const matchedLocal = dist.localMunicipalities.find((lm) =>
+          lm.toLowerCase().includes(qLower)
+        );
+        if (
+          prov.name.toLowerCase().includes(qLower) ||
+          dist.name.toLowerCase().includes(qLower) ||
+          Boolean(matchedLocal)
+        ) {
+          results.push({
+            id: `sa-ref-${prov.code}-${dist.name}`,
+            displayName: `${matchedLocal || dist.name}, ${prov.name} (District Reference)`,
+            latitude: dist.center.lat,
+            longitude: dist.center.lng,
+            province: prov.name,
+            district: dist.name,
+            townOrVillage: matchedLocal || dist.name.replace(' District', ''),
+            precision: 'approximate_municipality',
+            source: 'South African Municipal Reference Directory',
+            warningMessage:
+              'Approximate municipal/district centre only — zoom in and move the map pin onto your exact farm before confirming.',
+          });
+        }
+      }
+    }
+
+    res.json({
+      query: rawQuery,
+      results: results.slice(0, 8),
+      disclaimer:
+        'Search results help position the map quickly. Always inspect satellite/street imagery and click Confirm This Location only when the pin marks your farm.',
+    });
+  });
+
+  app.get(
+    '/api/admin/entities',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (_req: AuthRequest, res) => {
+      res.json(buildAdminEntitiesDirectory());
+    }
+  );
+
+  app.post(
+    '/api/admin/demo-data/reset',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const summary = store.resetDemonstrationData(req.authUser!.id, req.ip || '127.0.0.1');
+      res.json({
+        ok: true,
+        summary,
+        message:
+          'Demonstration records across all 9 provinces and 9 specialist profiles were cleanly reset while preserving all non-demonstration customer accounts and farms.',
+      });
+    }
+  );
+
+  // ------------------------------------------------------------------
   // Farmer Collaboration & Scoped Access Grants (Experts & Organisations)
   // ------------------------------------------------------------------
   app.get('/api/collaboration/directory', requireAuth, (_req: AuthRequest, res) => {
     res.json(getCollaborationDirectory());
   });
+
+  app.get('/api/consultations', requireAuth, (req: AuthRequest, res) => {
+    res.json(listConsultationsForUser(req.authUser!));
+  });
+
+  app.post('/api/consultations', requireAuth, (req: AuthRequest, res) => {
+    const { farmId, expertUserId, subject, description, urgency } = req.body || {};
+    if (!farmId || !expertUserId || !subject || !description) {
+      res.status(400).json({ error: 'farmId, expertUserId, subject, and description are required.' });
+      return;
+    }
+    try {
+      const created = createConsultationRequest({
+        farmerUser: req.authUser!,
+        farmId: String(farmId),
+        expertUserId: String(expertUserId),
+        subject: String(subject),
+        description: String(description),
+        urgency: ['routine', 'priority', 'urgent'].includes(urgency) ? urgency : 'routine',
+      });
+      res.status(201).json(created);
+    } catch (err: unknown) {
+      res.status(403).json({
+        error: err instanceof Error ? err.message : 'Unable to create consultation request.',
+      });
+    }
+  });
+
+  app.patch(
+    '/api/consultations/:id',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const { status, recommendationSummary } = req.body || {};
+      const validStatus = ['in_review', 'responded', 'closed'].includes(status)
+        ? status
+        : 'responded';
+      try {
+        const updated = respondToConsultation({
+          expertUser: req.authUser!,
+          consultationId: req.params.id,
+          status: validStatus,
+          recommendationSummary: String(recommendationSummary || ''),
+        });
+        res.json(updated);
+      } catch (err: unknown) {
+        res.status(403).json({
+          error: err instanceof Error ? err.message : 'Unable to update consultation request.',
+        });
+      }
+    }
+  );
 
   app.get('/api/collaboration/grants', requireAuth, (req: AuthRequest, res) => {
     const grants = listFarmerAccessGrants(req.authUser!.id);
@@ -5609,6 +6357,130 @@ async function startServer() {
     requireRoles('organisation_manager', 'system_administrator'),
     (req: AuthRequest, res) => {
       res.json(buildOrganisationOverview(req.authUser!));
+    }
+  );
+
+  app.post(
+    '/api/organisation/projects',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const {
+        title,
+        programmeCode,
+        province,
+        focusArea,
+        startDate,
+        targetEndDate,
+        targetFarmsCount,
+        targetHectares,
+        budgetAllocatedZar,
+        summary,
+      } = req.body || {};
+      if (!title || !focusArea) {
+        res.status(400).json({ error: 'Project title and focus area are required.' });
+        return;
+      }
+      try {
+        const created = createOrganisationProject({
+          actorUser: req.authUser!,
+          title: String(title),
+          programmeCode: String(programmeCode || ''),
+          province: String(province || ''),
+          focusArea: String(focusArea),
+          startDate: String(startDate || ''),
+          targetEndDate: String(targetEndDate || ''),
+          targetFarmsCount: Number(targetFarmsCount) || 10,
+          targetHectares: Number(targetHectares) || 50,
+          budgetAllocatedZar: Number(budgetAllocatedZar) || 0,
+          summary: String(summary || ''),
+        });
+        res.status(201).json(created);
+      } catch (err: unknown) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : 'Unable to create project.',
+        });
+      }
+    }
+  );
+
+  app.post(
+    '/api/organisation/activities',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const {
+        projectId,
+        title,
+        activityType,
+        activityDate,
+        province,
+        district,
+        participantsCount,
+        farmsReachedCount,
+        costZar,
+        facilitatorName,
+        outcomesSummary,
+      } = req.body || {};
+      if (!title) {
+        res.status(400).json({ error: 'Activity title is required.' });
+        return;
+      }
+      const validTypes = [
+        'training_workshop',
+        'field_day',
+        'soil_sampling_drive',
+        'vaccination_campaign',
+        'input_distribution',
+        'advisory_visit',
+      ];
+      try {
+        const created = createOrganisationProgrammeActivity({
+          actorUser: req.authUser!,
+          projectId: projectId ? String(projectId) : null,
+          title: String(title),
+          activityType: validTypes.includes(activityType) ? activityType : 'training_workshop',
+          activityDate: String(activityDate || ''),
+          province: String(province || ''),
+          district: String(district || ''),
+          participantsCount: Number(participantsCount) || 0,
+          farmsReachedCount: Number(farmsReachedCount) || 0,
+          costZar: Number(costZar) || 0,
+          facilitatorName: String(facilitatorName || ''),
+          outcomesSummary: String(outcomesSummary || ''),
+        });
+        res.status(201).json(created);
+      } catch (err: unknown) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : 'Unable to log programme activity.',
+        });
+      }
+    }
+  );
+
+  app.post(
+    '/api/organisation/specialists',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const { projectId, expertUserId, assignedRegion } = req.body || {};
+      if (!expertUserId) {
+        res.status(400).json({ error: 'expertUserId is required.' });
+        return;
+      }
+      try {
+        const assigned = assignOrganisationSpecialist({
+          actorUser: req.authUser!,
+          projectId: projectId ? String(projectId) : null,
+          expertUserId: String(expertUserId),
+          assignedRegion: String(assignedRegion || ''),
+        });
+        res.status(201).json(assigned);
+      } catch (err: unknown) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : 'Unable to assign specialist.',
+        });
+      }
     }
   );
 

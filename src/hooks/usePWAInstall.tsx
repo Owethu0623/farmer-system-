@@ -72,7 +72,7 @@ export const PWAInstallButton: React.FC = () => {
       <button
         type="button"
         onClick={install}
-        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors"
+        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors"
       >
         <Download className="w-3.5 h-3.5" />
         <span>Install App</span>
@@ -86,7 +86,7 @@ export const PWAInstallButton: React.FC = () => {
         <button
           type="button"
           onClick={() => setShowIOSGuide(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#D4DDD2] hover:bg-[#EDF2EC] text-[#143326] text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-[#CBD5E1] hover:bg-[#F1F5F9] text-[#0B1F3A] text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
         >
           <Smartphone className="w-3.5 h-3.5" />
           <span>Install App</span>
@@ -94,21 +94,21 @@ export const PWAInstallButton: React.FC = () => {
 
         {showIOSGuide && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-            <div className="w-full max-w-sm rounded-2xl bg-white border border-[#E2E6DF] p-6 space-y-3">
+            <div className="w-full max-w-sm rounded-2xl bg-white border border-[#E2E8F0] p-6 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="font-display text-lg font-bold text-[#143326]">
+                <h3 className="font-display text-lg font-bold text-[#0B1F3A]">
                   Install Field Shift on iPhone / iPad
                 </h3>
                 <button
                   type="button"
                   onClick={() => setShowIOSGuide(false)}
                   aria-label="Close install guide"
-                  className="p-1 rounded-lg hover:bg-[#F1F4EE] cursor-pointer"
+                  className="p-1 rounded-lg hover:bg-[#F1F5F9] text-[#475569] cursor-pointer"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
-              <p className="text-sm text-[#415047]">
+              <p className="text-sm text-[#334155]">
                 1. Tap the <strong>Share</strong> button in the Safari toolbar.
                 <br />
                 2. Scroll down and tap <strong>Add to Home Screen</strong>.
@@ -118,7 +118,7 @@ export const PWAInstallButton: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setShowIOSGuide(false)}
-                className="w-full rounded-xl bg-[#1B4332] py-2.5 text-sm font-semibold text-white cursor-pointer"
+                className="w-full rounded-xl bg-[#0B3D91] hover:bg-[#082E70] py-2.5 text-sm font-semibold text-white cursor-pointer"
               >
                 Close
               </button>
