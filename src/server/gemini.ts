@@ -7,7 +7,7 @@ import { store } from './store.ts';
 import { LanguageCode, SanitizedUser } from './types.ts';
 import { getFarmWeatherIntelligence } from './weather.ts';
 
-function getGeminiClient(timeoutMs = 15000): GoogleGenAI | null {
+function getGeminiClient(timeoutMs = 35000): GoogleGenAI | null {
   const apiKey = (process.env.GEMINI_API_KEY || '').trim();
   if (!apiKey || apiKey === 'MY_GEMINI_API_KEY' || apiKey.length < 10) {
     return null;
@@ -26,6 +26,17 @@ function getGeminiClient(timeoutMs = 15000): GoogleGenAI | null {
   });
 }
 
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function stripJsonCodeFences(raw: string): string {
+  return raw
+    .replace(/^```(?:json)?\s*/i, '')
+    .replace(/\s*```$/i, '')
+    .trim();
+}
+
 function isTransientDeadlineOrOverloadError(err: unknown): boolean {
   const msg = err instanceof Error ? err.message : String(err);
   return (
@@ -34,6 +45,10 @@ function isTransientDeadlineOrOverloadError(err: unknown): boolean {
     msg.includes('503') ||
     msg.includes('UNAVAILABLE') ||
     msg.includes('TimeoutError') ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('fetch failed') ||
+    msg.includes('overloaded') ||
     msg.includes('aborted')
   );
 }
@@ -46,35 +61,58 @@ async function generateStructuredJson(
     responseSchema: Record<string, unknown>;
   }
 ): Promise<string> {
-  try {
-    const response = await ai.models.generateContent({
+  const attempts: Array<{
+    model: 'gemini-4-hydrogen' | 'gemini-3.1-flash-lite';
+    thinkingLevel: ThinkingLevel;
+    timeoutMs: number;
+    backoffBeforeMs: number;
+  }> = [
+    {
       model: 'gemini-4-hydrogen',
-      contents: params.contents,
-      config: {
-        abortSignal: AbortSignal.timeout(15000),
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-        responseMimeType: 'application/json',
-        responseSchema: params.responseSchema,
-        systemInstruction: params.systemInstruction,
-      },
-    });
-    return (response.text || '{}').trim();
-  } catch (primaryErr) {
-    if (!isTransientDeadlineOrOverloadError(primaryErr)) {
-      throw primaryErr;
-    }
-    const fallbackResponse = await ai.models.generateContent({
+      thinkingLevel: ThinkingLevel.LOW,
+      timeoutMs: 25000,
+      backoffBeforeMs: 0,
+    },
+    {
       model: 'gemini-3.1-flash-lite',
-      contents: params.contents,
-      config: {
-        abortSignal: AbortSignal.timeout(15000),
-        responseMimeType: 'application/json',
-        responseSchema: params.responseSchema,
-        systemInstruction: params.systemInstruction,
-      },
-    });
-    return (fallbackResponse.text || '{}').trim();
+      thinkingLevel: ThinkingLevel.MINIMAL,
+      timeoutMs: 20000,
+      backoffBeforeMs: 750,
+    },
+    {
+      model: 'gemini-3.1-flash-lite',
+      thinkingLevel: ThinkingLevel.MINIMAL,
+      timeoutMs: 15000,
+      backoffBeforeMs: 1500,
+    },
+  ];
+
+  let lastErr: unknown;
+  for (const attempt of attempts) {
+    if (attempt.backoffBeforeMs > 0) {
+      await sleep(attempt.backoffBeforeMs);
+    }
+    try {
+      const response = await ai.models.generateContent({
+        model: attempt.model,
+        contents: params.contents,
+        config: {
+          abortSignal: AbortSignal.timeout(attempt.timeoutMs),
+          thinkingConfig: { thinkingLevel: attempt.thinkingLevel },
+          responseMimeType: 'application/json',
+          responseSchema: params.responseSchema,
+          systemInstruction: params.systemInstruction,
+        },
+      });
+      return stripJsonCodeFences((response.text || '{}').trim());
+    } catch (err) {
+      lastErr = err;
+      if (!isTransientDeadlineOrOverloadError(err)) {
+        throw err;
+      }
+    }
   }
+  throw lastErr;
 }
 
 function formatGeminiError(err: unknown): string {
@@ -295,33 +333,34 @@ export async function assembleFullFarmAiContext(
     }`,
     `VISUAL ANALYSES (${visualAnalyses.length}): ${
       visualAnalyses
-        .map((v) => `${v.analyzedAt.slice(0, 10)} [${v.category}] ${v.possibleFindings[0] || v.explanation.slice(0, 80)}`)
+        .slice(0, 4)
+        .map((v) => `${v.analyzedAt.slice(0, 10)} [${v.category}] ${(v.possibleFindings[0] || v.explanation).slice(0, 80)}`)
         .join(' | ') || 'None'
     }`,
     `CROP ACTIVITIES & INCIDENTS (${cropActivities.length}): ${
       cropActivities
-        .slice(0, 20)
-        .map((a) => `${a.activityDate} [${a.activityType}] ${a.quantity} ${a.unit} (R${a.valueZar}): ${a.notes}`)
+        .slice(0, 10)
+        .map((a) => `${a.activityDate} [${a.activityType}] ${a.quantity} ${a.unit} (R${a.valueZar}): ${a.notes.slice(0, 100)}`)
         .join(' | ') || 'None'
     }`,
     `LIVESTOCK GROUPS (${livestock.length}, Total ${totalLivestockHead} head): ${
       livestock
         .map(
           (g) =>
-            `${g.groupName} (${g.animalType} - ${g.breed}), qty ${g.quantity}, tag ${g.identificationNumber || 'Group'}, health ${g.healthStatus}, feeding "${g.feedingInformation}", grazing "${g.grazingInformation}", housing "${g.housingInformation}", unit value R${g.estimatedUnitValueZar}`
+            `${g.groupName} (${g.animalType} - ${g.breed}), qty ${g.quantity}, tag ${g.identificationNumber || 'Group'}, health ${g.healthStatus}, feeding "${g.feedingInformation.slice(0, 80)}", grazing "${g.grazingInformation.slice(0, 80)}", housing "${g.housingInformation.slice(0, 80)}", unit value R${g.estimatedUnitValueZar}`
         )
         .join(' | ') || 'None'
     }`,
     `LIVESTOCK LEDGER RECORDS (${livestockRecords.length}): ${
       livestockRecords
-        .slice(0, 15)
-        .map((r) => `${r.recordDate} [${r.recordType}] qtyChange ${r.quantityChange}, prod ${r.productionAmount} ${r.productionUnit}, R${r.valueZar}: ${r.notes}`)
+        .slice(0, 8)
+        .map((r) => `${r.recordDate} [${r.recordType}] qtyChange ${r.quantityChange}, prod ${r.productionAmount} ${r.productionUnit}, R${r.valueZar}: ${r.notes.slice(0, 100)}`)
         .join(' | ') || 'None'
     }`,
     `MIXED FARMING & EXPENSES (${mixedEntries.length} logs, Total Expenses R${totalExpensesZar}, Total Water Logged ${totalWaterLiters} L): ${
       mixedEntries
-        .slice(0, 15)
-        .map((e) => `${e.entryDate} [${e.entryCategory}] ${e.title}: expense R${e.expenseZar}, prod ${e.productionQuantity} ${e.productionUnit}, water ${e.waterLiters} L (${e.notes})`)
+        .slice(0, 10)
+        .map((e) => `${e.entryDate} [${e.entryCategory}] ${e.title}: expense R${e.expenseZar}, prod ${e.productionQuantity} ${e.productionUnit}, water ${e.waterLiters} L (${e.notes.slice(0, 80)})`)
         .join(' | ') || 'None'
     }`,
     `MISSING DATA FLAGS: ${missingItems.join(' | ') || 'Core datasets present.'}`,
@@ -606,23 +645,58 @@ export async function generateFarmAiAnalytics(params: {
       systemInstruction: [
         `You are Field Shift's South African agricultural analytics engine.`,
         `Write strictly in ${languageName}.`,
+        `Keep each summary field crisp (1 to 3 sentences) and each list to 2 to 4 concise bullet points.`,
         `Never invent records, never guarantee yields or profits, and explicitly highlight missing data (such as missing lab soil reports or unlogged expenses).`,
       ].join(' '),
     });
 
-    const parsed = JSON.parse(rawJson) as Omit<
-      AiFarmAnalyticsReport,
-      'farmName' | 'generatedAt' | 'poweredBy'
+    const parsed = JSON.parse(rawJson || '{}') as Partial<
+      Omit<AiFarmAnalyticsReport, 'farmName' | 'generatedAt' | 'poweredBy'>
     >;
 
     return {
       farmName,
       generatedAt: new Date().toISOString(),
       poweredBy: 'gemini',
-      ...parsed,
+      farmPerformanceSummary:
+        parsed.farmPerformanceSummary ||
+        `${farmName}: Managing ${ctx.facts.totalCultivatedHa} cultivated ha and ${ctx.facts.totalLivestockHead.toLocaleString()} livestock head.`,
+      cropPerformanceInsights:
+        parsed.cropPerformanceInsights ||
+        `${ctx.facts.totalRegisteredPlants.toLocaleString()} planted units recorded (${ctx.facts.damagedPlants.toLocaleString()} damaged).`,
+      livestockPerformanceInsights:
+        parsed.livestockPerformanceInsights ||
+        `${ctx.facts.totalLivestockHead.toLocaleString()} livestock head currently recorded.`,
+      weatherImpactSummary:
+        parsed.weatherImpactSummary ||
+        (ctx.facts.weatherAvailable
+          ? `Coordinate weather connected with ${ctx.facts.activeWarningsCount} active warning(s).`
+          : 'Live weather telemetry currently unavailable.'),
+      stockSummary:
+        parsed.stockSummary ||
+        `Remaining plants: ${ctx.facts.remainingPlants.toLocaleString()} · Livestock head: ${ctx.facts.totalLivestockHead.toLocaleString()} · Water logged: ${ctx.facts.totalWaterLiters.toLocaleString()} L.`,
+      productionEstimates:
+        parsed.productionEstimates ||
+        'Production estimates depend on field conditions and cannot be guaranteed.',
+      expenseSummary:
+        parsed.expenseSummary ||
+        `Recorded mixed-farming expenses total R${ctx.facts.totalExpensesZar.toLocaleString()}.`,
+      agriculturalOpportunities: Array.isArray(parsed.agriculturalOpportunities)
+        ? parsed.agriculturalOpportunities
+        : [],
+      suggestedNextActions: Array.isArray(parsed.suggestedNextActions)
+        ? parsed.suggestedNextActions
+        : [],
+      supportingInformation: Array.isArray(parsed.supportingInformation)
+        ? parsed.supportingInformation
+        : ctx.facts.supportingSnippets,
+      assumptionsAndMissingInfo: Array.isArray(parsed.assumptionsAndMissingInfo)
+        ? parsed.assumptionsAndMissingInfo
+        : ctx.facts.missingItems,
     };
   } catch (err) {
-    console.error('Gemini Analytics error:', err);
-    throw new Error(formatGeminiError(err));
+    const formatted = formatGeminiError(err);
+    console.error('Gemini Analytics error:', formatted);
+    throw new Error(formatted);
   }
 }

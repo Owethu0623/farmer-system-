@@ -14,6 +14,12 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import {
+  enqueueOfflineMutation,
+  getOfflineStaleness,
+  isLikelyOfflineError,
+  loadOfflineBundle,
+} from '../lib/offlineSync';
+import {
   AuthUser,
   BusinessEnterpriseTemplate,
   BusinessPlanCalculation,
@@ -216,6 +222,15 @@ function formatZar(val: number): string {
   return `${sign}R${Math.abs(Math.round(val)).toLocaleString()}`;
 }
 
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
   user,
   farms,
@@ -231,6 +246,8 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [cachedSnapshotAt, setCachedSnapshotAt] = useState<string | null>(null);
+  const [isCacheStale, setIsCacheStale] = useState(false);
   const [serverCalc, setServerCalc] = useState<BusinessPlanCalculation | null>(null);
 
   const defaultProvince = user.profile?.province || provinces[0]?.name || 'KwaZulu-Natal';
@@ -270,6 +287,8 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
     try {
       const data = await apiRequest<BusinessPlannerOverviewPayload>('/api/business-planner');
       setOverview(data);
+      setCachedSnapshotAt(null);
+      setIsCacheStale(false);
       if (selectFirst) {
         if (data.savedPlans.length > 0) {
           setDraft(planToDraft(data.savedPlans[0]));
@@ -286,11 +305,46 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
         }
       }
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(user.id);
+        if (bundle) {
+          const staleness = getOfflineStaleness(bundle);
+          const offlineOverview: BusinessPlannerOverviewPayload = {
+            templates: bundle.businessPlanTemplates || [],
+            savedPlans: bundle.businessPlans || [],
+            farmActualExpenses: [],
+            disclaimer:
+              'Offline cached scenario data — all projections remain non-guaranteed planning estimates.',
+          };
+          setOverview(offlineOverview);
+          setCachedSnapshotAt(bundle.downloadedAt);
+          setIsCacheStale(staleness.isBundleStale);
+          if (selectFirst && offlineOverview.savedPlans.length > 0) {
+            setDraft(planToDraft(offlineOverview.savedPlans[0]));
+          } else if (selectFirst && offlineOverview.templates.length > 0) {
+            setDraft(
+              buildDraftFromTemplate(
+                offlineOverview.templates[0],
+                'small_scale',
+                defaultProvince,
+                defaultDistrict,
+                farms[0]?.id || ''
+              )
+            );
+          }
+          setNotice(
+            `Offline mode: loaded ${offlineOverview.savedPlans.length} saved plan(s) cached on ${new Date(
+              bundle.downloadedAt
+            ).toLocaleString()}. Changes saved now will queue for sync.`
+          );
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : 'Unable to load business planner.');
     } finally {
       setLoading(false);
     }
-  }, [defaultDistrict, defaultProvince, farms]);
+  }, [defaultDistrict, defaultProvince, farms, user.id]);
 
   useEffect(() => {
     loadPlanner(true);
@@ -450,6 +504,29 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
       setDraft(planToDraft(saved));
       await loadPlanner(false);
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        const baseUpdatedAt =
+          draft.id && !saveAsNew
+            ? overview?.savedPlans.find((p) => p.id === draft.id)?.updatedAt || null
+            : null;
+        await enqueueOfflineMutation({
+          userId: user.id,
+          mutationType: 'business_plan_upsert',
+          label: `Business plan "${draft.planName.trim()}"`,
+          farmId: draft.farmId || null,
+          farmName: farms.find((f) => f.id === draft.farmId)?.name || null,
+          baseUpdatedAt,
+          payload: {
+            ...draft,
+            id: saveAsNew ? null : draft.id,
+            farmId: draft.farmId || null,
+          },
+        });
+        setNotice(
+          `Offline: saved "${draft.planName.trim()}" to your pending sync queue. It will upload automatically when internet returns.`
+        );
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to save business plan.');
     } finally {
       setSaving(false);
@@ -530,7 +607,7 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<title>Field Shift Business Plan — ${draft.planName}</title>
+<title>Field Shift Business Plan — ${escapeHtml(draft.planName)}</title>
 <style>
   body { font-family: system-ui, -apple-system, sans-serif; color: #17201B; max-width: 900px; margin: 32px auto; padding: 0 20px; line-height: 1.5; }
   h1, h2 { color: #143326; }
@@ -546,22 +623,22 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 </head>
 <body>
   <h1>Field Shift Farming Business Plan</h1>
-  <p><strong>Scenario:</strong> ${draft.planName} · <strong>Scale:</strong> ${draft.scaleTier.replace('_', ' ')} · <strong>Location:</strong> ${draft.district ? `${draft.district}, ` : ''}${draft.province}</p>
+  <p><strong>Scenario:</strong> ${escapeHtml(draft.planName)} · <strong>Scale:</strong> ${escapeHtml(draft.scaleTier.replace('_', ' '))} · <strong>Location:</strong> ${draft.district ? `${escapeHtml(draft.district)}, ` : ''}${escapeHtml(draft.province)}</p>
   <div class="notice">
-    <strong>Important Planning Disclaimer:</strong> ${liveCalc.disclaimer}
+    <strong>Important Planning Disclaimer:</strong> ${escapeHtml(liveCalc.disclaimer)}
   </div>
   <div class="grid">
-    <div class="kpi"><small>Est. Startup Capex</small><strong>${formatZar(liveCalc.estimatedStartupCostsZar)}</strong></div>
-    <div class="kpi"><small>Est. Operating Costs</small><strong>${formatZar(liveCalc.estimatedOperatingCostsZar)}</strong></div>
-    <div class="kpi"><small>Est. Potential Revenue</small><strong>${formatZar(liveCalc.estimatedRevenueZar)}</strong></div>
-    <div class="kpi"><small>Est. Operating Margin</small><strong>${formatZar(liveCalc.estimatedOperatingProfitLossZar)}</strong></div>
+    <div class="kpi"><small>Est. Startup Capex</small><strong>${escapeHtml(formatZar(liveCalc.estimatedStartupCostsZar))}</strong></div>
+    <div class="kpi"><small>Est. Operating Costs</small><strong>${escapeHtml(formatZar(liveCalc.estimatedOperatingCostsZar))}</strong></div>
+    <div class="kpi"><small>Est. Potential Revenue</small><strong>${escapeHtml(formatZar(liveCalc.estimatedRevenueZar))}</strong></div>
+    <div class="kpi"><small>Est. Operating Margin</small><strong>${escapeHtml(formatZar(liveCalc.estimatedOperatingProfitLossZar))}</strong></div>
   </div>
   <h2>Enterprise Inputs & Resource Requirements</h2>
-  <p><strong>Farming Type:</strong> ${activeTemplate?.name || draft.farmingType} (${draft.farmSizeHectares} ha)</p>
-  <p><strong>Production Goals:</strong> ${draft.productionGoals}</p>
-  <p><strong>Market Channel:</strong> ${draft.marketChannel}</p>
-  <p><strong>Equipment Plan:</strong> ${draft.equipmentNotes}</p>
-  <p><strong>Resources:</strong> ${liveCalc.resourceRequirements.summaryText}</p>
+  <p><strong>Farming Type:</strong> ${escapeHtml(activeTemplate?.name || draft.farmingType)} (${escapeHtml(draft.farmSizeHectares)} ha)</p>
+  <p><strong>Production Goals:</strong> ${escapeHtml(draft.productionGoals)}</p>
+  <p><strong>Market Channel:</strong> ${escapeHtml(draft.marketChannel)}</p>
+  <p><strong>Equipment Plan:</strong> ${escapeHtml(draft.equipmentNotes)}</p>
+  <p><strong>Resources:</strong> ${escapeHtml(liveCalc.resourceRequirements.summaryText)}</p>
   <h2>Estimated Cost Structure</h2>
   <table>
     <thead><tr><th>Line Item</th><th>Cost Type</th><th class="num">Estimated ZAR</th><th class="num">Share</th></tr></thead>
@@ -569,19 +646,19 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
       ${liveCalc.costBreakdown
         .map(
           (c) =>
-            `<tr><td>${c.label}</td><td>${c.categoryType === 'startup_capex' ? 'Startup Capex' : 'Operating'}</td><td class="num">${formatZar(c.amountZar)}</td><td class="num">${c.sharePercent}%</td></tr>`
+            `<tr><td>${escapeHtml(c.label)}</td><td>${c.categoryType === 'startup_capex' ? 'Startup Capex' : 'Operating'}</td><td class="num">${escapeHtml(formatZar(c.amountZar))}</td><td class="num">${escapeHtml(c.sharePercent)}%</td></tr>`
         )
         .join('')}
     </tbody>
   </table>
-  <h2>Scale Scenario Comparison (${activeTemplate?.name || draft.farmingType})</h2>
+  <h2>Scale Scenario Comparison (${escapeHtml(activeTemplate?.name || draft.farmingType)})</h2>
   <table>
     <thead><tr><th>Scenario</th><th class="num">Hectares</th><th class="num">Est. Startup</th><th class="num">Est. Operating</th><th class="num">Est. Revenue</th><th class="num">Est. Operating P/L</th></tr></thead>
     <tbody>
       ${comparisonRows
         .map(
           (r) =>
-            `<tr><td>${r.label}</td><td class="num">${r.ha} ha</td><td class="num">${formatZar(r.calc.estimatedStartupCostsZar)}</td><td class="num">${formatZar(r.calc.estimatedOperatingCostsZar)}</td><td class="num">${formatZar(r.calc.estimatedRevenueZar)}</td><td class="num">${formatZar(r.calc.estimatedOperatingProfitLossZar)}</td></tr>`
+            `<tr><td>${escapeHtml(r.label)}</td><td class="num">${escapeHtml(r.ha)} ha</td><td class="num">${escapeHtml(formatZar(r.calc.estimatedStartupCostsZar))}</td><td class="num">${escapeHtml(formatZar(r.calc.estimatedOperatingCostsZar))}</td><td class="num">${escapeHtml(formatZar(r.calc.estimatedRevenueZar))}</td><td class="num">${escapeHtml(formatZar(r.calc.estimatedOperatingProfitLossZar))}</td></tr>`
         )
         .join('')}
     </tbody>
@@ -589,10 +666,10 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
   <h2>Actual Farm Expenses vs Planning Estimates</h2>
   <p>${
     linkedActualExpense
-      ? `Linked Farm: <strong>${linkedActualExpense.farmName}</strong> — Total Actual Recorded Expenses to Date: <strong>${formatZar(linkedActualExpense.totalActualRecordedExpensesZar)}</strong> (Mixed ops: ${formatZar(linkedActualExpense.mixedExpensesZar)}, Livestock: ${formatZar(linkedActualExpense.livestockCostsZar)}, Crop activities: ${formatZar(linkedActualExpense.cropActivityCostsZar)}). Kept strictly separate from projected estimates.`
+      ? `Linked Farm: <strong>${escapeHtml(linkedActualExpense.farmName)}</strong> — Total Actual Recorded Expenses to Date: <strong>${escapeHtml(formatZar(linkedActualExpense.totalActualRecordedExpensesZar))}</strong> (Mixed ops: ${escapeHtml(formatZar(linkedActualExpense.mixedExpensesZar))}, Livestock: ${escapeHtml(formatZar(linkedActualExpense.livestockCostsZar))}, Crop activities: ${escapeHtml(formatZar(linkedActualExpense.cropActivityCostsZar))}). Kept strictly separate from projected estimates.`
       : 'No existing registered farm ledger linked to this scenario yet.'
   }</p>
-  <p><small>Generated by Field Shift on ${new Date().toLocaleDateString()} · Assumptions: ${draft.assumptionsNotes}</small></p>
+  <p><small>Generated by Field Shift on ${escapeHtml(new Date().toLocaleDateString())} · Assumptions: ${escapeHtml(draft.assumptionsNotes)}</small></p>
 </body>
 </html>`;
     const slug = draft.planName.toLowerCase().replace(/[^a-z0-9]+/g, '-') || 'business-plan';
@@ -611,6 +688,21 @@ export const BusinessPlannerView: React.FC<BusinessPlannerViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {cachedSnapshotAt && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-xs flex flex-wrap items-center justify-between gap-2 ${
+            isCacheStale
+              ? 'bg-[#FFF6EB] border-[#E6C98A] text-[#7A4A0B]'
+              : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+          }`}
+        >
+          <span>
+            <strong>Offline Cached Plans ({isCacheStale ? 'Outdated Snapshot' : 'Saved Locally'}):</strong>{' '}
+            Downloaded <span className="font-mono">{new Date(cachedSnapshotAt).toLocaleString()}</span>.
+            Saved edits are queued and synchronised when connectivity returns.
+          </span>
+        </div>
+      )}
       {/* Header & Exports */}
       <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-1 max-w-2xl">

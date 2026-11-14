@@ -32,11 +32,15 @@ function getGeminiClient(): GoogleGenAI | null {
   return new GoogleGenAI({
     apiKey,
     httpOptions: {
-      timeout: 18000,
+      timeout: 35000,
       retryOptions: { attempts: 1 },
       headers: { 'User-Agent': 'aistudio-build' },
     },
   });
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 function isTransientDeadlineOrOverload(err: unknown): boolean {
@@ -47,6 +51,10 @@ function isTransientDeadlineOrOverload(err: unknown): boolean {
     msg.includes('503') ||
     msg.includes('UNAVAILABLE') ||
     msg.includes('TimeoutError') ||
+    msg.includes('ETIMEDOUT') ||
+    msg.includes('ECONNRESET') ||
+    msg.includes('fetch failed') ||
+    msg.includes('overloaded') ||
     msg.includes('aborted')
   );
 }
@@ -225,33 +233,43 @@ export async function runVisualAgriculturalAnalysis(params: {
 
     try {
       let rawText = '';
-      try {
-        const res = await ai.models.generateContent({
-          model: 'gemini-4-hydrogen',
-          contents: { parts },
-          config: {
-            abortSignal: AbortSignal.timeout(18000),
-            thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-            responseMimeType: 'application/json',
-            responseSchema: schema,
-            systemInstruction,
-          },
-        });
-        rawText = (res.text || '{}').trim();
-      } catch (primaryErr) {
-        if (!isTransientDeadlineOrOverload(primaryErr)) throw primaryErr;
-        const fallbackRes = await ai.models.generateContent({
-          model: 'gemini-3.1-flash-lite',
-          contents: { parts },
-          config: {
-            abortSignal: AbortSignal.timeout(18000),
-            responseMimeType: 'application/json',
-            responseSchema: schema,
-            systemInstruction,
-          },
-        });
-        rawText = (fallbackRes.text || '{}').trim();
+      const attempts: Array<{
+        model: 'gemini-4-hydrogen' | 'gemini-3.1-flash-lite';
+        thinkingLevel: ThinkingLevel;
+        timeoutMs: number;
+        backoffBeforeMs: number;
+      }> = [
+        { model: 'gemini-4-hydrogen', thinkingLevel: ThinkingLevel.LOW, timeoutMs: 25000, backoffBeforeMs: 0 },
+        { model: 'gemini-3.1-flash-lite', thinkingLevel: ThinkingLevel.MINIMAL, timeoutMs: 20000, backoffBeforeMs: 750 },
+        { model: 'gemini-3.1-flash-lite', thinkingLevel: ThinkingLevel.MINIMAL, timeoutMs: 15000, backoffBeforeMs: 1500 },
+      ];
+
+      let lastErr: unknown;
+      for (const attempt of attempts) {
+        if (attempt.backoffBeforeMs > 0) {
+          await sleep(attempt.backoffBeforeMs);
+        }
+        try {
+          const res = await ai.models.generateContent({
+            model: attempt.model,
+            contents: { parts },
+            config: {
+              abortSignal: AbortSignal.timeout(attempt.timeoutMs),
+              thinkingConfig: { thinkingLevel: attempt.thinkingLevel },
+              responseMimeType: 'application/json',
+              responseSchema: schema,
+              systemInstruction,
+            },
+          });
+          rawText = (res.text || '{}').trim();
+          lastErr = undefined;
+          break;
+        } catch (err) {
+          lastErr = err;
+          if (!isTransientDeadlineOrOverload(err)) throw err;
+        }
       }
+      if (lastErr) throw lastErr;
 
       const cleanedJson = rawText
         .replace(/^```(?:json)?\s*/i, '')

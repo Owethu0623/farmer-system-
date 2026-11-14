@@ -1,4 +1,4 @@
-import { SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
+import { estimateSaElevationMeters, SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
 import { store } from './store.ts';
 import { Farm, FarmLocation, Field, LocationSource, SoilReport } from './types.ts';
 
@@ -515,9 +515,14 @@ export async function getFarmSoilAndLandIntelligence(
   const regionalProfile = getProvinceSoilTemperatureProfile(location.province);
 
   const remote = await fetchRemoteElevationAndSoilGrids(location.latitude, location.longitude);
-  const elevationMeters = remote.elevationMeters ?? location.elevationMeters ?? null;
-  if (remote.elevationMeters !== null) {
+  const elevationMeters =
+    remote.elevationMeters ??
+    (location.elevationMeters > 0
+      ? location.elevationMeters
+      : estimateSaElevationMeters(location.province, location.latitude, location.longitude));
+  if (remote.elevationMeters !== null && location.elevationMeters !== remote.elevationMeters) {
     location.elevationMeters = remote.elevationMeters;
+    store.save();
   }
 
   const mappedTexture = classifyTexture(

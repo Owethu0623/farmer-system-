@@ -38,7 +38,7 @@ import {
 } from './src/server/learningCentre.ts';
 import { REPORT_TYPES, generateAndSaveReport } from './src/server/reporting.ts';
 import { getFarmSoilAndLandIntelligence } from './src/server/soilLandIntelligence.ts';
-import { buildStockOverview, recordCropStockMovement, updateStockUnitPrice } from './src/server/stockInventory.ts';
+import { computeCropStoredAndSold, buildStockOverview, recordCropStockMovement, updateStockUnitPrice } from './src/server/stockInventory.ts';
 import { enrichVisualAnalysis, runVisualAgriculturalAnalysis } from './src/server/visualAnalysis.ts';
 import { getFarmWeatherIntelligence } from './src/server/weather.ts';
 import {
@@ -51,10 +51,13 @@ import {
   buildBusinessPlannerOverview,
   computeBusinessPlanMetrics,
 } from './src/server/businessPlanner.ts';
+import { getSastDateString } from './src/server/saTime.ts';
 import {
   BEGINNER_GUIDES,
   FARMING_OPPORTUNITIES,
   SOUTH_AFRICA_PROVINCES,
+  estimateSaElevationMeters,
+  validateSaCoordinates,
 } from './src/server/southAfricaData.ts';
 import {
   calculatePolygonAreaHectares,
@@ -296,6 +299,7 @@ async function startServer() {
       isEmailVerified: false,
       onboardingCompleted:
         requestedRoleCode === 'agricultural_expert' || requestedRoleCode === 'organisation_manager',
+      isDemonstration: false,
       activationToken: activationCode,
       lastLoginAt: now,
       createdAt: now,
@@ -857,11 +861,35 @@ async function startServer() {
       return;
     }
 
+    const parsedSize = farmSizeHectares === undefined || farmSizeHectares === '' ? 1 : Number(farmSizeHectares);
+    if (!Number.isFinite(parsedSize) || parsedSize <= 0) {
+      res.status(400).json({ error: 'Farm size in hectares must be a positive number.' });
+      return;
+    }
+
+    let lat = -28.4793;
+    let lng = 24.6727;
+    if (latitude !== undefined || longitude !== undefined) {
+      const coordCheck = validateSaCoordinates(latitude, longitude);
+      if (!coordCheck.valid || coordCheck.lat === null || coordCheck.lng === null) {
+        res.status(400).json({ error: coordCheck.error || 'Coordinates must lie within South Africa.' });
+        return;
+      }
+      lat = coordCheck.lat;
+      lng = coordCheck.lng;
+    }
+
+    if (gpsLatitude !== undefined && gpsLatitude !== null && gpsLongitude !== undefined && gpsLongitude !== null) {
+      const gpsCheck = validateSaCoordinates(gpsLatitude, gpsLongitude);
+      if (!gpsCheck.valid) {
+        res.status(400).json({ error: gpsCheck.error || 'GPS coordinates must lie within South Africa.' });
+        return;
+      }
+    }
+
     const now = new Date().toISOString();
     const farmId = `farm-${crypto.randomUUID()}`;
-    const sizeHa = Math.max(0.1, Number(farmSizeHectares) || 1);
-    const lat = Number(latitude) || -28.4793;
-    const lng = Number(longitude) || 24.6727;
+    const sizeHa = Math.max(0.1, Number(parsedSize.toFixed(2)));
     const validSource: LocationSource = ['gps', 'manual_map_pin', 'municipal_center'].includes(
       locationSource
     )
@@ -874,11 +902,12 @@ async function startServer() {
       name: String(farmName).trim(),
       farmingActivities: Array.isArray(farmingActivities) ? farmingActivities : [],
       farmSizeHectares: sizeHa,
-      yearsOfExperience: Number(yearsOfExperience) || 0,
+      yearsOfExperience: Number.isFinite(Number(yearsOfExperience)) ? Math.max(0, Number(yearsOfExperience)) : 0,
       waterAvailability: String(waterAvailability || 'Rain-fed'),
       existingCrops: Array.isArray(existingCrops) ? existingCrops : [],
       existingLivestock: Array.isArray(existingLivestock) ? existingLivestock : [],
       status: 'active',
+      isDemonstration: false,
       createdAt: now,
       updatedAt: now,
     });
@@ -893,12 +922,12 @@ async function startServer() {
       latitude: lat,
       longitude: lng,
       locationSource: validSource,
-      gpsLatitude: typeof gpsLatitude === 'number' ? gpsLatitude : null,
-      gpsLongitude: typeof gpsLongitude === 'number' ? gpsLongitude : null,
-      gpsAccuracyMeters: typeof gpsAccuracyMeters === 'number' ? gpsAccuracyMeters : null,
+      gpsLatitude: typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude) ? gpsLatitude : null,
+      gpsLongitude: typeof gpsLongitude === 'number' && Number.isFinite(gpsLongitude) ? gpsLongitude : null,
+      gpsAccuracyMeters: typeof gpsAccuracyMeters === 'number' && Number.isFinite(gpsAccuracyMeters) ? gpsAccuracyMeters : null,
       gpsCapturedAt: typeof gpsCapturedAt === 'string' ? gpsCapturedAt : null,
       centroidWkt: pointToWkt(lat, lng),
-      elevationMeters: 950,
+      elevationMeters: estimateSaElevationMeters(String(province), lat, lng),
     });
 
     // IMPORTANT: Never treat a GPS point as a farm boundary. Only save boundary when explicitly drawn.
@@ -1000,11 +1029,35 @@ async function startServer() {
         return;
       }
 
+      const parsedSize = farmSizeHectares === undefined || farmSizeHectares === '' ? 1 : Number(farmSizeHectares);
+      if (!Number.isFinite(parsedSize) || parsedSize <= 0) {
+        res.status(400).json({ error: 'Farm size in hectares must be a positive number.' });
+        return;
+      }
+
+      let lat = -28.4793;
+      let lng = 24.6727;
+      if (latitude !== undefined || longitude !== undefined) {
+        const coordCheck = validateSaCoordinates(latitude, longitude);
+        if (!coordCheck.valid || coordCheck.lat === null || coordCheck.lng === null) {
+          res.status(400).json({ error: coordCheck.error || 'Coordinates must lie within South Africa.' });
+          return;
+        }
+        lat = coordCheck.lat;
+        lng = coordCheck.lng;
+      }
+
+      if (gpsLatitude !== undefined && gpsLatitude !== null && gpsLongitude !== undefined && gpsLongitude !== null) {
+        const gpsCheck = validateSaCoordinates(gpsLatitude, gpsLongitude);
+        if (!gpsCheck.valid) {
+          res.status(400).json({ error: gpsCheck.error || 'GPS coordinates must lie within South Africa.' });
+          return;
+        }
+      }
+
       const now = new Date().toISOString();
       const farmId = `farm-${crypto.randomUUID()}`;
-      const sizeHa = Math.max(0.1, Number(farmSizeHectares) || 1);
-      const lat = Number(latitude) || -28.4793;
-      const lng = Number(longitude) || 24.6727;
+      const sizeHa = Math.max(0.1, Number(parsedSize.toFixed(2)));
       const validSource: LocationSource = ['gps', 'manual_map_pin', 'municipal_center'].includes(
         locationSource
       )
@@ -1017,11 +1070,12 @@ async function startServer() {
         name: String(name).trim(),
         farmingActivities: Array.isArray(farmingActivities) ? farmingActivities : [],
         farmSizeHectares: sizeHa,
-        yearsOfExperience: Number(yearsOfExperience) || 0,
+        yearsOfExperience: Number.isFinite(Number(yearsOfExperience)) ? Math.max(0, Number(yearsOfExperience)) : 0,
         waterAvailability: String(waterAvailability || 'Borehole'),
         existingCrops: Array.isArray(existingCrops) ? existingCrops : [],
         existingLivestock: Array.isArray(existingLivestock) ? existingLivestock : [],
         status: 'active',
+        isDemonstration: false,
         createdAt: now,
         updatedAt: now,
       });
@@ -1036,12 +1090,12 @@ async function startServer() {
         latitude: lat,
         longitude: lng,
         locationSource: validSource,
-        gpsLatitude: typeof gpsLatitude === 'number' ? gpsLatitude : null,
-        gpsLongitude: typeof gpsLongitude === 'number' ? gpsLongitude : null,
-        gpsAccuracyMeters: typeof gpsAccuracyMeters === 'number' ? gpsAccuracyMeters : null,
+        gpsLatitude: typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude) ? gpsLatitude : null,
+        gpsLongitude: typeof gpsLongitude === 'number' && Number.isFinite(gpsLongitude) ? gpsLongitude : null,
+        gpsAccuracyMeters: typeof gpsAccuracyMeters === 'number' && Number.isFinite(gpsAccuracyMeters) ? gpsAccuracyMeters : null,
         gpsCapturedAt: typeof gpsCapturedAt === 'string' ? gpsCapturedAt : null,
         centroidWkt: pointToWkt(lat, lng),
-        elevationMeters: 920,
+        elevationMeters: estimateSaElevationMeters(String(province), lat, lng),
       });
 
       // Only persist farm boundary when explicitly drawn by user
@@ -1118,30 +1172,53 @@ async function startServer() {
     } = req.body || {};
 
     if (typeof name === 'string' && name.trim()) farm.name = name.trim();
-    if (farmSizeHectares !== undefined) farm.farmSizeHectares = Math.max(0.1, Number(farmSizeHectares));
-    if (yearsOfExperience !== undefined) farm.yearsOfExperience = Number(yearsOfExperience) || 0;
+    if (farmSizeHectares !== undefined) {
+      const parsedSize = Number(farmSizeHectares);
+      if (!Number.isFinite(parsedSize) || parsedSize <= 0) {
+        res.status(400).json({ error: 'Farm size in hectares must be a positive number.' });
+        return;
+      }
+      farm.farmSizeHectares = Math.max(0.1, Number(parsedSize.toFixed(2)));
+    }
+    if (yearsOfExperience !== undefined) {
+      const parsedExp = Number(yearsOfExperience);
+      farm.yearsOfExperience = Number.isFinite(parsedExp) ? Math.max(0, parsedExp) : farm.yearsOfExperience;
+    }
     if (typeof waterAvailability === 'string' && waterAvailability.trim()) {
       farm.waterAvailability = waterAvailability.trim();
     }
     if (Array.isArray(farmingActivities)) farm.farmingActivities = farmingActivities;
     if (Array.isArray(existingCrops)) farm.existingCrops = existingCrops;
     if (Array.isArray(existingLivestock)) farm.existingLivestock = existingLivestock;
-    farm.updatedAt = new Date().toISOString();
 
     const loc = store.db.farmLocations.find((l) => l.farmId === farm.id);
+    if (loc && (latitude !== undefined || longitude !== undefined)) {
+      const nextLat = latitude !== undefined ? latitude : loc.latitude;
+      const nextLng = longitude !== undefined ? longitude : loc.longitude;
+      const coordCheck = validateSaCoordinates(nextLat, nextLng);
+      if (!coordCheck.valid || coordCheck.lat === null || coordCheck.lng === null) {
+        res.status(400).json({ error: coordCheck.error || 'Coordinates must lie within South Africa.' });
+        return;
+      }
+      loc.latitude = coordCheck.lat;
+      loc.longitude = coordCheck.lng;
+    }
+
+    farm.updatedAt = new Date().toISOString();
+
     if (loc) {
       if (province) loc.province = String(province);
       if (districtMunicipality) loc.districtMunicipality = String(districtMunicipality);
       if (localMunicipality) loc.localMunicipality = String(localMunicipality);
       if (townOrVillage) loc.townOrVillage = String(townOrVillage);
-      if (latitude !== undefined) loc.latitude = Number(latitude);
-      if (longitude !== undefined) loc.longitude = Number(longitude);
       if (locationSource && ['gps', 'manual_map_pin', 'municipal_center'].includes(locationSource)) {
         loc.locationSource = locationSource;
       }
-      if (typeof gpsLatitude === 'number') loc.gpsLatitude = gpsLatitude;
-      if (typeof gpsLongitude === 'number') loc.gpsLongitude = gpsLongitude;
-      if (typeof gpsAccuracyMeters === 'number') loc.gpsAccuracyMeters = gpsAccuracyMeters;
+      if (typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude)) loc.gpsLatitude = gpsLatitude;
+      if (typeof gpsLongitude === 'number' && Number.isFinite(gpsLongitude)) loc.gpsLongitude = gpsLongitude;
+      if (typeof gpsAccuracyMeters === 'number' && Number.isFinite(gpsAccuracyMeters)) {
+        loc.gpsAccuracyMeters = gpsAccuracyMeters;
+      }
       if (typeof gpsCapturedAt === 'string') loc.gpsCapturedAt = gpsCapturedAt;
       loc.centroidWkt = pointToWkt(loc.latitude, loc.longitude);
     }
@@ -1210,14 +1287,25 @@ async function startServer() {
     const now = new Date().toISOString();
     const loc = store.db.farmLocations.find((l) => l.farmId === farm.id);
     if (loc) {
-      if (typeof latitude === 'number') loc.latitude = latitude;
-      if (typeof longitude === 'number') loc.longitude = longitude;
+      if (latitude !== undefined || longitude !== undefined) {
+        const nextLat = latitude !== undefined ? latitude : loc.latitude;
+        const nextLng = longitude !== undefined ? longitude : loc.longitude;
+        const coordCheck = validateSaCoordinates(nextLat, nextLng);
+        if (!coordCheck.valid || coordCheck.lat === null || coordCheck.lng === null) {
+          res.status(400).json({ error: coordCheck.error || 'Coordinates must lie within South Africa.' });
+          return;
+        }
+        loc.latitude = coordCheck.lat;
+        loc.longitude = coordCheck.lng;
+      }
       if (locationSource && ['gps', 'manual_map_pin', 'municipal_center'].includes(locationSource)) {
         loc.locationSource = locationSource;
       }
-      if (typeof gpsLatitude === 'number') loc.gpsLatitude = gpsLatitude;
-      if (typeof gpsLongitude === 'number') loc.gpsLongitude = gpsLongitude;
-      if (typeof gpsAccuracyMeters === 'number') loc.gpsAccuracyMeters = gpsAccuracyMeters;
+      if (typeof gpsLatitude === 'number' && Number.isFinite(gpsLatitude)) loc.gpsLatitude = gpsLatitude;
+      if (typeof gpsLongitude === 'number' && Number.isFinite(gpsLongitude)) loc.gpsLongitude = gpsLongitude;
+      if (typeof gpsAccuracyMeters === 'number' && Number.isFinite(gpsAccuracyMeters)) {
+        loc.gpsAccuracyMeters = gpsAccuracyMeters;
+      }
       if (typeof gpsCapturedAt === 'string') loc.gpsCapturedAt = gpsCapturedAt;
       loc.centroidWkt = pointToWkt(loc.latitude, loc.longitude);
     }
@@ -1393,7 +1481,12 @@ async function startServer() {
       field.fieldWkt = polygonToWkt(geojson);
       field.areaHectares = calculatePolygonAreaHectares(geojson);
     } else if (areaHectares !== undefined) {
-      field.areaHectares = Math.max(0.1, Number(areaHectares));
+      const parsedArea = Number(areaHectares);
+      if (!Number.isFinite(parsedArea) || parsedArea <= 0) {
+        res.status(400).json({ error: 'Field area in hectares must be a positive number.' });
+        return;
+      }
+      field.areaHectares = Math.max(0.1, Number(parsedArea.toFixed(2)));
     }
     if (soilType) field.soilType = String(soilType);
     if (irrigationType) field.irrigationType = String(irrigationType);
@@ -1439,15 +1532,21 @@ async function startServer() {
   // Crop Management & Historical Activity Tracking
   // ------------------------------------------------------------------
   app.get('/api/crops/analytics', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'crops');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'crops');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have crop access to this farm.' });
       return;
     }
+    const canSeeFinancial = (farmId: string) =>
+      user.roleCode !== 'agricultural_expert' ||
+      Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
+
     const crops = store.db.crops.filter(
       (c) => accessibleFarmIds.includes(c.farmId) && (!farmFilter || c.farmId === farmFilter)
     );
+    const cropFarmMap = new Map(crops.map((c) => [c.id, c.farmId]));
     const cropIds = new Set(crops.map((c) => c.id));
     const activities = store.db.cropActivities.filter((a) => cropIds.has(a.cropId));
 
@@ -1462,7 +1561,10 @@ async function startServer() {
       crops.reduce((s, c) => s + c.harvestedQuantityKg, 0).toFixed(2)
     );
     const estimatedHarvestValueZar = Number(
-      crops.reduce((s, c) => s + c.estimatedValueZar, 0).toFixed(2)
+      crops
+        .filter((c) => canSeeFinancial(c.farmId))
+        .reduce((s, c) => s + c.estimatedValueZar, 0)
+        .toFixed(2)
     );
 
     const byCrop = crops.map((c) => ({
@@ -1471,7 +1573,7 @@ async function startServer() {
       cropVariety: c.cropVariety,
       cultivatedAreaHectares: c.cultivatedAreaHectares,
       harvestedQuantityKg: c.harvestedQuantityKg,
-      estimatedValueZar: c.estimatedValueZar,
+      estimatedValueZar: canSeeFinancial(c.farmId) ? c.estimatedValueZar : 0,
       remainingPlants: Math.max(0, c.plantingQuantity - c.damagedPlants),
       growthStage: c.growthStage,
     }));
@@ -1492,7 +1594,10 @@ async function startServer() {
       entry.activitiesCount += 1;
       if (act.activityType === 'harvest') {
         entry.harvestKg += act.quantity;
-        entry.valueZar += act.valueZar;
+        const cFarmId = cropFarmMap.get(act.cropId) || act.farmId;
+        if (canSeeFinancial(cFarmId)) {
+          entry.valueZar += act.valueZar;
+        }
       }
       monthlyMap.set(month, entry);
     }
@@ -1515,12 +1620,16 @@ async function startServer() {
   });
 
   app.get('/api/crops', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'crops');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'crops');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have crop access to this farm.' });
       return;
     }
+    const canSeeFinancial = (farmId: string) =>
+      user.roleCode !== 'agricultural_expert' ||
+      Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
     const list = store.db.crops
       .filter(
         (c) => accessibleFarmIds.includes(c.farmId) && (!farmFilter || c.farmId === farmFilter)
@@ -1531,6 +1640,7 @@ async function startServer() {
         const activities = store.db.cropActivities.filter((a) => a.cropId === c.id);
         return {
           ...c,
+          estimatedValueZar: canSeeFinancial(c.farmId) ? c.estimatedValueZar : 0,
           farmName: farm?.name || 'Farm',
           fieldName: field?.name || 'General Farm Block',
           remainingPlants: Math.max(0, c.plantingQuantity - c.damagedPlants),
@@ -1707,6 +1817,22 @@ async function startServer() {
       res.status(400).json({ error: 'Expected harvesting date cannot be earlier than the planting date.' });
       return;
     }
+    if (plantingQuantity !== undefined) {
+      crop.plantingQuantity = Math.max(0, Number(plantingQuantity) || 0);
+    }
+    if (damagedPlants !== undefined) {
+      crop.damagedPlants = Math.max(0, Math.min(crop.plantingQuantity, Number(damagedPlants) || 0));
+    } else if (crop.damagedPlants > crop.plantingQuantity) {
+      crop.damagedPlants = crop.plantingQuantity;
+    }
+    if (cultivatedAreaHectares !== undefined) {
+      crop.cultivatedAreaHectares = Math.max(0.05, Number(cultivatedAreaHectares) || 0.05);
+    }
+    if (soilInformation !== undefined) crop.soilInformation = String(soilInformation).trim();
+    if (irrigationMethod !== undefined) crop.irrigationMethod = String(irrigationMethod).trim();
+    if (fertiliserInformation !== undefined) {
+      crop.fertiliserInformation = String(fertiliserInformation).trim();
+    }
     if (
       growthStage &&
       ['planted', 'germination', 'vegetative', 'flowering', 'fruiting', 'mature', 'harvested'].includes(
@@ -1717,10 +1843,10 @@ async function startServer() {
       if (growthStage === 'harvested') crop.status = 'harvested';
     }
     if (harvestedQuantityKg !== undefined) {
-      crop.harvestedQuantityKg = Math.max(0, Number(harvestedQuantityKg));
+      crop.harvestedQuantityKg = Math.max(0, Number(harvestedQuantityKg) || 0);
     }
     if (estimatedValueZar !== undefined) {
-      crop.estimatedValueZar = Math.max(0, Number(estimatedValueZar));
+      crop.estimatedValueZar = Math.max(0, Number(estimatedValueZar) || 0);
     }
     crop.updatedAt = now;
 
@@ -1957,12 +2083,17 @@ async function startServer() {
   // Livestock Management & Analytics
   // ------------------------------------------------------------------
   app.get('/api/livestock/analytics', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'livestock');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'livestock');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have livestock access to this farm.' });
       return;
     }
+    const canSeeFinancial = (farmId: string) =>
+      user.roleCode !== 'agricultural_expert' ||
+      Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
+
     const groups = store.db.livestockGroups.filter(
       (g) => accessibleFarmIds.includes(g.farmId) && (!farmFilter || g.farmId === farmFilter)
     );
@@ -1975,13 +2106,18 @@ async function startServer() {
       return {
         category: cat,
         count: matched.reduce((s, g) => s + g.quantity, 0),
-        valueZar: matched.reduce((s, g) => s + g.quantity * g.estimatedUnitValueZar, 0),
+        valueZar: matched
+          .filter((g) => canSeeFinancial(g.farmId))
+          .reduce((s, g) => s + g.quantity * g.estimatedUnitValueZar, 0),
       };
     });
 
     const totalAnimals = groups.reduce((s, g) => s + g.quantity, 0);
     const estimatedLivestockValueZar = Number(
-      groups.reduce((s, g) => s + g.quantity * g.estimatedUnitValueZar, 0).toFixed(2)
+      groups
+        .filter((g) => canSeeFinancial(g.farmId))
+        .reduce((s, g) => s + g.quantity * g.estimatedUnitValueZar, 0)
+        .toFixed(2)
     );
     const births = records
       .filter((r) => r.recordType === 'Birth')
@@ -2009,12 +2145,17 @@ async function startServer() {
   });
 
   app.get('/api/livestock', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'livestock');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'livestock');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have livestock access to this farm.' });
       return;
     }
+    const canSeeFinancial = (farmId: string) =>
+      user.roleCode !== 'agricultural_expert' ||
+      Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
+
     const list = store.db.livestockGroups
       .filter(
         (g) => accessibleFarmIds.includes(g.farmId) && (!farmFilter || g.farmId === farmFilter)
@@ -2023,11 +2164,13 @@ async function startServer() {
         const farm = store.db.farms.find((f) => f.id === g.farmId);
         const field = store.db.fields.find((fl) => fl.id === g.fieldId);
         const records = store.db.livestockRecords.filter((r) => r.livestockGroupId === g.id);
+        const hideFinancial = !canSeeFinancial(g.farmId);
         return {
           ...g,
+          estimatedUnitValueZar: hideFinancial ? 0 : g.estimatedUnitValueZar,
           farmName: farm?.name || 'Farm',
           fieldName: field?.name || null,
-          totalValueZar: Number((g.quantity * g.estimatedUnitValueZar).toFixed(2)),
+          totalValueZar: hideFinancial ? 0 : Number((g.quantity * g.estimatedUnitValueZar).toFixed(2)),
           recordCount: records.length,
         };
       });
@@ -2130,7 +2273,14 @@ async function startServer() {
 
     if (groupName) group.groupName = String(groupName).trim();
     if (breed) group.breed = String(breed).trim();
-    if (quantity !== undefined) group.quantity = Math.max(0, Number(quantity));
+    if (quantity !== undefined) {
+      const parsedQty = Number(quantity);
+      if (!Number.isFinite(parsedQty) || parsedQty < 0) {
+        res.status(400).json({ error: 'Livestock quantity must be a non-negative number.' });
+        return;
+      }
+      group.quantity = Math.round(parsedQty);
+    }
     if (identificationNumber !== undefined) group.identificationNumber = String(identificationNumber);
     if (
       healthStatus &&
@@ -2142,7 +2292,12 @@ async function startServer() {
     if (grazingInformation !== undefined) group.grazingInformation = String(grazingInformation);
     if (housingInformation !== undefined) group.housingInformation = String(housingInformation);
     if (estimatedUnitValueZar !== undefined) {
-      group.estimatedUnitValueZar = Math.max(0, Number(estimatedUnitValueZar));
+      const parsedVal = Number(estimatedUnitValueZar);
+      if (!Number.isFinite(parsedVal) || parsedVal < 0) {
+        res.status(400).json({ error: 'Estimated unit value must be a non-negative number.' });
+        return;
+      }
+      group.estimatedUnitValueZar = Number(parsedVal.toFixed(2));
     }
     if (fieldId !== undefined) group.fieldId = fieldId || null;
     group.updatedAt = new Date().toISOString();
@@ -2194,7 +2349,13 @@ async function startServer() {
       res.status(403).json({ error: 'Access denied.' });
       return;
     }
-    res.json(store.db.livestockRecords.filter((r) => r.livestockGroupId === group.id));
+    const hideFinancial =
+      req.authUser!.roleCode === 'agricultural_expert' &&
+      !getActiveFarmGrantForExpert(req.authUser!.id, group.farmId)?.scopes.financialSummary;
+    const records = store.db.livestockRecords
+      .filter((r) => r.livestockGroupId === group.id)
+      .map((r) => (hideFinancial ? { ...r, valueZar: 0 } : r));
+    res.json(records);
   });
 
   app.post('/api/livestock/:id/records', requireAuth, (req: AuthRequest, res) => {
@@ -2270,7 +2431,8 @@ async function startServer() {
   // Mixed Farming Management (Shared Land, Feed, Water, Combined Finances)
   // ------------------------------------------------------------------
   app.get('/api/mixed-farming/summary', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'overview');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'overview');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'Access denied for this farm.' });
@@ -2279,6 +2441,10 @@ async function startServer() {
     const targetIds = farmFilter
       ? accessibleFarmIds.filter((id) => id === farmFilter)
       : accessibleFarmIds;
+
+    const canSeeFinancial = (farmId: string) =>
+      user.roleCode !== 'agricultural_expert' ||
+      Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
 
     const farms = store.db.farms.filter((f) => targetIds.includes(f.id));
     const crops = store.db.crops.filter((c) => targetIds.includes(c.farmId));
@@ -2297,12 +2463,23 @@ async function startServer() {
         .toFixed(2)
     );
 
-    const cropValueZar = Number(crops.reduce((s, c) => s + c.estimatedValueZar, 0).toFixed(2));
+    const cropValueZar = Number(
+      crops
+        .filter((c) => canSeeFinancial(c.farmId))
+        .reduce((s, c) => s + c.estimatedValueZar, 0)
+        .toFixed(2)
+    );
     const livestockValueZar = Number(
-      livestock.reduce((s, g) => s + g.quantity * g.estimatedUnitValueZar, 0).toFixed(2)
+      livestock
+        .filter((g) => canSeeFinancial(g.farmId))
+        .reduce((s, g) => s + g.quantity * g.estimatedUnitValueZar, 0)
+        .toFixed(2)
     );
     const combinedExpensesZar = Number(
-      entries.reduce((s, e) => s + e.expenseZar, 0).toFixed(2)
+      entries
+        .filter((e) => canSeeFinancial(e.farmId))
+        .reduce((s, e) => s + e.expenseZar, 0)
+        .toFixed(2)
     );
     const totalWaterManagedLiters = Number(
       entries.reduce((s, e) => s + e.waterLiters, 0).toFixed(0)
@@ -2330,19 +2507,27 @@ async function startServer() {
   });
 
   app.get('/api/mixed-farming', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'overview');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'overview');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'Access denied for this farm.' });
       return;
     }
+    const canSeeFinancial = (farmId: string) =>
+      user.roleCode !== 'agricultural_expert' ||
+      Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
     const entries = store.db.mixedFarmingEntries
       .filter(
         (e) => accessibleFarmIds.includes(e.farmId) && (!farmFilter || e.farmId === farmFilter)
       )
       .map((e) => {
         const farm = store.db.farms.find((f) => f.id === e.farmId);
-        return { ...e, farmName: farm?.name || 'Farm' };
+        return {
+          ...e,
+          expenseZar: canSeeFinancial(e.farmId) ? e.expenseZar : 0,
+          farmName: farm?.name || 'Farm',
+        };
       });
     res.json(entries);
   });
@@ -2909,7 +3094,14 @@ async function startServer() {
       res.json(result);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'AI advisory failed.';
-      res.status(500).json({ error: msg });
+      const status = msg.includes('timed out')
+        ? 504
+        : msg.includes('quota')
+        ? 429
+        : msg.includes('permission denied')
+        ? 403
+        : 500;
+      res.status(status).json({ error: msg });
     }
   });
 
@@ -2956,7 +3148,14 @@ async function startServer() {
       res.json(report);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'AI analytics generation failed.';
-      res.status(500).json({ error: msg });
+      const status = msg.includes('timed out')
+        ? 504
+        : msg.includes('quota')
+        ? 429
+        : msg.includes('permission denied')
+        ? 403
+        : 500;
+      res.status(status).json({ error: msg });
     }
   });
 
@@ -3165,8 +3364,8 @@ async function startServer() {
       languageCode,
     } = req.body || {};
 
-    if (!farmId || !userCanAccessFarm(req.authUser!, String(farmId), 'aiInsights')) {
-      res.status(403).json({ error: 'Please select a valid farm you can access.' });
+    if (!farmId || !userCanModifyFarm(req.authUser!, String(farmId))) {
+      res.status(403).json({ error: 'You do not have permission to record visual analyses on this farm.' });
       return;
     }
 
@@ -3529,14 +3728,37 @@ async function startServer() {
       return;
     }
 
+    if (movementType === 'damage') {
+      const remainingHealthy = Math.max(0, crop.plantingQuantity - crop.damagedPlants);
+      if (qty > remainingHealthy) {
+        res.status(400).json({
+          error: `Damaged plants (${qty}) cannot exceed remaining healthy plants (${remainingHealthy}).`,
+        });
+        return;
+      }
+    }
+
+    if (movementType === 'sale' || movementType === 'spoilage') {
+      const { storedKg } = computeCropStoredAndSold(crop);
+      if (qty > storedKg) {
+        res.status(400).json({
+          error: `Cannot record ${movementType} of ${qty} kg because only ${storedKg} kg is currently stored.`,
+        });
+        return;
+      }
+    }
+
     const movement = recordCropStockMovement({
       crop,
       actorUserId: req.authUser!.id,
       movementType,
-      movementDate: String(movementDate || new Date().toISOString().slice(0, 10)),
+      movementDate: String(movementDate || getSastDateString()),
       quantity: qty,
       unit: String(unit || (movementType === 'damage' || movementType === 'planting' ? 'plants' : 'kg')),
-      unitPriceZar: unitPriceZar !== undefined ? Number(unitPriceZar) : undefined,
+      unitPriceZar:
+        unitPriceZar !== undefined && Number.isFinite(Number(unitPriceZar))
+          ? Math.max(0, Number(unitPriceZar))
+          : undefined,
       notes: String(notes || `Stock movement (${movementType})`),
     });
 
@@ -3581,12 +3803,18 @@ async function startServer() {
       return;
     }
 
+    const parsedPrice = Number(unitPriceZar);
+    if (!Number.isFinite(parsedPrice) || parsedPrice < 0) {
+      res.status(400).json({ error: 'Unit price must be a non-negative number.' });
+      return;
+    }
+
     const updated = updateStockUnitPrice({
       user: req.authUser!,
       farmId: String(farmId),
       entityType,
       entityId: String(entityId),
-      unitPriceZar: Number(unitPriceZar) || 0,
+      unitPriceZar: parsedPrice,
       unitLabel: String(unitLabel || 'unit'),
       priceSource: String(priceSource || 'Farmer-entered unit price'),
     });
@@ -3611,13 +3839,22 @@ async function startServer() {
   ];
 
   app.get('/api/incidents', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'incidents');
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'incidents');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have incident access to this farm.' });
       return;
     }
-    res.json(buildIncidentDashboard(accessibleFarmIds, farmFilter));
+    const redactFinancialFarmIds =
+      user.roleCode === 'agricultural_expert'
+        ? new Set(
+            accessibleFarmIds.filter(
+              (fid) => !getActiveFarmGrantForExpert(user.id, fid)?.scopes.financialSummary
+            )
+          )
+        : undefined;
+    res.json(buildIncidentDashboard(accessibleFarmIds, farmFilter, redactFinancialFarmIds));
   });
 
   app.post('/api/incidents', requireAuth, (req: AuthRequest, res) => {
@@ -3691,6 +3928,7 @@ async function startServer() {
             .filter(Boolean)
         : [],
       status: ['active', 'monitoring', 'resolved'].includes(status) ? status : 'active',
+      ipAddress: req.ip || '127.0.0.1',
     });
 
     store.save();
@@ -3759,10 +3997,11 @@ async function startServer() {
     const followUp = addIncidentFollowUp({
       incident,
       user: req.authUser!,
-      followUpDate: String(followUpDate || new Date().toISOString().slice(0, 10)),
+      followUpDate: String(followUpDate || getSastDateString()),
       statusAfter: validStatus,
       actionTaken: actionTaken.trim(),
       notes: String(notes || '').trim(),
+      ipAddress: req.ip || '127.0.0.1',
     });
     store.save();
     res.status(201).json({ followUp, incident });
@@ -3915,7 +4154,10 @@ async function startServer() {
       res.status(404).json({ error: 'Business plan not found.' });
       return;
     }
-    if (plan.ownerId !== req.authUser!.id && req.authUser!.roleCode !== 'system_administrator') {
+    const canAdminPrivate =
+      req.authUser!.roleCode === 'system_administrator' &&
+      req.authUser!.permissions.includes('admin:private_farmer_records');
+    if (plan.ownerId !== req.authUser!.id && !canAdminPrivate) {
       res.status(403).json({ error: 'You do not have permission to edit this business plan.' });
       return;
     }
@@ -3968,7 +4210,10 @@ async function startServer() {
       res.status(404).json({ error: 'Business plan not found.' });
       return;
     }
-    if (plan.ownerId !== req.authUser!.id && req.authUser!.roleCode !== 'system_administrator') {
+    const canAdminPrivate =
+      req.authUser!.roleCode === 'system_administrator' &&
+      req.authUser!.permissions.includes('admin:private_farmer_records');
+    if (plan.ownerId !== req.authUser!.id && !canAdminPrivate) {
       res.status(403).json({ error: 'Access denied.' });
       return;
     }
@@ -4147,6 +4392,27 @@ async function startServer() {
           .filter(Boolean)
       : [];
 
+    const maxMediaMb = store.db.systemConfig?.application?.maxMediaUploadMb || 15;
+    const illustrationCheck = validateSafeMediaDataUrl(
+      typeof customIllustrationDataUrl === 'string' ? customIllustrationDataUrl : null,
+      maxMediaMb,
+      false
+    );
+    if (!illustrationCheck.valid) {
+      res.status(400).json({ error: illustrationCheck.error || 'Unsafe custom illustration format.' });
+      return;
+    }
+
+    let safeVideoUrl: string | null = null;
+    if (typeof videoUrl === 'string' && videoUrl.trim()) {
+      const candidate = videoUrl.trim();
+      if (!/^https?:\/\//i.test(candidate)) {
+        res.status(400).json({ error: 'Video URL must use https:// or http:// protocol.' });
+        return;
+      }
+      safeVideoUrl = candidate;
+    }
+
     const newMaterial: LearningMaterial = {
       id,
       slug,
@@ -4160,11 +4426,8 @@ async function startServer() {
         ? difficulty
         : 'beginner') as LearningDifficulty,
       illustrationKey: String(illustrationKey || 'soil_crops'),
-      customIllustrationDataUrl:
-        typeof customIllustrationDataUrl === 'string' && customIllustrationDataUrl.startsWith('data:image/')
-          ? customIllustrationDataUrl
-          : null,
-      videoUrl: typeof videoUrl === 'string' && videoUrl.trim() ? videoUrl.trim() : null,
+      customIllustrationDataUrl: illustrationCheck.sanitizedUrl || null,
+      videoUrl: safeVideoUrl,
       videoDurationLabel: videoDurationLabel ? String(videoDurationLabel).trim() : undefined,
       videoSlides: [],
       sourceAttribution: String(
@@ -4253,7 +4516,33 @@ async function startServer() {
       material.difficulty = difficulty;
     }
     if (illustrationKey) material.illustrationKey = String(illustrationKey);
-    if (videoUrl !== undefined) material.videoUrl = videoUrl ? String(videoUrl).trim() : null;
+    if (req.body?.customIllustrationDataUrl !== undefined) {
+      const maxMediaMb = store.db.systemConfig?.application?.maxMediaUploadMb || 15;
+      const illustrationCheck = validateSafeMediaDataUrl(
+        typeof req.body.customIllustrationDataUrl === 'string'
+          ? req.body.customIllustrationDataUrl
+          : null,
+        maxMediaMb,
+        false
+      );
+      if (!illustrationCheck.valid) {
+        res.status(400).json({ error: illustrationCheck.error || 'Unsafe custom illustration format.' });
+        return;
+      }
+      material.customIllustrationDataUrl = illustrationCheck.sanitizedUrl || null;
+    }
+    if (videoUrl !== undefined) {
+      if (videoUrl && typeof videoUrl === 'string' && videoUrl.trim()) {
+        const candidate = videoUrl.trim();
+        if (!/^https?:\/\//i.test(candidate)) {
+          res.status(400).json({ error: 'Video URL must use https:// or http:// protocol.' });
+          return;
+        }
+        material.videoUrl = candidate;
+      } else {
+        material.videoUrl = null;
+      }
+    }
     if (videoDurationLabel !== undefined) material.videoDurationLabel = String(videoDurationLabel);
     if (sourceAttribution !== undefined) material.sourceAttribution = String(sourceAttribution).trim();
     if (typeof verifiedOfficialReference === 'boolean') {
@@ -4553,7 +4842,28 @@ async function startServer() {
     }
 
     try {
-      const accessibleFarmIds = getAccessibleFarmIds(user);
+      let accessibleFarmIds: string[];
+      if (user.roleCode === 'organisation_manager') {
+        const org = getUserOrganisation(user.id);
+        const existingFarmIds = new Set(store.db.farms.map((f) => f.id));
+        accessibleFarmIds = org
+          ? Array.from(
+              new Set(
+                store.db.farmAccessGrants
+                  .filter(
+                    (g) =>
+                      g.status === 'active' &&
+                      g.granteeType === 'organisation' &&
+                      g.organisationId === org.id &&
+                      existingFarmIds.has(g.farmId)
+                  )
+                  .map((g) => g.farmId)
+              )
+            )
+          : [];
+      } else {
+        accessibleFarmIds = getAccessibleFarmIds(user);
+      }
       const result = generateAndSaveReport({
         user,
         accessibleFarmIds,
@@ -4563,6 +4873,7 @@ async function startServer() {
         endDate: endDate ? String(endDate) : '',
         farmingCategory: farmingCategory ? String(farmingCategory) : 'all',
         aggregateOrganisation: Boolean(aggregateOrganisation),
+        ipAddress: req.ip || '127.0.0.1',
       });
       res.json(result);
     } catch (err: unknown) {
@@ -5580,6 +5891,7 @@ async function startServer() {
       user: req.authUser!,
       canModifyFarm: userCanModifyFarm,
       mutations,
+      ipAddress: req.ip || '127.0.0.1',
     });
     res.json(result);
   });
@@ -5588,8 +5900,13 @@ async function startServer() {
   // Frontend Serving (Vite Dev Middleware or Production Static Dist)
   // ------------------------------------------------------------------
   if (process.env.NODE_ENV !== 'production') {
+    const hmrEnabled = process.env.ENABLE_HMR === 'true' && process.env.DISABLE_HMR !== 'true';
     const vite = await createViteServer({
-      server: { middlewareMode: true },
+      server: {
+        middlewareMode: true,
+        hmr: hmrEnabled,
+        ws: hmrEnabled ? undefined : (false as const),
+      },
       appType: 'spa',
     });
     app.use(vite.middlewares);

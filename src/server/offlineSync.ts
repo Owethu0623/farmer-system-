@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
-import { computeBusinessPlanMetrics } from './businessPlanner.ts';
+import { BUSINESS_ENTERPRISE_TEMPLATES, computeBusinessPlanMetrics } from './businessPlanner.ts';
+import { getActiveFarmGrantForExpert } from './expertPortal.ts';
 import { createFarmIncident } from './incidents.ts';
 import { resolveMaterialForUser } from './learningCentre.ts';
 import { validateSafeMediaDataUrl } from './privacy.ts';
@@ -81,13 +82,23 @@ export function buildOfflineBundle(params: {
       };
     });
 
+  const hasExpertScope = (
+    farmId: string,
+    scope: 'overview' | 'crops' | 'livestock' | 'incidents' | 'weather' | 'financialSummary'
+  ) => {
+    if (user.roleCode !== 'agricultural_expert') return true;
+    return Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes[scope]);
+  };
+
   const crops = store.db.crops
-    .filter((c) => targetSet.has(c.farmId))
+    .filter((c) => targetSet.has(c.farmId) && hasExpertScope(c.farmId, 'crops'))
     .map((c) => {
       const farm = store.db.farms.find((f) => f.id === c.farmId);
       const field = store.db.fields.find((fl) => fl.id === c.fieldId);
+      const hideFinancial = !hasExpertScope(c.farmId, 'financialSummary');
       return {
         ...c,
+        estimatedValueZar: hideFinancial ? 0 : c.estimatedValueZar,
         farmName: farm?.name || 'Farm',
         fieldName: field?.name || 'General Farm Block',
         remainingPlants: Math.max(0, c.plantingQuantity - c.damagedPlants),
@@ -96,47 +107,117 @@ export function buildOfflineBundle(params: {
     });
 
   const cropActivities = store.db.cropActivities
-    .filter((a) => targetSet.has(a.farmId))
-    .slice(0, 120);
+    .filter((a) => targetSet.has(a.farmId) && hasExpertScope(a.farmId, 'crops'))
+    .slice(0, 120)
+    .map((a) =>
+      hasExpertScope(a.farmId, 'financialSummary') ? a : { ...a, valueZar: 0 }
+    );
 
   const livestockGroups = store.db.livestockGroups
-    .filter((g) => targetSet.has(g.farmId))
+    .filter((g) => targetSet.has(g.farmId) && hasExpertScope(g.farmId, 'livestock'))
     .map((g) => {
       const farm = store.db.farms.find((f) => f.id === g.farmId);
       const field = store.db.fields.find((fl) => fl.id === g.fieldId);
+      const hideFinancial = !hasExpertScope(g.farmId, 'financialSummary');
       return {
         ...g,
+        estimatedUnitValueZar: hideFinancial ? 0 : g.estimatedUnitValueZar,
         farmName: farm?.name || 'Farm',
         fieldName: field?.name || null,
-        totalValueZar: Number((g.quantity * g.estimatedUnitValueZar).toFixed(2)),
+        totalValueZar: hideFinancial ? 0 : Number((g.quantity * g.estimatedUnitValueZar).toFixed(2)),
         recordCount: store.db.livestockRecords.filter((r) => r.livestockGroupId === g.id).length,
       };
     });
 
   const livestockRecords = store.db.livestockRecords
-    .filter((r) => targetSet.has(r.farmId))
-    .slice(0, 120);
+    .filter((r) => targetSet.has(r.farmId) && hasExpertScope(r.farmId, 'livestock'))
+    .slice(0, 120)
+    .map((r) =>
+      hasExpertScope(r.farmId, 'financialSummary') ? r : { ...r, valueZar: 0 }
+    );
 
-  const stockOverview = buildStockOverview(targetFarmIds, null);
+  const rawStockOverview = buildStockOverview(targetFarmIds, null);
+  const allFinancialAllowed = targetFarmIds.every((fid) =>
+    hasExpertScope(fid, 'financialSummary')
+  );
+  const stockOverview = allFinancialAllowed
+    ? rawStockOverview
+    : {
+        ...rawStockOverview,
+        pricingDisclaimer:
+          'Financial valuation figures are redacted where the farmer has not granted financialSummary permission.',
+        totals: {
+          ...rawStockOverview.totals,
+          totalCropStockValueZar: 0,
+          totalLivestockValueZar: 0,
+          totalHarvestValueZar: 0,
+          totalStoredProductionValueZar: 0,
+          totalDamagedStockValueZar: 0,
+          totalRemainingStockValueZar: 0,
+          netStockValueChangeZar: 0,
+        },
+        cropStocks: rawStockOverview.cropStocks
+          .filter((row) => hasExpertScope(row.farmId, 'crops'))
+          .map((row) =>
+            hasExpertScope(row.farmId, 'financialSummary')
+              ? row
+              : {
+                  ...row,
+                  plantUnitPriceZar: 0,
+                  harvestUnitPriceZar: 0,
+                  priceSource: 'Redacted (Farmer financialSummary scope not granted)',
+                  initialPlantedValueZar: 0,
+                  damagedStockValueZar: 0,
+                  remainingStandingValueZar: 0,
+                  estimatedHarvestValueZar: 0,
+                  storedStockValueZar: 0,
+                  salesValueZar: 0,
+                  netStockValueChangeZar: 0,
+                }
+          ),
+        livestockStocks: rawStockOverview.livestockStocks
+          .filter((row) => hasExpertScope(row.farmId, 'livestock'))
+          .map((row) =>
+            hasExpertScope(row.farmId, 'financialSummary')
+              ? row
+              : {
+                  ...row,
+                  unitPriceZar: 0,
+                  priceSource: 'Redacted (Farmer financialSummary scope not granted)',
+                  remainingValueZar: 0,
+                  deathLossValueZar: 0,
+                  netValueChangeZar: 0,
+                }
+          ),
+      };
+
   const incidents = store.db.farmIncidents
-    .filter((inc) => targetSet.has(inc.farmId))
+    .filter((inc) => targetSet.has(inc.farmId) && hasExpertScope(inc.farmId, 'incidents'))
     .slice(0, 80)
     .map((inc) => ({
       ...inc,
+      estimatedFinancialImpactZar: hasExpertScope(inc.farmId, 'financialSummary')
+        ? inc.estimatedFinancialImpactZar
+        : 0,
       // Omit large embedded data URLs inside bulk offline pack to keep browser storage fast
       mediaPreviewDataUrl: null,
       farmName: store.db.farms.find((f) => f.id === inc.farmId)?.name || 'Farm',
     }));
 
   const weatherSnapshots = farms.map((farm) => {
-    const forecasts = store.db.weatherForecastRecords
-      .filter((w) => w.farmId === farm.id)
-      .sort((a, b) => b.forecastDate.localeCompare(a.forecastDate))
-      .slice(0, 7);
-    const recentObservations = store.db.weatherObservations
-      .filter((o) => o.farmId === farm.id)
-      .sort((a, b) => b.observationDate.localeCompare(a.observationDate))
-      .slice(0, 10);
+    const canWeather = hasExpertScope(farm.id, 'weather');
+    const forecasts = canWeather
+      ? store.db.weatherForecastRecords
+          .filter((w) => w.farmId === farm.id)
+          .sort((a, b) => b.forecastDate.localeCompare(a.forecastDate))
+          .slice(0, 7)
+      : [];
+    const recentObservations = canWeather
+      ? store.db.weatherObservations
+          .filter((o) => o.farmId === farm.id)
+          .sort((a, b) => b.observationDate.localeCompare(a.observationDate))
+          .slice(0, 10)
+      : [];
     return {
       farmId: farm.id,
       farmName: farm.name,
@@ -147,7 +228,7 @@ export function buildOfflineBundle(params: {
   });
 
   const businessPlans = store.db.businessPlans
-    .filter((bp) => bp.ownerId === user.id || (bp.farmId && targetSet.has(bp.farmId)))
+    .filter((bp) => bp.ownerId === user.id || (bp.farmId && targetSet.has(bp.farmId) && hasExpertScope(bp.farmId, 'financialSummary')))
     .map((bp) => ({
       ...bp,
       farmName: bp.farmId
@@ -178,6 +259,7 @@ export function buildOfflineBundle(params: {
     incidents,
     weatherSnapshots,
     businessPlans,
+    businessPlanTemplates: BUSINESS_ENTERPRISE_TEMPLATES,
     learningGuides,
   };
 }
@@ -186,6 +268,7 @@ export function processOfflineSyncBatch(params: {
   user: SanitizedUser;
   canModifyFarm: (user: SanitizedUser, farmId: string) => boolean;
   mutations: OfflineMutationInput[];
+  ipAddress?: string;
 }): { results: OfflineSyncItemResult[]; syncedAt: string } {
   const { user, canModifyFarm, mutations } = params;
   const results: OfflineSyncItemResult[] = [];
@@ -371,6 +454,8 @@ export function processOfflineSyncBatch(params: {
           });
           continue;
         }
+        const prevDamaged = crop.damagedPlants;
+        const prevHarvested = crop.harvestedQuantityKg;
         if (
           typeof p.growthStage === 'string' &&
           ['planted', 'germination', 'vegetative', 'flowering', 'fruiting', 'mature', 'harvested'].includes(
@@ -378,14 +463,55 @@ export function processOfflineSyncBatch(params: {
           )
         ) {
           crop.growthStage = p.growthStage as CropGrowthStage;
+          if (p.growthStage === 'harvested') crop.status = 'harvested';
         }
         if (p.damagedPlants !== undefined) {
-          crop.damagedPlants = Math.max(0, Number(p.damagedPlants) || 0);
+          crop.damagedPlants = Math.max(0, Math.min(crop.plantingQuantity, Number(p.damagedPlants) || 0));
         }
         if (p.harvestedQuantityKg !== undefined) {
           crop.harvestedQuantityKg = Math.max(0, Number(p.harvestedQuantityKg) || 0);
         }
         crop.updatedAt = now;
+        if (crop.damagedPlants !== prevDamaged) {
+          const dmgDelta = crop.damagedPlants - prevDamaged;
+          store.db.cropStockMovements.unshift({
+            id: `csm-${crypto.randomUUID()}`,
+            cropId: crop.id,
+            farmId: crop.farmId,
+            actorUserId: user.id,
+            movementType: dmgDelta > 0 ? 'damage' : 'adjustment',
+            movementDate: now.slice(0, 10),
+            quantityDelta: -dmgDelta,
+            unit: 'plants',
+            unitPriceZar: 0,
+            totalValueZar: 0,
+            resultingRemainingPlants: Math.max(0, crop.plantingQuantity - crop.damagedPlants),
+            resultingStoredKg: null,
+            notes: `Damaged plants updated via offline crop edit (${prevDamaged} -> ${crop.damagedPlants}).`,
+            incidentId: null,
+            createdAt: now,
+          });
+        }
+        if (crop.harvestedQuantityKg !== prevHarvested) {
+          const kgDelta = Number((crop.harvestedQuantityKg - prevHarvested).toFixed(2));
+          store.db.cropStockMovements.unshift({
+            id: `csm-${crypto.randomUUID()}`,
+            cropId: crop.id,
+            farmId: crop.farmId,
+            actorUserId: user.id,
+            movementType: kgDelta > 0 ? 'harvest' : 'adjustment',
+            movementDate: now.slice(0, 10),
+            quantityDelta: kgDelta,
+            unit: 'kg',
+            unitPriceZar: 0,
+            totalValueZar: 0,
+            resultingRemainingPlants: null,
+            resultingStoredKg: crop.harvestedQuantityKg,
+            notes: `Harvested kg updated via offline crop edit (${prevHarvested} -> ${crop.harvestedQuantityKg} kg).`,
+            incidentId: null,
+            createdAt: now,
+          });
+        }
         serverEntityId = crop.id;
         message = `Updated ${crop.cropName} from offline edit.`;
       } else if (item.mutationType === 'livestock_record') {
@@ -550,6 +676,7 @@ export function processOfflineSyncBatch(params: {
           status: ['active', 'monitoring', 'resolved'].includes(String(p.status))
             ? (String(p.status) as 'active' | 'monitoring' | 'resolved')
             : 'active',
+          ipAddress: params.ipAddress,
         });
         serverEntityId = inc.id;
         message = `Synced incident "${inc.title}".`;
@@ -724,7 +851,7 @@ export function processOfflineSyncBatch(params: {
       conflicts: results.filter((r) => r.status === 'conflict').length,
       errors: results.filter((r) => r.status === 'error').length,
     },
-    '127.0.0.1'
+    params.ipAddress || '127.0.0.1'
   );
   store.save();
 

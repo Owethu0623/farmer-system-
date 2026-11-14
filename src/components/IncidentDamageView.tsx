@@ -17,6 +17,7 @@ import {
   isLikelyOfflineError,
   loadOfflineBundle,
 } from '../lib/offlineSync';
+import { getSastDateString, getSastDatetimeLocalInput } from '../lib/saTime';
 import {
   CropItem,
   FarmIncidentItem,
@@ -139,7 +140,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
   const [formLivestockId, setFormLivestockId] = useState('');
   const [formType, setFormType] = useState<IncidentType>('storm_damage');
   const [formTitle, setFormTitle] = useState('');
-  const [formOccurredAt, setFormOccurredAt] = useState(new Date().toISOString().slice(0, 16));
+  const [formOccurredAt, setFormOccurredAt] = useState(getSastDatetimeLocalInput());
   const [formDescription, setFormDescription] = useState('');
   const [formAffectedQty, setFormAffectedQty] = useState('0');
   const [formAffectedUnit, setFormAffectedUnit] = useState('plants');
@@ -154,7 +155,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
   // Follow-up Modal
   const [followUpIncident, setFollowUpIncident] = useState<FarmIncidentItem | null>(null);
-  const [fuDate, setFuDate] = useState(new Date().toISOString().slice(0, 10));
+  const [fuDate, setFuDate] = useState(getSastDateString());
   const [fuStatusAfter, setFuStatusAfter] = useState<IncidentStatus>('monitoring');
   const [fuActionTaken, setFuActionTaken] = useState('');
   const [fuNotes, setFuNotes] = useState('');
@@ -181,6 +182,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
             : bundle.incidents;
           setDashboard({
             summary: {
+              totalIncidents: cachedInc.length,
               activeCount: cachedInc.filter((i) => i.status === 'active').length,
               monitoringCount: cachedInc.filter((i) => i.status === 'monitoring').length,
               resolvedCount: cachedInc.filter((i) => i.status === 'resolved').length,
@@ -188,11 +190,16 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                 (sum, i) => sum + (i.estimatedFinancialImpactZar || 0),
                 0
               ),
-              totalAffectedCropPlants: cachedInc.reduce((sum, i) => sum + (i.affectedQuantity || 0), 0),
-              totalAffectedLivestockHead: 0,
-              totalAffectedHectares: cachedInc.reduce(
-                (sum, i) => sum + (i.affectedAreaHectares || 0),
-                0
+              totalAffectedCropPlants: cachedInc
+                .filter((i) => i.cropId && (i.affectedUnit || '').toLowerCase().includes('plant'))
+                .reduce((sum, i) => sum + (i.affectedQuantity || 0), 0),
+              totalAffectedLivestockHead: cachedInc
+                .filter(
+                  (i) => i.livestockGroupId && (i.affectedUnit || '').toLowerCase().includes('head')
+                )
+                .reduce((sum, i) => sum + (i.affectedQuantity || 0), 0),
+              totalAffectedHectares: Number(
+                cachedInc.reduce((sum, i) => sum + (i.affectedAreaHectares || 0), 0).toFixed(2)
               ),
             },
             incidents: cachedInc,
@@ -663,7 +670,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                         onClick={() => {
                           setFollowUpIncident(inc);
                           setFuStatusAfter(inc.status);
-                          setFuDate(new Date().toISOString().slice(0, 10));
+                          setFuDate(getSastDateString());
                         }}
                         className="min-h-[38px] px-3.5 py-2 rounded-xl border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1.5 cursor-pointer"
                       >

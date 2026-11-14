@@ -9,7 +9,11 @@ import {
   SanitizedUser,
 } from './types.ts';
 
-export function buildIncidentDashboard(accessibleFarmIds: string[], farmFilter?: string | null) {
+export function buildIncidentDashboard(
+  accessibleFarmIds: string[],
+  farmFilter?: string | null,
+  redactFinancialFarmIds?: Set<string>
+) {
   const targetIds = farmFilter
     ? accessibleFarmIds.filter((id) => id === farmFilter)
     : accessibleFarmIds;
@@ -24,8 +28,10 @@ export function buildIncidentDashboard(accessibleFarmIds: string[], farmFilter?:
       const livestock = inc.livestockGroupId
         ? store.db.livestockGroups.find((g) => g.id === inc.livestockGroupId)
         : null;
+      const hideFinancial = Boolean(redactFinancialFarmIds?.has(inc.farmId));
       return {
         ...inc,
+        estimatedFinancialImpactZar: hideFinancial ? 0 : inc.estimatedFinancialImpactZar,
         farmName: farm?.name || 'Farm',
         fieldName: field?.name || null,
         cropName: crop ? `${crop.cropName} (${crop.cropVariety})` : null,
@@ -101,6 +107,7 @@ export function createFarmIncident(params: {
   estimatedFinancialImpactZar: number;
   recommendedActions: string[];
   status?: IncidentStatus;
+  ipAddress?: string;
 }): FarmIncident {
   const now = new Date().toISOString();
   const incId = `inc-${crypto.randomUUID()}`;
@@ -263,7 +270,7 @@ export function createFarmIncident(params: {
       remainingRecordedQuantity,
       estimatedFinancialImpactZar: impactZar,
     },
-    '127.0.0.1'
+    params.ipAddress || '127.0.0.1'
   );
 
   return incident;
@@ -276,6 +283,7 @@ export function addIncidentFollowUp(params: {
   statusAfter: IncidentStatus;
   actionTaken: string;
   notes: string;
+  ipAddress?: string;
 }): IncidentFollowUp {
   const now = new Date().toISOString();
   const followUp: IncidentFollowUp = {
@@ -300,7 +308,7 @@ export function addIncidentFollowUp(params: {
     'FarmIncident',
     params.incident.id,
     { farmId: params.incident.farmId, statusAfter: params.statusAfter, actionTaken: followUp.actionTaken },
-    '127.0.0.1'
+    params.ipAddress || '127.0.0.1'
   );
 
   return followUp;

@@ -15,6 +15,13 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import {
+  enqueueOfflineMutation,
+  getOfflineStaleness,
+  isLikelyOfflineError,
+  loadOfflineBundle,
+} from '../lib/offlineSync';
+import { getSastDateString } from '../lib/saTime';
+import {
   CropStockMovementType,
   CropStockRow,
   FarmItem,
@@ -24,6 +31,7 @@ import {
 } from '../types';
 
 interface StockInventoryViewProps {
+  userId?: string;
   farms: FarmItem[];
   selectedFarmId: string | null;
   onSelectFarm: (farmId: string | null) => void;
@@ -41,6 +49,7 @@ const MOVEMENT_TYPE_LABELS: Record<CropStockMovementType, string> = {
 };
 
 export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
+  userId,
   farms,
   selectedFarmId,
   onSelectFarm,
@@ -50,6 +59,8 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [isCacheStale, setIsCacheStale] = useState(false);
   const [ledgerTab, setLedgerTab] = useState<'crops' | 'livestock'>('crops');
 
   // Price editing modal
@@ -68,7 +79,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
   // Crop movement modal
   const [moveCrop, setMoveCrop] = useState<CropStockRow | null>(null);
   const [moveType, setMoveType] = useState<CropStockMovementType>('sale');
-  const [moveDate, setMoveDate] = useState(new Date().toISOString().slice(0, 10));
+  const [moveDate, setMoveDate] = useState(getSastDateString());
   const [moveQty, setMoveQty] = useState('');
   const [moveUnit, setMoveUnit] = useState('kg');
   const [movePrice, setMovePrice] = useState('');
@@ -78,7 +89,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
   // Livestock movement modal
   const [moveLivestock, setMoveLivestock] = useState<LivestockStockRow | null>(null);
   const [lvkRecType, setLvkRecType] = useState<LivestockRecordType>('Sale');
-  const [lvkRecDate, setLvkRecDate] = useState(new Date().toISOString().slice(0, 10));
+  const [lvkRecDate, setLvkRecDate] = useState(getSastDateString());
   const [lvkCount, setLvkCount] = useState('1');
   const [lvkProdAmount, setLvkProdAmount] = useState('0');
   const [lvkProdUnit, setLvkProdUnit] = useState('eggs');
@@ -92,12 +103,88 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       const qs = selectedFarmId ? `?farmId=${encodeURIComponent(selectedFarmId)}` : '';
       const data = await apiRequest<StockOverviewPayload>(`/api/stock/overview${qs}`);
       setOverview(data);
+      setCachedAt(null);
+      setIsCacheStale(false);
     } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(userId);
+        if (bundle?.stockOverview) {
+          const staleness = getOfflineStaleness(bundle);
+          const raw = bundle.stockOverview;
+          const cropStocks = selectedFarmId
+            ? raw.cropStocks.filter((c) => c.farmId === selectedFarmId)
+            : raw.cropStocks;
+          const livestockStocks = selectedFarmId
+            ? raw.livestockStocks.filter((l) => l.farmId === selectedFarmId)
+            : raw.livestockStocks;
+          const cropMovements = selectedFarmId
+            ? raw.cropMovements.filter((m) => m.farmId === selectedFarmId)
+            : raw.cropMovements;
+          const livestockMovements = selectedFarmId
+            ? raw.livestockMovements.filter((m) => m.farmId === selectedFarmId)
+            : raw.livestockMovements;
+          const totalCropStockValueZar = Number(
+            cropStocks.reduce((s, r) => s + r.remainingStandingValueZar, 0).toFixed(2)
+          );
+          const totalLivestockValueZar = Number(
+            livestockStocks.reduce((s, r) => s + r.remainingValueZar, 0).toFixed(2)
+          );
+          const totalHarvestValueZar = Number(
+            cropStocks.reduce((s, r) => s + r.estimatedHarvestValueZar, 0).toFixed(2)
+          );
+          const totalStoredProductionValueZar = Number(
+            cropStocks.reduce((s, r) => s + r.storedStockValueZar, 0).toFixed(2)
+          );
+          const totalDamagedStockValueZar = Number(
+            (
+              cropStocks.reduce((s, r) => s + r.damagedStockValueZar, 0) +
+              livestockStocks.reduce((s, r) => s + r.deathLossValueZar, 0)
+            ).toFixed(2)
+          );
+          const totalRemainingStockValueZar = Number(
+            (totalCropStockValueZar + totalStoredProductionValueZar + totalLivestockValueZar).toFixed(2)
+          );
+          const netStockValueChangeZar = Number(
+            (
+              cropStocks.reduce((s, r) => s + r.netStockValueChangeZar, 0) +
+              livestockStocks.reduce((s, r) => s + r.netValueChangeZar, 0)
+            ).toFixed(2)
+          );
+          setOverview({
+            ...raw,
+            totals: {
+              totalCropStockValueZar,
+              totalLivestockValueZar,
+              totalHarvestValueZar,
+              totalStoredProductionValueZar,
+              totalDamagedStockValueZar,
+              totalRemainingStockValueZar,
+              netStockValueChangeZar,
+              totalPlantedUnits: cropStocks.reduce((s, r) => s + r.originalPlantedQty, 0),
+              totalDamagedUnits: cropStocks.reduce((s, r) => s + r.damagedPlants, 0),
+              totalRemainingUnits: cropStocks.reduce((s, r) => s + r.remainingPlants, 0),
+              totalLivestockHead: livestockStocks.reduce((s, r) => s + r.currentQuantity, 0),
+            },
+            cropStocks,
+            livestockStocks,
+            cropMovements,
+            livestockMovements,
+          });
+          setCachedAt(bundle.downloadedAt);
+          setIsCacheStale(staleness.isBundleStale);
+          setSuccessMsg(
+            `Offline mode: viewing cached stock snapshot from ${new Date(
+              bundle.downloadedAt
+            ).toLocaleString()}. New movements will queue for sync.`
+          );
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : 'Unable to load stock & valuation data.');
     } finally {
       setLoading(false);
     }
-  }, [selectedFarmId]);
+  }, [selectedFarmId, userId]);
 
   useEffect(() => {
     loadStockOverview();
@@ -106,7 +193,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
   const handleOpenCropMovement = (row: CropStockRow, defaultType: CropStockMovementType = 'sale') => {
     setMoveCrop(row);
     setMoveType(defaultType);
-    setMoveDate(new Date().toISOString().slice(0, 10));
+    setMoveDate(getSastDateString());
     setMoveQty('');
     const isPlantMove = defaultType === 'damage' || defaultType === 'planting';
     setMoveUnit(isPlantMove ? 'plants' : 'kg');
@@ -138,6 +225,10 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       await loadStockOverview();
       onDataChanged();
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        setError('Updating stock unit prices requires an active internet connection.');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to update price.');
     } finally {
       setSubmitting(false);
@@ -166,6 +257,28 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       await loadStockOverview();
       onDataChanged();
     } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        await enqueueOfflineMutation({
+          userId,
+          mutationType: 'crop_stock_movement',
+          label: `${moveType} (${moveQty || 0} ${moveUnit}) for ${moveCrop.cropName}`,
+          farmId: moveCrop.farmId,
+          farmName: moveCrop.farmName,
+          payload: {
+            cropId: moveCrop.cropId,
+            movementType: moveType,
+            movementDate: moveDate,
+            quantity: Number(moveQty) || 0,
+            unit: moveUnit,
+            unitPriceZar: movePrice !== '' ? Number(movePrice) : undefined,
+            notes: moveNotes,
+          },
+        });
+        setMoveCrop(null);
+        setSuccessMsg('Offline: stock movement saved locally and queued for synchronisation.');
+        onDataChanged();
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to record stock movement.');
     } finally {
       setSubmitting(false);
@@ -175,7 +288,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
   const handleOpenLivestockMovement = (row: LivestockStockRow) => {
     setMoveLivestock(row);
     setLvkRecType('Sale');
-    setLvkRecDate(new Date().toISOString().slice(0, 10));
+    setLvkRecDate(getSastDateString());
     setLvkCount('1');
     setLvkProdAmount('0');
     setLvkProdUnit(row.animalType === 'Poultry' ? 'eggs' : row.animalType === 'Cattle' ? 'liters' : 'kg');
@@ -206,6 +319,29 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       await loadStockOverview();
       onDataChanged();
     } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        await enqueueOfflineMutation({
+          userId,
+          mutationType: 'livestock_record',
+          label: `${lvkRecType} (${lvkCount || 0} head) for ${moveLivestock.groupName}`,
+          farmId: moveLivestock.farmId,
+          farmName: moveLivestock.farmName,
+          payload: {
+            livestockGroupId: moveLivestock.livestockGroupId,
+            recordType: lvkRecType,
+            recordDate: lvkRecDate,
+            count: Number(lvkCount) || 0,
+            productionAmount: Number(lvkProdAmount) || 0,
+            productionUnit: lvkProdUnit,
+            valueZar: Number(lvkValueZar) || 0,
+            notes: lvkNotes || `Livestock ${lvkRecType} recorded via Stock & Inventory`,
+          },
+        });
+        setMoveLivestock(null);
+        setSuccessMsg('Offline: livestock stock movement saved locally and queued for sync.');
+        onDataChanged();
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to record livestock movement.');
     } finally {
       setSubmitting(false);
@@ -274,6 +410,18 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       </div>
 
       {/* Pricing Transparency & Valuation Date Banner */}
+      {cachedAt && (
+        <div
+          className={`rounded-2xl border px-4 py-3 text-xs ${
+            isCacheStale
+              ? 'bg-[#FFF6EB] border-[#E6C98A] text-[#7A4A0B]'
+              : 'bg-[#EDF5EF] border-[#BFD6C5] text-[#143326]'
+          }`}
+        >
+          <strong>Offline Cached Stock Snapshot ({isCacheStale ? 'Outdated Cache' : 'Saved Locally'}):</strong>{' '}
+          Downloaded <span className="font-mono">{new Date(cachedAt).toLocaleString()}</span>.
+        </div>
+      )}
       {overview && (
         <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-2xl p-4 flex flex-wrap items-start justify-between gap-3 text-xs text-[#143326]">
           <div className="flex items-start gap-2.5 max-w-3xl">

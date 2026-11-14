@@ -15,6 +15,7 @@ import {
   isLikelyOfflineError,
   loadOfflineBundle,
 } from '../lib/offlineSync';
+import { getSastDateString } from '../lib/saTime';
 import {
   CropActivityItem,
   CropActivityType,
@@ -87,7 +88,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
   // Activity Modal
   const [activityTargetCrop, setActivityTargetCrop] = useState<CropItem | null>(null);
   const [activityType, setActivityType] = useState<CropActivityType>('irrigation');
-  const [activityDate, setActivityDate] = useState(new Date().toISOString().slice(0, 10));
+  const [activityDate, setActivityDate] = useState(getSastDateString());
   const [activityQty, setActivityQty] = useState(0);
   const [activityUnit, setActivityUnit] = useState('liters');
   const [activityValZar, setActivityValZar] = useState(0);
@@ -117,7 +118,48 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
             farmFilter !== 'all'
               ? bundle.crops.filter((c) => c.farmId === farmFilter)
               : bundle.crops;
+          const cachedActs = (bundle.cropActivities || []).filter(
+            (a) => farmFilter === 'all' || a.farmId === farmFilter
+          );
           setCrops(cachedCrops);
+          const totalPlanted = cachedCrops.reduce((s, c) => s + (c.plantingQuantity || 0), 0);
+          const damagedPlants = cachedCrops.reduce((s, c) => s + (c.damagedPlants || 0), 0);
+          setAnalytics({
+            totalRegisteredCrops: cachedCrops.length,
+            totalCultivatedHectares: Number(
+              cachedCrops.reduce((s, c) => s + (c.cultivatedAreaHectares || 0), 0).toFixed(2)
+            ),
+            totalPlanted,
+            damagedPlants,
+            remainingPlants: Math.max(0, totalPlanted - damagedPlants),
+            totalHarvestedKg: Number(
+              cachedCrops.reduce((s, c) => s + (c.harvestedQuantityKg || 0), 0).toFixed(1)
+            ),
+            estimatedHarvestValueZar: Number(
+              cachedCrops.reduce((s, c) => s + (c.estimatedValueZar || 0), 0).toFixed(2)
+            ),
+            byCrop: cachedCrops.map((c) => ({
+              id: c.id,
+              cropName: c.cropName,
+              cropVariety: c.cropVariety,
+              cultivatedAreaHectares: c.cultivatedAreaHectares,
+              harvestedQuantityKg: c.harvestedQuantityKg,
+              estimatedValueZar: c.estimatedValueZar,
+              remainingPlants: Math.max(0, (c.plantingQuantity || 0) - (c.damagedPlants || 0)),
+              growthStage: c.growthStage,
+            })),
+            timeline: Array.from(
+              cachedActs.reduce((map, act) => {
+                const month = (act.activityDate || '').slice(0, 7) || 'Unknown';
+                const cur = map.get(month) || { month, harvestKg: 0, activitiesCount: 0, valueZar: 0 };
+                cur.activitiesCount += 1;
+                if (act.activityType === 'harvest') cur.harvestKg += Number(act.quantity || 0);
+                cur.valueZar += Number(act.valueZar || 0);
+                map.set(month, cur);
+                return map;
+              }, new Map<string, { month: string; harvestKg: number; activitiesCount: number; valueZar: number }>()).values()
+            ).sort((a, b) => a.month.localeCompare(b.month)),
+          });
           setNotice(`Showing cached crops downloaded at ${new Date(bundle.downloadedAt).toLocaleString()} (offline mode).`);
           setError(null);
           return;
@@ -146,7 +188,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
     setFormFieldId(defaultFarm?.fields[0]?.id || '');
     setCropName('');
     setCropVariety('');
-    setPlantingDate(new Date().toISOString().slice(0, 10));
+    setPlantingDate(getSastDateString());
     setPlantingQuantity(20000);
     setCultivatedArea(1.5);
     setSoilInfo('Red Loam · pH 6.3');
@@ -179,6 +221,17 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
     e.preventDefault();
     setError(null);
     setNotice(null);
+    if (
+      !Number.isFinite(plantingQuantity) ||
+      plantingQuantity < 0 ||
+      !Number.isFinite(cultivatedArea) ||
+      cultivatedArea < 0 ||
+      !Number.isFinite(estimatedValueZar) ||
+      estimatedValueZar < 0
+    ) {
+      setError('Planting quantity, cultivated area, and estimated value must be valid non-negative numbers.');
+      return;
+    }
     if (expectedHarvestDate && plantingDate && expectedHarvestDate < plantingDate) {
       setError('Expected harvest date cannot be earlier than the planting date.');
       return;
@@ -233,7 +286,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
     setActivityTargetCrop(crop);
     setActivityType('irrigation');
     setActivityUnit('liters');
-    setActivityDate(new Date().toISOString().slice(0, 10));
+    setActivityDate(getSastDateString());
     setActivityQty(0);
     setActivityValZar(0);
     setActivityNotes('');

@@ -16,6 +16,7 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { useOnlineStatus } from '../hooks/useOnlineStatus';
+import { getSastDateString } from '../lib/saTime';
 import {
   downloadAndStoreOfflineBundle,
   enqueueOfflineMutation,
@@ -92,14 +93,14 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
   // Offline quick-capture form states
   const [capCropId, setCapCropId] = useState('');
   const [capActType, setCapActType] = useState<CropActivityType>('irrigation');
-  const [capActDate, setCapActDate] = useState(new Date().toISOString().slice(0, 10));
+  const [capActDate, setCapActDate] = useState(getSastDateString());
   const [capActQty, setCapActQty] = useState('120');
   const [capActUnit, setCapActUnit] = useState('liters');
   const [capActNotes, setCapActNotes] = useState('');
 
   const [capLivestockId, setCapLivestockId] = useState('');
   const [capRecType, setCapRecType] = useState<LivestockRecordType>('Feeding');
-  const [capRecDate, setCapRecDate] = useState(new Date().toISOString().slice(0, 10));
+  const [capRecDate, setCapRecDate] = useState(getSastDateString());
   const [capRecCount, setCapRecCount] = useState('1');
   const [capRecNotes, setCapRecNotes] = useState('');
 
@@ -534,7 +535,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                   <div className="min-w-0">
                     <p className="font-semibold text-sm text-[#143326] truncate">{farm.name}</p>
                     <p className="text-xs text-[#4A5A50] truncate">
-                      {farm.province} · <span className="font-mono">{farm.farmSizeHectares} ha</span>
+                      {farm.location?.province || 'South Africa'} · <span className="font-mono">{farm.farmSizeHectares} ha</span>
                     </p>
                   </div>
                 </label>
@@ -1012,7 +1013,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                     <div>
                       <p className="font-display font-bold text-[#143326]">{farm.name}</p>
                       <p className="text-xs text-[#4A5A50]">
-                        {farm.province} · {farm.district}
+                        {farm.location?.province || 'South Africa'} · {farm.location?.districtMunicipality || 'District'}
                       </p>
                     </div>
                     <span className="font-mono text-xs font-bold tabular-nums text-[#1B4332]">
@@ -1026,7 +1027,7 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                     <div className="pt-2 border-t border-[#E2E6DF] space-y-1">
                       {farm.fields.map((fld) => (
                         <p key={fld.id} className="text-xs font-mono text-[#4A5A50]">
-                          • {fld.name}: {fld.areaHectares} ha ({fld.fieldType})
+                          • {fld.name}: {fld.areaHectares} ha ({fld.cropOrLivestock || fld.status})
                         </p>
                       ))}
                     </div>
@@ -1122,9 +1123,9 @@ export const OfflineSyncView: React.FC<OfflineSyncViewProps> = ({
                         <div key={f.id} className="bg-[#F6F7F4] rounded-lg p-2.5 font-mono tabular-nums">
                           <p className="font-semibold text-[#143326]">{f.forecastDate}</p>
                           <p className="text-[#35443B]">
-                            {f.tempMinC}°–{f.tempMaxC}°C · {f.predictedRainfallMm} mm
+                            {f.predictedTempMinC}°–{f.predictedTempMaxC}°C · {f.predictedRainfallMm} mm
                           </p>
-                          <p className="font-sans text-[11px] text-[#4A5A50] truncate">{f.conditionSummary}</p>
+                          <p className="font-sans text-[11px] text-[#4A5A50] truncate">{f.weatherDescription}</p>
                         </div>
                       ))}
                     </div>

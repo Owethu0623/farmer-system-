@@ -163,6 +163,10 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
   const handleSaveFarm = async (e: React.FormEvent) => {
     e.preventDefault();
     setFarmError(null);
+    if (!Number.isFinite(formSizeHa) || formSizeHa < 0 || !Number.isFinite(formExpYears) || formExpYears < 0) {
+      setFarmError('Farm size (ha) and years of experience must be valid non-negative numbers.');
+      return;
+    }
     setSavingFarm(true);
     const payload = {
       name: formName,
@@ -275,6 +279,10 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
   const handleSaveField = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!activeFarm) return;
+    if (!Number.isFinite(fieldArea) || fieldArea < 0) {
+      setFarmError('Field area must be a valid non-negative number.');
+      return;
+    }
     setSavingField(true);
     try {
       if (fieldModalMode === 'create') {
@@ -391,7 +399,14 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                     }`}
                   >
                     <div className="flex items-start justify-between gap-2">
-                      <p className="font-display font-bold text-base">{farm.name}</p>
+                      <div>
+                        <p className="font-display font-bold text-base">{farm.name}</p>
+                        {farm.isDemonstration && (
+                          <span className="inline-block mt-0.5 text-[10px] font-mono uppercase tracking-wider opacity-80">
+                            Demonstration Data
+                          </span>
+                        )}
+                      </div>
                       <span
                         className={`font-mono text-xs tabular-nums shrink-0 ${
                           selected ? 'text-[#D8E9DC]' : 'text-[#2D6A4F]'

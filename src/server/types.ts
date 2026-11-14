@@ -47,6 +47,7 @@ export interface User {
   isActive: boolean;
   isEmailVerified: boolean;
   onboardingCompleted: boolean;
+  isDemonstration?: boolean;
   activationToken: string | null;
   lastLoginAt: string | null;
   createdAt: string;
@@ -109,6 +110,7 @@ export interface Farm {
   existingCrops: string[];
   existingLivestock: string[];
   status: 'active' | 'archived';
+  isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -1018,6 +1020,7 @@ export interface SanitizedUser {
   isActive: boolean;
   isEmailVerified: boolean;
   onboardingCompleted: boolean;
+  isDemonstration?: boolean;
   lastLoginAt: string | null;
   createdAt: string;
   profile: UserProfile | null;

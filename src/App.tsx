@@ -60,7 +60,12 @@ import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { PWAInstallButton } from './hooks/usePWAInstall';
 import { applyTranslationOverrides, t } from './i18n/translations';
 import { apiRequest, getStoredToken, setStoredToken } from './lib/api';
-import { loadOfflineBundle, loadOfflineQueue, syncPendingQueue } from './lib/offlineSync';
+import {
+  downloadAndStoreOfflineBundle,
+  loadOfflineBundle,
+  loadOfflineQueue,
+  syncPendingQueue,
+} from './lib/offlineSync';
 import {
   AuthUser,
   FarmItem,
@@ -237,16 +242,25 @@ export default function App() {
   }, [user?.id]);
 
   useEffect(() => {
-    if (!isOnline || !user?.id || user.roleCode === 'organisation_manager') return;
+    if (!isOnline || !user?.id || !user.onboardingCompleted || user.roleCode === 'organisation_manager') {
+      return;
+    }
     let cancelled = false;
     (async () => {
-      const q = await loadOfflineQueue(user.id);
-      const pendingTargets = q.filter((item) => item.syncState === 'pending');
-      if (pendingTargets.length === 0 || cancelled) return;
       try {
-        const res = await syncPendingQueue(user.id);
-        if (!cancelled && res.syncedCount > 0) {
-          loadWorkspaceData();
+        const q = await loadOfflineQueue(user.id);
+        const pendingTargets = q.filter((item) => item.syncState === 'pending');
+        if (pendingTargets.length > 0 && !cancelled) {
+          const res = await syncPendingQueue(user.id);
+          if (!cancelled && res.syncedCount > 0) {
+            loadWorkspaceData();
+          }
+        }
+        if (!cancelled) {
+          const refreshed = await downloadAndStoreOfflineBundle(user.id);
+          if (!cancelled) {
+            setOfflineCacheTimestamp(refreshed.downloadedAt);
+          }
         }
       } catch {
         // Retry on next connection or manual sync
@@ -255,7 +269,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [isOnline, user?.id, user?.roleCode, loadWorkspaceData]);
+  }, [isOnline, user?.id, user?.onboardingCompleted, user?.roleCode, loadWorkspaceData]);
 
   const handleLanguageChange = async (code: LanguageCode) => {
     setLanguageCode(code);
@@ -818,6 +832,7 @@ export default function App() {
 
           {activeTab === 'weather' && (
             <WeatherIntelligenceView
+              userId={user.id}
               farms={farms}
               selectedFarmId={selectedFarmId}
               onSelectFarm={setSelectedFarmId}
@@ -850,6 +865,7 @@ export default function App() {
 
           {activeTab === 'stock' && (
             <StockInventoryView
+              userId={user.id}
               farms={farms}
               selectedFarmId={selectedFarmId}
               onSelectFarm={setSelectedFarmId}

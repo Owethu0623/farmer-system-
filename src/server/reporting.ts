@@ -1,4 +1,6 @@
 import crypto from 'node:crypto';
+import { computeBusinessPlanMetrics } from './businessPlanner.ts';
+import { getActiveFarmGrantForExpert } from './expertPortal.ts';
 import { buildIncidentDashboard } from './incidents.ts';
 import { buildStockOverview } from './stockInventory.ts';
 import { store } from './store.ts';
@@ -105,6 +107,7 @@ export function generateAndSaveReport(params: {
   endDate?: string;
   farmingCategory?: string;
   aggregateOrganisation?: boolean;
+  ipAddress?: string;
 }) {
   const { user, accessibleFarmIds, reportType } = params;
   const meta = REPORT_TYPES.find((r) => r.code === reportType);
@@ -125,8 +128,14 @@ export function generateAndSaveReport(params: {
     requestedFarmId !== 'all' ? [requestedFarmId] : accessibleFarmIds;
 
   const isOrgAggregate =
-    Boolean(params.aggregateOrganisation) ||
-    (user.roleCode === 'organisation_manager' && requestedFarmId === 'all');
+    Boolean(params.aggregateOrganisation) || user.roleCode === 'organisation_manager';
+
+  const expertLacksFinancial =
+    user.roleCode === 'agricultural_expert' &&
+    targetFarmIds.some(
+      (fid) => !getActiveFarmGrantForExpert(user.id, fid)?.scopes.financialSummary
+    );
+  const shouldRedactFinancials = isOrgAggregate || expertLacksFinancial;
 
   const farms = store.db.farms.filter((f) => targetFarmIds.includes(f.id));
 
@@ -157,6 +166,13 @@ export function generateAndSaveReport(params: {
     value: string;
     dataClassification: 'Database Record' | 'Estimated Value' | 'AI Advisory';
   }[] = [];
+
+  const matchesFarmingCat = (domain: 'crops' | 'livestock'): boolean => {
+    if (!farmingCategory || farmingCategory === 'all') return true;
+    const cat = farmingCategory.toLowerCase();
+    if (cat === 'mixed') return true;
+    return cat === domain || (domain === 'crops' && cat === 'orchards');
+  };
 
   const stock = buildStockOverview(targetFarmIds);
   const incDash = buildIncidentDashboard(targetFarmIds);
@@ -204,9 +220,11 @@ export function generateAndSaveReport(params: {
     }
 
     case 'crop_production': {
-      const crops = store.db.crops.filter(
-        (c) => targetFarmIds.includes(c.farmId) && withinDates(c.plantingDate, startDate, endDate)
-      );
+      const crops = matchesFarmingCat('crops')
+        ? store.db.crops.filter(
+            (c) => targetFarmIds.includes(c.farmId) && withinDates(c.plantingDate, startDate, endDate)
+          )
+        : [];
       columns = [
         { key: 'farm', label: 'Farm' },
         { key: 'crop', label: 'Crop & Variety' },
@@ -244,9 +262,11 @@ export function generateAndSaveReport(params: {
     }
 
     case 'livestock_production': {
-      const groups = store.db.livestockGroups.filter(
-        (g) => targetFarmIds.includes(g.farmId) && withinDates(g.registrationDate, startDate, endDate)
-      );
+      const groups = matchesFarmingCat('livestock')
+        ? store.db.livestockGroups.filter(
+            (g) => targetFarmIds.includes(g.farmId) && withinDates(g.registrationDate, startDate, endDate)
+          )
+        : [];
       columns = [
         { key: 'farm', label: 'Farm' },
         { key: 'group', label: 'Herd / Flock' },
@@ -286,6 +306,8 @@ export function generateAndSaveReport(params: {
     }
 
     case 'stock_levels': {
+      const filteredCropRows = matchesFarmingCat('crops') ? stock.cropStocks : [];
+      const filteredLvkRows = matchesFarmingCat('livestock') ? stock.livestockStocks : [];
       columns = [
         { key: 'farm', label: 'Farm' },
         { key: 'category', label: 'Stock Category' },
@@ -296,7 +318,7 @@ export function generateAndSaveReport(params: {
         { key: 'storedKg', label: 'Stored Harvest (kg)', align: 'right' },
       ];
       rows = [
-        ...stock.cropStocks.map((c) => ({
+        ...filteredCropRows.map((c) => ({
           farm: getSafeFarmLabel(c.farmId),
           category: 'Crop Stock',
           item: `${c.cropName} (${c.cropVariety})`,
@@ -305,11 +327,11 @@ export function generateAndSaveReport(params: {
           remainingQty: c.remainingPlants,
           storedKg: c.storedProductionKg,
         })),
-        ...stock.livestockStocks.map((l) => ({
+        ...filteredLvkRows.map((l) => ({
           farm: getSafeFarmLabel(l.farmId),
           category: 'Livestock Stock',
           item: `${l.groupName} (${l.breed})`,
-          initialQty: l.currentQuantity + l.deaths + l.sales,
+          initialQty: Math.max(0, l.currentQuantity + l.deaths + l.sales - l.births - l.purchases),
           lossQty: l.deaths,
           remainingQty: l.currentQuantity,
           storedKg: l.productionTotal,
@@ -318,12 +340,12 @@ export function generateAndSaveReport(params: {
       kpis = [
         {
           label: 'Remaining Crop Plants',
-          value: stock.totals.totalRemainingUnits.toLocaleString(),
+          value: filteredCropRows.reduce((s, c) => s + c.remainingPlants, 0).toLocaleString(),
           dataClassification: 'Database Record',
         },
         {
           label: 'Livestock Head',
-          value: stock.totals.totalLivestockHead.toLocaleString(),
+          value: filteredLvkRows.reduce((s, l) => s + l.currentQuantity, 0).toLocaleString(),
           dataClassification: 'Database Record',
         },
       ];
@@ -331,6 +353,8 @@ export function generateAndSaveReport(params: {
     }
 
     case 'stock_valuation': {
+      const filteredCropRows = matchesFarmingCat('crops') ? stock.cropStocks : [];
+      const filteredLvkRows = matchesFarmingCat('livestock') ? stock.livestockStocks : [];
       columns = [
         { key: 'farm', label: 'Farm' },
         { key: 'item', label: 'Asset' },
@@ -341,7 +365,7 @@ export function generateAndSaveReport(params: {
         { key: 'assumption', label: 'Price Source & Assumption' },
       ];
       rows = [
-        ...stock.cropStocks.map((c) => ({
+        ...filteredCropRows.map((c) => ({
           farm: getSafeFarmLabel(c.farmId),
           item: `${c.cropName} (Crop + Stored)`,
           remainingQty: c.remainingPlants,
@@ -350,7 +374,7 @@ export function generateAndSaveReport(params: {
           estDamageLossZar: c.damagedStockValueZar,
           assumption: c.priceSource,
         })),
-        ...stock.livestockStocks.map((l) => ({
+        ...filteredLvkRows.map((l) => ({
           farm: getSafeFarmLabel(l.farmId),
           item: `${l.groupName} (${l.animalType})`,
           remainingQty: l.currentQuantity,
@@ -360,15 +384,19 @@ export function generateAndSaveReport(params: {
           assumption: l.priceSource,
         })),
       ];
+      const remVal = filteredCropRows.reduce((s, c) => s + c.remainingStandingValueZar + c.storedStockValueZar, 0) +
+        filteredLvkRows.reduce((s, l) => s + l.remainingValueZar, 0);
+      const lossVal = filteredCropRows.reduce((s, c) => s + c.damagedStockValueZar, 0) +
+        filteredLvkRows.reduce((s, l) => s + l.deathLossValueZar, 0);
       kpis = [
         {
           label: 'Est. Total Stock Value',
-          value: `R${stock.totals.totalRemainingStockValueZar.toLocaleString()}`,
+          value: `R${Number(remVal.toFixed(2)).toLocaleString()}`,
           dataClassification: 'Estimated Value',
         },
         {
           label: 'Est. Damaged / Loss Value',
-          value: `R${stock.totals.totalDamagedStockValueZar.toLocaleString()}`,
+          value: `R${Number(lossVal.toFixed(2)).toLocaleString()}`,
           dataClassification: 'Estimated Value',
         },
       ];
@@ -494,23 +522,15 @@ export function generateAndSaveReport(params: {
         { key: 'estProfitZar', label: 'Est. Operating P/L (ZAR)', align: 'right' },
       ];
       rows = plans.map((p) => {
-        const startup = p.equipmentCostZar + p.infrastructureCostZar;
-        const operating =
-          p.seedsPlantingCostZar +
-          p.fertilisersCostZar +
-          p.feedCostZar +
-          p.waterCostZar +
-          p.labourCostZar +
-          p.operatingExpensesZar;
-        const revenue = p.expectedProductionQty * p.sellingPricePerUnitZar;
+        const calc = computeBusinessPlanMetrics(p);
         return {
           planName: isOrgAggregate && p.ownerId !== user.id ? `Member Plan (${p.province})` : p.planName,
           scaleTier: p.scaleTier.replace(/_/g, ' '),
           areaHa: p.farmSizeHectares,
-          estStartupZar: startup,
-          estOperatingZar: operating,
-          estRevenueZar: revenue,
-          estProfitZar: Number((revenue - operating).toFixed(2)),
+          estStartupZar: calc.estimatedStartupCostsZar,
+          estOperatingZar: calc.estimatedOperatingCostsZar,
+          estRevenueZar: calc.estimatedRevenueZar,
+          estProfitZar: calc.estimatedOperatingProfitLossZar,
         };
       });
       kpis = [
@@ -587,36 +607,63 @@ export function generateAndSaveReport(params: {
         { key: 'estStockValueZar', label: 'Est. Stock Value (ZAR)', align: 'right' },
         { key: 'incidentsCount', label: 'Incidents', align: 'right' },
       ];
-      rows = farms.map((f, idx) => {
-        const loc = store.db.farmLocations.find((l) => l.farmId === f.id);
-        const fCrops = stock.cropStocks.filter((c) => c.farmId === f.id);
-        const fLvk = stock.livestockStocks.filter((l) => l.farmId === f.id);
-        const fMixed = store.db.mixedFarmingEntries.filter((m) => m.farmId === f.id);
-        const fCropExp = store.db.cropActivities.filter(
-          (a) => a.farmId === f.id && ['irrigation', 'fertiliser', 'pest', 'disease'].includes(a.activityType)
-        );
-        const fLvkExp = store.db.livestockRecords.filter(
-          (r) => r.farmId === f.id && ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType)
-        );
-        const actExp =
-          fMixed.reduce((s, m) => s + m.expenseZar, 0) +
-          fCropExp.reduce((s, a) => s + a.valueZar, 0) +
-          fLvkExp.reduce((s, r) => s + r.valueZar, 0);
-        const estVal =
-          fCrops.reduce((s, c) => s + c.remainingStandingValueZar + c.storedStockValueZar, 0) +
-          fLvk.reduce((s, l) => s + l.remainingValueZar, 0);
+      rows = farms
+        .filter(
+          (f) =>
+            farmingCategory === 'all' ||
+            farmingCategory === 'mixed' ||
+            f.farmingActivities.some((a) => a.toLowerCase().includes(farmingCategory.toLowerCase())) ||
+            (matchesFarmingCat('crops') && stock.cropStocks.some((c) => c.farmId === f.id)) ||
+            (matchesFarmingCat('livestock') && stock.livestockStocks.some((l) => l.farmId === f.id))
+        )
+        .map((f, idx) => {
+          const loc = store.db.farmLocations.find((l) => l.farmId === f.id);
+          const fCrops = matchesFarmingCat('crops')
+            ? stock.cropStocks.filter((c) => c.farmId === f.id)
+            : [];
+          const fLvk = matchesFarmingCat('livestock')
+            ? stock.livestockStocks.filter((l) => l.farmId === f.id)
+            : [];
+          const fMixed = store.db.mixedFarmingEntries.filter(
+            (m) => m.farmId === f.id && withinDates(m.entryDate, startDate, endDate)
+          );
+          const fCropExp = matchesFarmingCat('crops')
+            ? store.db.cropActivities.filter(
+                (a) =>
+                  a.farmId === f.id &&
+                  ['irrigation', 'fertiliser', 'pest', 'disease'].includes(a.activityType) &&
+                  withinDates(a.activityDate, startDate, endDate)
+              )
+            : [];
+          const fLvkExp = matchesFarmingCat('livestock')
+            ? store.db.livestockRecords.filter(
+                (r) =>
+                  r.farmId === f.id &&
+                  ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType) &&
+                  withinDates(r.recordDate, startDate, endDate)
+              )
+            : [];
+          const actExp =
+            fMixed.reduce((s, m) => s + m.expenseZar, 0) +
+            fCropExp.reduce((s, a) => s + a.valueZar, 0) +
+            fLvkExp.reduce((s, r) => s + r.valueZar, 0);
+          const estVal =
+            fCrops.reduce((s, c) => s + c.remainingStandingValueZar + c.storedStockValueZar, 0) +
+            fLvk.reduce((s, l) => s + l.remainingValueZar, 0);
 
-        return {
-          farm: getSafeFarmLabel(f.id, idx + 1),
-          province: loc?.province || 'SA',
-          hectares: f.farmSizeHectares,
-          harvestKg: Number(fCrops.reduce((s, c) => s + c.harvestedKg, 0).toFixed(1)),
-          livestockHead: fLvk.reduce((s, l) => s + l.currentQuantity, 0),
-          actualExpensesZar: Number(actExp.toFixed(2)),
-          estStockValueZar: Number(estVal.toFixed(2)),
-          incidentsCount: incDash.incidents.filter((i) => i.farmId === f.id).length,
-        };
-      });
+          return {
+            farm: getSafeFarmLabel(f.id, idx + 1),
+            province: loc?.province || 'SA',
+            hectares: f.farmSizeHectares,
+            harvestKg: Number(fCrops.reduce((s, c) => s + c.harvestedKg, 0).toFixed(1)),
+            livestockHead: fLvk.reduce((s, l) => s + l.currentQuantity, 0),
+            actualExpensesZar: Number(actExp.toFixed(2)),
+            estStockValueZar: Number(estVal.toFixed(2)),
+            incidentsCount: incDash.incidents.filter(
+              (i) => i.farmId === f.id && withinDates(i.occurredAt, startDate, endDate)
+            ).length,
+          };
+        });
       kpis = [
         {
           label: 'Total Actual Expenses',
@@ -633,7 +680,7 @@ export function generateAndSaveReport(params: {
     }
   }
 
-  if (isOrgAggregate) {
+  if (shouldRedactFinancials) {
     const privateFinancialKeys = new Set([
       'estValueZar',
       'unitPriceZar',
@@ -662,7 +709,7 @@ export function generateAndSaveReport(params: {
       k.label.toLowerCase().includes('expense') ||
       k.label.toLowerCase().includes('startup') ||
       k.label.toLowerCase().includes('impact')
-        ? { ...k, value: 'Protected (Aggregated Non-Financial View)' }
+        ? { ...k, value: 'Protected (Privacy Scope)' }
         : k
     );
   }
@@ -708,7 +755,7 @@ export function generateAndSaveReport(params: {
     'GeneratedReport',
     reportId,
     { reportType, farmId: requestedFarmId, isOrgAggregate, rowCount: rows.length },
-    '127.0.0.1'
+    params.ipAddress || '127.0.0.1'
   );
   store.save();
 
@@ -722,6 +769,8 @@ export function generateAndSaveReport(params: {
     isAggregatedOrganisationReport: isOrgAggregate,
     privacyNotice: isOrgAggregate
       ? 'Organisation Privacy Protection Active: Individual farmer identities, contact details, and private farm financial records are redacted in aggregated reports.'
+      : expertLacksFinancial
+      ? 'Expert Privacy Scope Active: Financial figures are redacted because financialSummary access was not granted by the farmer.'
       : 'Scoped to records owned by or explicitly shared with your account.',
     estimationNotice: meta.containsEstimates
       ? 'This report includes clearly labelled Estimated Values (stock valuations, impact estimates, business plans, or AI advisories) alongside verified database records.'

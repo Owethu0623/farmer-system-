@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { getSastDateString, sastDaysAhead } from './saTime.ts';
 import { store } from './store.ts';
 import {
   LanguageCode,
@@ -591,8 +592,8 @@ export function generateDueRemindersForUser(
   userId: string,
   accessibleFarmIds: string[]
 ): { createdCount: number; suppressedCount: number } {
-  const today = new Date().toISOString().slice(0, 10);
-  const in45Days = new Date(Date.now() + 45 * 86400000).toISOString().slice(0, 10);
+  const today = getSastDateString();
+  const in45Days = sastDaysAhead(45);
   let createdCount = 0;
   let suppressedCount = 0;
 

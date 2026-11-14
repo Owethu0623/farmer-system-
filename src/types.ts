@@ -65,6 +65,7 @@ export interface AuthUser {
   onboardingCompleted: boolean;
   lastLoginAt: string | null;
   createdAt: string;
+  isDemonstration?: boolean;
   profile: UserProfile | null;
   permissions: string[];
 }
@@ -133,6 +134,7 @@ export interface FarmItem {
   existingCrops: string[];
   existingLivestock: string[];
   status: string;
+  isDemonstration?: boolean;
   createdAt: string;
   updatedAt: string;
   location: FarmLocation | null;
@@ -614,6 +616,27 @@ export interface WeatherIntelligence {
     past30DaysMm: number | null;
     seasonalClimateNote: string;
     historicalDays: { date: string; precipitationMm: number; tempMaxC: number; tempMinC: number }[];
+  };
+  nasaPower?: {
+    serviceAvailable: boolean;
+    unavailableReason: string | null;
+    source: string;
+    periodLabel: string;
+    solarUnit: string;
+    avgSolarIrradiance: number | null;
+    totalPrecipitationMm: number | null;
+    avgMaxTempC: number | null;
+    avgMinTempC: number | null;
+    avgRelativeHumidityPercent: number | null;
+    daysCount: number;
+    lastUpdated: string | null;
+  };
+  seasonalCalendar?: {
+    regime: string;
+    seasonLabel: string;
+    plantingWindow: string;
+    recommendedCrops: string[];
+    livestockAdvisory: string;
   };
   operationsWindow: {
     sprayingStatus: 'Suitable' | 'Caution' | 'Avoid' | 'Unknown';
@@ -1517,6 +1540,10 @@ export interface AdminPortalOverviewPayload {
     registeredOrganisations: number;
     systemAdministrators: number;
     totalRegisteredFarms: number;
+    demonstrationUsers?: number;
+    realUsers?: number;
+    demonstrationFarms?: number;
+    realFarms?: number;
     totalHectares: number;
     totalIncidentsReported: number;
   };
@@ -1542,6 +1569,7 @@ export interface AdminFarmOversightPayload {
     farmReferenceCode: string;
     farmId: string;
     farmNameDisplay: string;
+    isDemonstration?: boolean;
     province: string;
     districtMunicipality: string;
     farmingCategories: string[];
@@ -1922,6 +1950,7 @@ export interface OfflineBundlePayload {
   incidents: FarmIncidentItem[];
   weatherSnapshots: OfflineWeatherSnapshot[];
   businessPlans: BusinessPlanScenarioItem[];
+  businessPlanTemplates?: BusinessEnterpriseTemplate[];
   learningGuides: LearningMaterialViewItem[];
 }
 

@@ -15,6 +15,13 @@ import {
   WifiOff,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import { getSastDateString } from '../lib/saTime';
+import {
+  enqueueOfflineMutation,
+  getOfflineStaleness,
+  isLikelyOfflineError,
+  loadOfflineBundle,
+} from '../lib/offlineSync';
 import {
   FarmItem,
   LanguageCode,
@@ -27,6 +34,7 @@ import {
 import { SpeakButton } from './AccessibilityControls';
 
 interface WeatherIntelligenceViewProps {
+  userId?: string;
   farms: FarmItem[];
   selectedFarmId: string | null;
   onSelectFarm: (farmId: string) => void;
@@ -39,6 +47,7 @@ interface WeatherIntelligenceViewProps {
 }
 
 export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = ({
+  userId,
   farms,
   selectedFarmId,
   onSelectFarm,
@@ -64,7 +73,7 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
   // Observation Form State
   const [obsFormOpen, setObsFormOpen] = useState(false);
   const [obsSubmitting, setObsSubmitting] = useState(false);
-  const [observationDate, setObservationDate] = useState(new Date().toISOString().slice(0, 10));
+  const [observationDate, setObservationDate] = useState(getSastDateString());
   const [rainfallOccurred, setRainfallOccurred] = useState(true);
   const [rainfallIntensity, setRainfallIntensity] = useState<RainfallIntensity>('moderate');
   const [measuredRainfallMm, setMeasuredRainfallMm] = useState('12');
@@ -83,11 +92,73 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
       );
       setWeather(res);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to load agricultural weather.');
+      if (isLikelyOfflineError(err) && userId) {
+        const bundle = await loadOfflineBundle(userId);
+        const snap = bundle?.weatherSnapshots?.find((s) => s.farmId === activeFarmId) || null;
+        if (bundle && activeFarm) {
+          const staleness = getOfflineStaleness(bundle);
+          const snapTime = snap?.snapshotFetchedAt || bundle.downloadedAt;
+          const staleText = staleness.isWeatherStale
+            ? `Outdated weather snapshot (${staleness.weatherAgeHours ?? '?'}h old; weather forecasts become stale after ${bundle.weatherStaleAfterHours || 6}h). `
+            : '';
+          setWeather({
+            farmId: activeFarm.id,
+            farmName: activeFarm.name,
+            locationLabel: `${activeFarm.location?.townOrVillage || activeFarm.location?.districtMunicipality || activeFarm.name}, ${activeFarm.location?.province || 'South Africa'}`,
+            coordinates: {
+              latitude: activeFarm.location?.latitude ?? -25.7479,
+              longitude: activeFarm.location?.longitude ?? 28.2293,
+            },
+            serviceAvailable: false,
+            unavailableReason: `${staleText}Offline mode active — fresh live weather forecasts, SAWS/Open-Meteo telemetry, and external data require internet connectivity. Showing locally cached forecast records from ${new Date(snapTime).toLocaleString()}.`,
+            source: 'Offline Weather Snapshot Cache',
+            sawsIntegrationStatus: 'Offline — internet required for live SAWS / Open-Meteo sync',
+            lastUpdated: snapTime,
+            isCachedFallback: true,
+            current: null,
+            hourly: [],
+            daily: (snap?.forecasts || []).map((f) => ({
+              date: f.forecastDate,
+              tempMaxC: f.predictedTempMaxC,
+              tempMinC: f.predictedTempMinC,
+              precipitationMm: f.predictedRainfallMm,
+              precipProbabilityPercent: null,
+              windMaxKmh: f.predictedWindMaxKmh,
+              et0EvapotranspirationMm: null,
+              weatherDescription: f.weatherDescription,
+            })),
+            historicalRainfall: {
+              past14DaysMm: null,
+              past30DaysMm: null,
+              seasonalClimateNote:
+                'Live historical rainfall charts require internet connectivity.',
+              historicalDays: [],
+            },
+            operationsWindow: {
+              sprayingStatus: 'Unknown',
+              sprayingReason: 'Live wind and humidity forecast unavailable offline.',
+              plantingStatus: 'Unknown',
+              plantingReason: 'Live soil moisture and forecast rain unavailable offline.',
+              irrigationStatus: 'Unknown',
+              irrigationReason: 'Live ET0 and rain probability unavailable offline.',
+            },
+            warnings: [],
+          });
+          setLoading(false);
+          return;
+        }
+      }
+      setError(
+        isLikelyOfflineError(err)
+          ? 'Fresh weather forecasts require internet connectivity, and no offline weather snapshot is saved for this farm yet.'
+          : err instanceof Error
+          ? err.message
+          : 'Unable to load agricultural weather.'
+      );
     } finally {
       setLoading(false);
     }
-  }, [activeFarmId]);
+  }, [activeFarmId, activeFarm, userId]);
 
   const loadFeedback = useCallback(async () => {
     if (!activeFarmId) return;
@@ -97,12 +168,87 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
         `/api/weather/farms/${encodeURIComponent(activeFarmId)}/feedback`
       );
       setFeedback(fb);
-    } catch {
-      // handled alongside main weather error if any
+    } catch (err: unknown) {
+      if (isLikelyOfflineError(err) && userId && activeFarm) {
+        const bundle = await loadOfflineBundle(userId);
+        const snap = bundle?.weatherSnapshots?.find((s) => s.farmId === activeFarmId) || null;
+        if (bundle && snap) {
+          const forecastByDate = new Map(snap.forecasts.map((f) => [f.forecastDate, f]));
+          setFeedback({
+            farmId: activeFarm.id,
+            farmName: activeFarm.name,
+            farmLocationLabel: `${activeFarm.location?.townOrVillage || activeFarm.location?.districtMunicipality || activeFarm.name}, ${activeFarm.location?.province || 'South Africa'}`,
+            verifiedStationStatus: {
+              connected: false,
+              stationName: null,
+              note: 'Offline — verified station telemetry requires internet connectivity.',
+            },
+            calibrationPolicyNotice:
+              'Viewing locally cached weather observations & stored forecast records. New on-farm observations will queue offline and sync when connectivity returns.',
+            forecastRecords: snap.forecasts,
+            observations: snap.recentObservations,
+            comparisons: snap.recentObservations.map((obs) => {
+              const fc = forecastByDate.get(obs.observationDate) || null;
+              const diff =
+                fc && obs.measuredRainfallMm !== null
+                  ? Number((obs.measuredRainfallMm - fc.predictedRainfallMm).toFixed(1))
+                  : null;
+              return {
+                observationId: obs.id,
+                observationDate: obs.observationDate,
+                farmLocationLabel: obs.farmLocationLabel,
+                reportedRainfallOccurred: obs.rainfallOccurred,
+                reportedIntensity: obs.rainfallIntensity,
+                reportedRainfallMm: obs.measuredRainfallMm,
+                reportedTemperatureC: obs.temperatureC,
+                reportedWind: obs.windObservation,
+                reportedWindEstimateKmh: obs.windSpeedEstimateKmh,
+                qcStatus: obs.qcStatus,
+                qcNotes: obs.qcNotes,
+                forecastRecord: fc,
+                verifiedStationAvailable: false,
+                verifiedStationRainMm: null,
+                verifiedStationTempC: null,
+                rainfallDiffMm: diff,
+                rainEventMatch: !fc
+                  ? 'no_forecast_record'
+                  : obs.rainfallOccurred && fc.predictedRainfallMm > 0
+                  ? 'matched'
+                  : !obs.rainfallOccurred && fc.predictedRainfallMm <= 0
+                  ? 'matched'
+                  : obs.rainfallOccurred
+                  ? 'unexpected_rain_observed'
+                  : 'forecast_rain_not_observed',
+                tempDiffC: null,
+                windComparisonNote: obs.windObservation.replace(/_/g, ' '),
+              };
+            }),
+            summary: {
+              sourceCategory: 'forecast_information',
+              poweredBy: 'deterministic_summary',
+              generatedAt: snap.snapshotFetchedAt,
+              totalObservations: snap.recentObservations.length,
+              qcPassedCount: snap.recentObservations.filter(
+                (o) => o.qcStatus === 'qc_passed_reference'
+              ).length,
+              flaggedOutliersCount: snap.recentObservations.filter(
+                (o) => o.qcStatus === 'qc_flagged_outlier'
+              ).length,
+              avgRainfallVarianceMm: null,
+              rainAgreementRatePercent: null,
+              narrative: `Showing ${snap.recentObservations.length} cached farmer weather observation(s) from offline pack downloaded ${new Date(snap.snapshotFetchedAt).toLocaleString()}.`,
+              caveats: [
+                'AI weather comparison summaries require internet connectivity.',
+                'New on-farm observations recorded offline will be queued until connectivity returns.',
+              ],
+            },
+          });
+        }
+      }
     } finally {
       setFeedbackLoading(false);
     }
-  }, [activeFarmId]);
+  }, [activeFarmId, activeFarm, userId]);
 
   useEffect(() => {
     loadWeather().then(() => {
@@ -116,25 +262,26 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
     setObsSubmitting(true);
     setError(null);
     setNotice(null);
+    const payloadBody = {
+      observationDate,
+      rainfallOccurred,
+      rainfallIntensity: rainfallOccurred ? rainfallIntensity : 'none',
+      measuredRainfallMm: rainfallOccurred
+        ? measuredRainfallMm === ''
+          ? null
+          : Number(measuredRainfallMm)
+        : 0,
+      temperatureC: temperatureC === '' ? null : Number(temperatureC),
+      windObservation,
+      windSpeedEstimateKmh: windSpeedEstimateKmh === '' ? null : Number(windSpeedEstimateKmh),
+      notes: obsNotes,
+    };
     try {
       const res = await apiRequest<{ overview: LocalWeatherFeedbackOverview }>(
         `/api/weather/farms/${encodeURIComponent(activeFarmId)}/observations`,
         {
           method: 'POST',
-          body: JSON.stringify({
-            observationDate,
-            rainfallOccurred,
-            rainfallIntensity: rainfallOccurred ? rainfallIntensity : 'none',
-            measuredRainfallMm: rainfallOccurred
-              ? measuredRainfallMm === ''
-                ? null
-                : Number(measuredRainfallMm)
-              : 0,
-            temperatureC: temperatureC === '' ? null : Number(temperatureC),
-            windObservation,
-            windSpeedEstimateKmh: windSpeedEstimateKmh === '' ? null : Number(windSpeedEstimateKmh),
-            notes: obsNotes,
-          }),
+          body: JSON.stringify(payloadBody),
         }
       );
       setFeedback(res.overview);
@@ -144,7 +291,26 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
         'On-farm weather observation recorded as an unverified farmer report and compared against stored forecast records.'
       );
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to submit weather observation.');
+      if (isLikelyOfflineError(err) && userId) {
+        await enqueueOfflineMutation({
+          userId,
+          mutationType: 'weather_observation',
+          label: `Weather observation (${observationDate} · ${activeFarm?.name || 'Farm'})`,
+          farmId: activeFarmId,
+          farmName: activeFarm?.name || null,
+          payload: {
+            farmId: activeFarmId,
+            ...payloadBody,
+          },
+        });
+        setObsFormOpen(false);
+        setObsNotes('');
+        setNotice(
+          'Offline: on-farm weather observation saved locally and queued for synchronisation when connectivity returns.'
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Unable to submit weather observation.');
+      }
     } finally {
       setObsSubmitting(false);
     }
@@ -164,7 +330,13 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
       );
       setFeedback((prev) => (prev ? { ...prev, summary } : prev));
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to generate local weather summary.');
+      setError(
+        isLikelyOfflineError(err)
+          ? 'Online AI weather comparison summary requires internet connectivity.'
+          : err instanceof Error
+          ? err.message
+          : 'Unable to generate local weather summary.'
+      );
     } finally {
       setSummaryLoading(false);
     }
@@ -712,6 +884,109 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
               </div>
             )}
           </section>
+
+          {/* NASA POWER Satellite Agro-Meteorology & SA Seasonal Calendar */}
+          {(weather.nasaPower || weather.seasonalCalendar) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {weather.nasaPower && (
+                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] font-mono uppercase tracking-wider text-[#2D6A4F]">
+                        Satellite Agro-Meteorology
+                      </p>
+                      <h2 className="font-display text-lg font-bold text-[#143326]">
+                        NASA POWER Coordinate Summary
+                      </h2>
+                    </div>
+                    <span className="text-[11px] font-mono text-[#4A5A50]">
+                      {weather.nasaPower.periodLabel}
+                    </span>
+                  </div>
+
+                  {weather.nasaPower.serviceAvailable ? (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                      <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-3">
+                        <p className="text-[#4A5A50]">Solar Irradiance</p>
+                        <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                          {weather.nasaPower.avgSolarIrradiance ?? '—'} {weather.nasaPower.solarUnit}
+                        </p>
+                      </div>
+                      <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-3">
+                        <p className="text-[#4A5A50]">NASA Precip Total</p>
+                        <p className="font-mono text-base font-bold tabular-nums text-[#1B4332] mt-0.5">
+                          {weather.nasaPower.totalPrecipitationMm ?? '—'} mm
+                        </p>
+                      </div>
+                      <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-3">
+                        <p className="text-[#4A5A50]">Mean Humidity</p>
+                        <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                          {weather.nasaPower.avgRelativeHumidityPercent ?? '—'}%
+                        </p>
+                      </div>
+                      <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-3">
+                        <p className="text-[#4A5A50]">Mean Daily High</p>
+                        <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                          {weather.nasaPower.avgMaxTempC ?? '—'}°C
+                        </p>
+                      </div>
+                      <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-3">
+                        <p className="text-[#4A5A50]">Mean Daily Low</p>
+                        <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                          {weather.nasaPower.avgMinTempC ?? '—'}°C
+                        </p>
+                      </div>
+                      <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-3">
+                        <p className="text-[#4A5A50]">Valid Days</p>
+                        <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                          {weather.nasaPower.daysCount} days
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-[#FFF9ED] border border-[#E6C98A] rounded-xl p-3.5 text-xs text-[#7A4A0B]">
+                      {weather.nasaPower.unavailableReason ||
+                        'NASA POWER satellite climatology requires live internet connectivity.'}
+                    </div>
+                  )}
+                  <p className="text-[11px] text-[#4A5A50] leading-relaxed">
+                    Source: {weather.nasaPower.source}. Used for solar-drying, irrigation ET estimation, and multi-week rainfall cross-checking.
+                  </p>
+                </section>
+              )}
+
+              {weather.seasonalCalendar && (
+                <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-3">
+                  <div className="flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                      <p className="text-[11px] font-mono uppercase tracking-wider text-[#2D6A4F]">
+                        South African Seasonal Calendar (SAST)
+                      </p>
+                      <h2 className="font-display text-lg font-bold text-[#143326]">
+                        {weather.seasonalCalendar.regime}
+                      </h2>
+                    </div>
+                    <span className="px-2.5 py-1 rounded-lg bg-[#EDF5EF] text-[#1B4332] text-xs font-semibold">
+                      {weather.seasonalCalendar.seasonLabel}
+                    </span>
+                  </div>
+                  <p className="text-xs font-semibold text-[#143326]">
+                    Planting Window: {weather.seasonalCalendar.plantingWindow}
+                  </p>
+                  {weather.seasonalCalendar.recommendedCrops.length > 0 && (
+                    <p className="text-xs text-[#35443B] leading-relaxed">
+                      <span className="font-semibold text-[#143326]">Priority Crops: </span>
+                      {weather.seasonalCalendar.recommendedCrops.join(' · ')}
+                    </p>
+                  )}
+                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3 text-xs text-[#35443B]">
+                    <span className="font-semibold text-[#143326]">Livestock Advisory: </span>
+                    {weather.seasonalCalendar.livestockAdvisory}
+                  </div>
+                </section>
+              )}
+            </div>
+          )}
         </>
       )}
 

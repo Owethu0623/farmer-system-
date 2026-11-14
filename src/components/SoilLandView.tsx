@@ -14,6 +14,8 @@ import {
   X,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import { isLikelyOfflineError } from '../lib/offlineSync';
+import { getSastDateString } from '../lib/saTime';
 import { FarmItem, LanguageCode, SoilLandIntelligence } from '../types';
 import { SpeakButton } from './AccessibilityControls';
 
@@ -58,7 +60,7 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [labName, setLabName] = useState('ARC-ISCW Soil Analytical Laboratory');
   const [sampleCode, setSampleCode] = useState('');
-  const [sampleDate, setSampleDate] = useState(new Date().toISOString().slice(0, 10));
+  const [sampleDate, setSampleDate] = useState(getSastDateString());
   const [sampleDepth, setSampleDepth] = useState('0-20 cm');
   const [fieldId, setFieldId] = useState('');
   const [phWater, setPhWater] = useState('6.2');
@@ -95,7 +97,13 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
       );
       setData(res);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to load soil and land data.');
+      if (isLikelyOfflineError(err)) {
+        setError(
+          'SoilGrids & ARC external coordinate terrain lookups require an active internet connection. Use Offline Sync to view downloaded farm, crop, and saved guide data.'
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Unable to load soil and land data.');
+      }
     } finally {
       setLoading(false);
     }

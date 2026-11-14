@@ -15,6 +15,7 @@ import {
   X,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import { isLikelyOfflineError } from '../lib/offlineSync';
 import {
   CropItem,
   FarmItem,
@@ -182,7 +183,13 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
         setSelectedRecordId(historyRes[0].id);
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Unable to load visual analysis records.');
+      if (isLikelyOfflineError(err)) {
+        setError(
+          'Online connection required: live AI photo/video inspection requires internet connectivity. While offline, capture farm incidents in Incident & Damage Log or Offline Sync.'
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Unable to load visual analysis records.');
+      }
     } finally {
       setLoadingHistory(false);
     }
@@ -394,7 +401,13 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       setUserQuestion('');
       onDataChanged();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Visual analysis failed.');
+      if (isLikelyOfflineError(err)) {
+        setError(
+          'Live AI photo/video analysis requires an active internet connection. If this is an urgent field issue, capture it offline in Incident & Damage Management.'
+        );
+      } else {
+        setError(err instanceof Error ? err.message : 'Visual analysis failed.');
+      }
     } finally {
       setAnalyzing(false);
     }

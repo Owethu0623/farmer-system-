@@ -13,6 +13,7 @@ import {
   isLikelyOfflineError,
   loadOfflineBundle,
 } from '../lib/offlineSync';
+import { getSastDateString } from '../lib/saTime';
 import {
   FarmItem,
   LivestockAnalytics,
@@ -88,7 +89,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
   const [gBreed, setGBreed] = useState('');
   const [gQuantity, setGQuantity] = useState(10);
   const [gIdNum, setGIdNum] = useState('');
-  const [gRegDate, setGRegDate] = useState(new Date().toISOString().slice(0, 10));
+  const [gRegDate, setGRegDate] = useState(getSastDateString());
   const [gHealth, setGHealth] = useState<LivestockHealthStatus>('Healthy');
   const [gFeeding, setGFeeding] = useState('Rotational veld grazing + mineral lick');
   const [gGrazing, setGGrazing] = useState('Upper rotational paddock');
@@ -99,7 +100,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
   // Livestock Event Record Modal & History
   const [recordTarget, setRecordTarget] = useState<LivestockGroupItem | null>(null);
   const [recType, setRecType] = useState<LivestockRecordType>('Birth');
-  const [recDate, setRecDate] = useState(new Date().toISOString().slice(0, 10));
+  const [recDate, setRecDate] = useState(getSastDateString());
   const [recCount, setRecCount] = useState(1);
   const [recProdAmt, setRecProdAmt] = useState(0);
   const [recProdUnit, setRecProdUnit] = useState('eggs');
@@ -117,7 +118,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
   const [mFarmId, setMFarmId] = useState(farms[0]?.id || '');
   const [mCategory, setMCategory] = useState<MixedEntryCategory>('feed_production');
   const [mTitle, setMTitle] = useState('');
-  const [mDate, setMDate] = useState(new Date().toISOString().slice(0, 10));
+  const [mDate, setMDate] = useState(getSastDateString());
   const [mExpense, setMExpense] = useState(0);
   const [mProdQty, setMProdQty] = useState(0);
   const [mProdUnit, setMProdUnit] = useState('kg');
@@ -146,7 +147,40 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
             farmFilter !== 'all'
               ? bundle.livestockGroups.filter((g) => g.farmId === farmFilter)
               : bundle.livestockGroups;
+          const filteredRecords = (bundle.livestockRecords || []).filter(
+            (r) => farmFilter === 'all' || r.farmId === farmFilter
+          );
           setGroups(filtered);
+          const byCat = ANIMAL_TYPES.map((category) => {
+            const matching = filtered.filter((g) => g.animalType === category);
+            return {
+              category,
+              count: matching.reduce((s, g) => s + (g.quantity || 0), 0),
+              valueZar: Number(
+                matching.reduce((s, g) => s + (g.quantity || 0) * (g.estimatedUnitValueZar || 0), 0).toFixed(2)
+              ),
+            };
+          }).filter((c) => c.count > 0);
+          setLivestockStats({
+            totalAnimals: filtered.reduce((s, g) => s + (g.quantity || 0), 0),
+            byCategory: byCat,
+            births: filteredRecords
+              .filter((r) => r.recordType === 'Birth')
+              .reduce((s, r) => s + Math.abs(r.quantityChange || 0), 0),
+            deaths: filteredRecords
+              .filter((r) => r.recordType === 'Death')
+              .reduce((s, r) => s + Math.abs(r.quantityChange || 0), 0),
+            purchases: filteredRecords
+              .filter((r) => r.recordType === 'Purchase')
+              .reduce((s, r) => s + Math.abs(r.quantityChange || 0), 0),
+            sales: filteredRecords
+              .filter((r) => r.recordType === 'Sale')
+              .reduce((s, r) => s + Math.abs(r.quantityChange || 0), 0),
+            estimatedLivestockValueZar: Number(
+              byCat.reduce((s, c) => s + c.valueZar, 0).toFixed(2)
+            ),
+            recordCount: filteredRecords.length,
+          });
           setNotice(
             `Offline mode: showing cached livestock herds downloaded at ${new Date(bundle.downloadedAt).toLocaleString()}.`
           );
@@ -171,7 +205,7 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
     setGBreed('Nguni');
     setGQuantity(12);
     setGIdNum('');
-    setGRegDate(new Date().toISOString().slice(0, 10));
+    setGRegDate(getSastDateString());
     setGHealth('Healthy');
     setGFeeding('Rotational veld grazing + mineral lick');
     setGGrazing('North grazing camp');

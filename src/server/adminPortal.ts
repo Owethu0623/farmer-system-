@@ -11,8 +11,15 @@ export function buildAdminPortalOverview(adminUser: SanitizedUser) {
 
   const roleIdByCode = new Map(roles.map((r) => [r.code, r.id]));
 
+  const demoUsers = users.filter((u) => Boolean(u.isDemonstration));
+  const realUsers = users.filter((u) => !u.isDemonstration);
+  const demoFarms = farms.filter((f) => Boolean(f.isDemonstration));
+  const realFarms = farms.filter((f) => !f.isDemonstration);
+
   const stats = {
     totalUsers: users.length,
+    demonstrationUsers: demoUsers.length,
+    realUsers: realUsers.length,
     activeUsers: users.filter((u) => u.isActive).length,
     inactiveUsers: users.filter((u) => !u.isActive).length,
     prospectiveFarmers: users.filter((u) => u.roleId === roleIdByCode.get('prospective_farmer')).length,
@@ -21,6 +28,8 @@ export function buildAdminPortalOverview(adminUser: SanitizedUser) {
     registeredOrganisations: users.filter((u) => u.roleId === roleIdByCode.get('organisation_manager')).length,
     systemAdministrators: users.filter((u) => u.roleId === roleIdByCode.get('system_administrator')).length,
     totalRegisteredFarms: farms.length,
+    demonstrationFarms: demoFarms.length,
+    realFarms: realFarms.length,
     totalHectares: Number(farms.reduce((s, f) => s + f.farmSizeHectares, 0).toFixed(2)),
     totalIncidentsReported: incidents.length,
   };
@@ -93,6 +102,7 @@ export function buildAdminFarmOversight(adminUser: SanitizedUser) {
       farmSizeHectares: f.farmSizeHectares,
       waterAvailability: f.waterAvailability,
       status: f.status,
+      isDemonstration: Boolean(f.isDemonstration),
       fieldCount: flds.length,
       incidentCount: incs.length,
       activeIncidentCount: incs.filter((i) => i.status !== 'resolved').length,

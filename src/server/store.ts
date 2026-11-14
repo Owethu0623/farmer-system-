@@ -32,6 +32,7 @@ import {
   VisualAnalysisRecord,
   WeatherForecastRecord,
 } from './types.ts';
+import { getSastDateString, sastDaysAgo } from './saTime.ts';
 import { createSeedLearningMaterials } from './learningCentre.ts';
 import {
   calculatePolygonAreaHectares,
@@ -43,6 +44,22 @@ import {
 
 const DATA_FILE_PATH =
   process.env.DATA_FILE_PATH || path.resolve(process.cwd(), 'data', 'fieldshift-db.json');
+
+export const DEMO_SEEDED_USER_IDS = new Set([
+  'user-prospective-1',
+  'user-existing-1',
+  'user-existing-demo-2',
+  'user-expert-1',
+  'user-org-1',
+  'user-admin-1',
+]);
+
+export const DEMO_SEEDED_FARM_IDS = new Set([
+  'farm-umgeni-1',
+  'farm-mkhambathini-2',
+  'farm-bethlehem-demo-3',
+  'farm-winelands-demo-4',
+]);
 
 export function hashPassword(password: string, existingSalt?: string): { hash: string; salt: string } {
   const salt = existingSalt || crypto.randomBytes(16).toString('hex');
@@ -1055,6 +1072,7 @@ function createInitialSeed(): DatabaseSchema {
       isActive: true,
       isEmailVerified: true,
       onboardingCompleted: true,
+      isDemonstration: true,
       activationToken: null,
       lastLoginAt: now,
       createdAt: now,
@@ -1070,6 +1088,23 @@ function createInitialSeed(): DatabaseSchema {
       isActive: true,
       isEmailVerified: true,
       onboardingCompleted: true,
+      isDemonstration: true,
+      activationToken: null,
+      lastLoginAt: now,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'user-existing-demo-2',
+      email: 'jan.botha@fieldshift.co.za',
+      passwordHash: demoPassword.hash,
+      passwordSalt: demoPassword.salt,
+      roleId: 'role-existing',
+      preferredLanguageCode: 'af' as LanguageCode,
+      isActive: true,
+      isEmailVerified: true,
+      onboardingCompleted: true,
+      isDemonstration: true,
       activationToken: null,
       lastLoginAt: now,
       createdAt: now,
@@ -1085,6 +1120,7 @@ function createInitialSeed(): DatabaseSchema {
       isActive: true,
       isEmailVerified: true,
       onboardingCompleted: true,
+      isDemonstration: true,
       activationToken: null,
       lastLoginAt: now,
       createdAt: now,
@@ -1100,6 +1136,7 @@ function createInitialSeed(): DatabaseSchema {
       isActive: true,
       isEmailVerified: true,
       onboardingCompleted: true,
+      isDemonstration: true,
       activationToken: null,
       lastLoginAt: now,
       createdAt: now,
@@ -1115,6 +1152,7 @@ function createInitialSeed(): DatabaseSchema {
       isActive: true,
       isEmailVerified: true,
       onboardingCompleted: true,
+      isDemonstration: true,
       activationToken: null,
       lastLoginAt: now,
       createdAt: now,
@@ -1211,6 +1249,22 @@ function createInitialSeed(): DatabaseSchema {
       createdAt: now,
       updatedAt: now,
     },
+    {
+      id: 'prof-6-demo',
+      userId: 'user-existing-demo-2',
+      fullName: 'Jan Botha (Demonstration Farmer)',
+      phoneNumber: '+27 82 614 7780',
+      province: 'Free State',
+      district: 'Thabo Mofutsanyana District',
+      farmerExperienceYears: 14,
+      accessibilityLargeText: false,
+      accessibilityAudioGuidance: false,
+      accessibilityVoiceInput: false,
+      prospectiveData: null,
+      bio: 'Demonstration multi-province producer illustrating Free State Highveld summer grain and Western Cape winter-rainfall orchard systems.',
+      createdAt: now,
+      updatedAt: now,
+    },
   ];
 
   const userPermissions = Object.entries(ROLE_PERMISSION_MAP).flatMap(([roleCode, keys]) => {
@@ -1227,6 +1281,8 @@ function createInitialSeed(): DatabaseSchema {
 
   const farm1Poly = createBoxPolygonFromCentroid(-29.5412, 30.2815, 24);
   const farm2Poly = createBoxPolygonFromCentroid(-29.6221, 30.4150, 12.5);
+  const farm3Poly = createBoxPolygonFromCentroid(-28.2350, 28.3120, 48);
+  const farm4Poly = createBoxPolygonFromCentroid(-33.6490, 19.4520, 18);
 
   const farms = [
     {
@@ -1240,6 +1296,7 @@ function createInitialSeed(): DatabaseSchema {
       existingCrops: ['Yellow Maize', 'Swiss Chard (Spinach)', 'Cabbage'],
       existingLivestock: ['Nguni Cattle (28 head)', 'Free-Range Layers (180)'],
       status: 'active' as const,
+      isDemonstration: true,
       createdAt: now,
       updatedAt: now,
     },
@@ -1254,6 +1311,37 @@ function createInitialSeed(): DatabaseSchema {
       existingCrops: ['Navel Oranges', 'Butternut Squash'],
       existingLivestock: ['Boer Goats (35 head)'],
       status: 'active' as const,
+      isDemonstration: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'farm-bethlehem-demo-3',
+      ownerId: 'user-existing-demo-2',
+      name: 'Bethlehem Highveld Grain Demo Farm',
+      farmingActivities: ['Maize & Dryland Grain', 'Beef & Nguni Cattle'],
+      farmSizeHectares: 48,
+      yearsOfExperience: 14,
+      waterAvailability: 'Dryland Summer Rainfall + Borehole',
+      existingCrops: ['White Maize', 'Soybeans'],
+      existingLivestock: ['Bonsmara Beef Cattle (42 head)'],
+      status: 'active' as const,
+      isDemonstration: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'farm-winelands-demo-4',
+      ownerId: 'user-existing-demo-2',
+      name: 'Breede Valley Stone Fruit & Wheat Demo',
+      farmingActivities: ['Citrus & Subtropical Fruit', 'Maize & Dryland Grain'],
+      farmSizeHectares: 18,
+      yearsOfExperience: 14,
+      waterAvailability: 'Registered Irrigation Scheme & Storage Dam',
+      existingCrops: ['Winter Wheat', 'Stone Fruit Orchard'],
+      existingLivestock: [],
+      status: 'active' as const,
+      isDemonstration: true,
       createdAt: now,
       updatedAt: now,
     },
@@ -1294,6 +1382,40 @@ function createInitialSeed(): DatabaseSchema {
       centroidWkt: pointToWkt(-29.6221, 30.4150),
       elevationMeters: 785,
     },
+    {
+      id: 'loc-3-demo',
+      farmId: 'farm-bethlehem-demo-3',
+      province: 'Free State',
+      districtMunicipality: 'Thabo Mofutsanyana District',
+      localMunicipality: 'Dihlabeng',
+      townOrVillage: 'Bethlehem / Saulspoort',
+      latitude: -28.2350,
+      longitude: 28.3120,
+      locationSource: 'manual_map_pin' as const,
+      gpsLatitude: null,
+      gpsLongitude: null,
+      gpsAccuracyMeters: null,
+      gpsCapturedAt: null,
+      centroidWkt: pointToWkt(-28.2350, 28.3120),
+      elevationMeters: 1688,
+    },
+    {
+      id: 'loc-4-demo',
+      farmId: 'farm-winelands-demo-4',
+      province: 'Western Cape',
+      districtMunicipality: 'Cape Winelands District',
+      localMunicipality: 'Breede Valley',
+      townOrVillage: 'Worcester / Hex River',
+      latitude: -33.6490,
+      longitude: 19.4520,
+      locationSource: 'manual_map_pin' as const,
+      gpsLatitude: null,
+      gpsLongitude: null,
+      gpsAccuracyMeters: null,
+      gpsCapturedAt: null,
+      centroidWkt: pointToWkt(-33.6490, 19.4520),
+      elevationMeters: 223,
+    },
   ];
 
   const farmBoundaries = [
@@ -1314,6 +1436,26 @@ function createInitialSeed(): DatabaseSchema {
       geojson: farm2Poly,
       calculatedAreaHectares: calculatePolygonAreaHectares(farm2Poly),
       perimeterMeters: calculatePolygonPerimeterMeters(farm2Poly),
+      source: 'drawn_polygon' as const,
+      updatedAt: now,
+    },
+    {
+      id: 'bnd-3-demo',
+      farmId: 'farm-bethlehem-demo-3',
+      boundaryWkt: polygonToWkt(farm3Poly),
+      geojson: farm3Poly,
+      calculatedAreaHectares: calculatePolygonAreaHectares(farm3Poly),
+      perimeterMeters: calculatePolygonPerimeterMeters(farm3Poly),
+      source: 'drawn_polygon' as const,
+      updatedAt: now,
+    },
+    {
+      id: 'bnd-4-demo',
+      farmId: 'farm-winelands-demo-4',
+      boundaryWkt: polygonToWkt(farm4Poly),
+      geojson: farm4Poly,
+      calculatedAreaHectares: calculatePolygonAreaHectares(farm4Poly),
+      perimeterMeters: calculatePolygonPerimeterMeters(farm4Poly),
       source: 'drawn_polygon' as const,
       updatedAt: now,
     },
@@ -1381,6 +1523,38 @@ function createInitialSeed(): DatabaseSchema {
       geojson: createBoxPolygonFromCentroid(-29.6221, 30.4150, 6.5),
       status: 'active' as const,
       notes: 'Scheduled foliar micronutrient spray next week.',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'fld-5-demo',
+      farmId: 'farm-bethlehem-demo-3',
+      name: 'Saulspoort Summer Maize & Soya Block',
+      farmingTypeId: 'ft-maize',
+      cropOrLivestock: 'White Maize & Soybeans',
+      areaHectares: 32,
+      soilType: 'Avalon Sandy Loam',
+      irrigationType: 'Dryland Summer Rainfall',
+      fieldWkt: null,
+      geojson: createBoxPolygonFromCentroid(-28.2350, 28.3120, 32),
+      status: 'active' as const,
+      notes: 'Highveld conservation-tillage summer grain demonstration block.',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'fld-6-demo',
+      farmId: 'farm-winelands-demo-4',
+      name: 'Hex River Winter Wheat & Orchard Block',
+      farmingTypeId: 'ft-citrus',
+      cropOrLivestock: 'Stone Fruit & Winter Cover Oats',
+      areaHectares: 14,
+      soilType: 'Alluvial Loam',
+      irrigationType: 'Scheme Drip Irrigation',
+      fieldWkt: null,
+      geojson: createBoxPolygonFromCentroid(-33.6490, 19.4520, 14),
+      status: 'active' as const,
+      notes: 'Mediterranean winter-rainfall orchard demonstration block.',
       createdAt: now,
       updatedAt: now,
     },
@@ -1797,13 +1971,8 @@ function createSeedWeatherFeedback(): {
   weatherForecastRecords: WeatherForecastRecord[];
   weatherObservations: FarmerWeatherObservation[];
 } {
-  const now = new Date();
-  const dayOffsetIso = (daysAgo: number) => {
-    const d = new Date(now.getTime() - daysAgo * 86400000);
-    return d.toISOString().slice(0, 10);
-  };
-  const d3 = dayOffsetIso(3);
-  const d1 = dayOffsetIso(1);
+  const d3 = sastDaysAgo(3);
+  const d1 = sastDaysAgo(1);
 
   const weatherForecastRecords: WeatherForecastRecord[] = [
     {
@@ -2148,6 +2317,54 @@ class FieldShiftStore {
 
           if (!Array.isArray(parsed.processedSyncIds)) {
             parsed.processedSyncIds = [];
+            migrated = true;
+          }
+          // Tag seeded demonstration users & farms clearly without altering real users/farms
+          if (Array.isArray(parsed.users)) {
+            for (const u of parsed.users) {
+              if (u.isDemonstration === undefined) {
+                u.isDemonstration = DEMO_SEEDED_USER_IDS.has(u.id);
+                migrated = true;
+              }
+            }
+          }
+          if (Array.isArray(parsed.farms)) {
+            for (const f of parsed.farms) {
+              if (f.isDemonstration === undefined) {
+                f.isDemonstration = DEMO_SEEDED_FARM_IDS.has(f.id);
+                migrated = true;
+              }
+            }
+          }
+          // Backfill multi-province demonstration farms (Free State & Western Cape) if absent
+          if (
+            Array.isArray(parsed.users) &&
+            Array.isArray(parsed.userProfiles) &&
+            Array.isArray(parsed.farms) &&
+            Array.isArray(parsed.farmLocations) &&
+            Array.isArray(parsed.farmBoundaries) &&
+            Array.isArray(parsed.fields) &&
+            !parsed.users.some((u) => u.id === 'user-existing-demo-2')
+          ) {
+            const freshSeed = createInitialSeed();
+            const demoUser = freshSeed.users.find((u) => u.id === 'user-existing-demo-2');
+            const demoProf = freshSeed.userProfiles.find((p) => p.userId === 'user-existing-demo-2');
+            if (demoUser) parsed.users.push(demoUser);
+            if (demoProf) parsed.userProfiles.push(demoProf);
+            for (const dfId of ['farm-bethlehem-demo-3', 'farm-winelands-demo-4']) {
+              const df = freshSeed.farms.find((f) => f.id === dfId);
+              const dl = freshSeed.farmLocations.find((l) => l.farmId === dfId);
+              const db = freshSeed.farmBoundaries.find((b) => b.farmId === dfId);
+              const dfl = freshSeed.fields.filter((fl) => fl.farmId === dfId);
+              if (df && !parsed.farms.some((f) => f.id === df.id)) parsed.farms.push(df);
+              if (dl && !parsed.farmLocations.some((l) => l.farmId === dfId)) parsed.farmLocations.push(dl);
+              if (db && !parsed.farmBoundaries.some((b) => b.farmId === dfId)) parsed.farmBoundaries.push(db);
+              for (const fld of dfl) {
+                if (!parsed.fields.some((existing) => existing.id === fld.id)) {
+                  parsed.fields.push(fld);
+                }
+              }
+            }
             migrated = true;
           }
           const nowMs = Date.now();

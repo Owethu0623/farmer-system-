@@ -1,9 +1,12 @@
+import { computeBusinessPlanMetrics } from './businessPlanner.ts';
+import { getActiveFarmGrantForExpert } from './expertPortal.ts';
 import { buildIncidentDashboard } from './incidents.ts';
 import { buildLearningCentrePayload } from './learningCentre.ts';
+import { getSastDateString } from './saTime.ts';
 import { FARMING_OPPORTUNITIES, SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
 import { buildStockOverview } from './stockInventory.ts';
 import { store } from './store.ts';
-import { SanitizedUser } from './types.ts';
+import { FarmAccessScopes, SanitizedUser } from './types.ts';
 import { getFarmWeatherIntelligence } from './weather.ts';
 
 function inDateRange(dateStr: string | null | undefined, startDate: string, endDate: string): boolean {
@@ -48,16 +51,45 @@ export async function buildExistingFarmerDashboard(params: {
     (fl) => targetFarmIds.includes(fl.farmId) && (fieldFilter === 'all' || fl.id === fieldFilter)
   );
 
-  // Build stock overview from real ledger records
+  const hasExpertScope = (farmId: string, scope: keyof FarmAccessScopes): boolean => {
+    if (user.roleCode !== 'agricultural_expert') return true;
+    return Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes[scope]);
+  };
+
+  const cropFarmIds = targetFarmIds.filter((fid) => hasExpertScope(fid, 'crops'));
+  const livestockFarmIds = targetFarmIds.filter((fid) => hasExpertScope(fid, 'livestock'));
+  const incidentFarmIds = targetFarmIds.filter((fid) => hasExpertScope(fid, 'incidents'));
+  const weatherFarmIds = targetFarmIds.filter((fid) => hasExpertScope(fid, 'weather'));
+  const aiFarmIds = targetFarmIds.filter((fid) => hasExpertScope(fid, 'aiInsights'));
+  const redactFinancialFarmIds = new Set(
+    targetFarmIds.filter((fid) => !hasExpertScope(fid, 'financialSummary'))
+  );
+
+  // Build stock overview from real ledger records (scoped to permitted crops & livestock farms)
   const stockOverview = buildStockOverview(targetFarmIds);
-  const incidentDash = buildIncidentDashboard(targetFarmIds);
+  stockOverview.cropStocks = stockOverview.cropStocks.filter((c) => cropFarmIds.includes(c.farmId));
+  stockOverview.livestockStocks = stockOverview.livestockStocks.filter((l) =>
+    livestockFarmIds.includes(l.farmId)
+  );
+  stockOverview.cropMovements = stockOverview.cropMovements.filter((m) =>
+    cropFarmIds.includes(m.farmId)
+  );
+  stockOverview.livestockMovements = stockOverview.livestockMovements.filter((m) =>
+    livestockFarmIds.includes(m.farmId)
+  );
+
+  const incidentDash = buildIncidentDashboard(
+    incidentFarmIds,
+    null,
+    redactFinancialFarmIds
+  );
 
   // Filter crops
   const includeCrops = matchesCategory(category, 'crops') || matchesCategory(category, 'mixed');
   const rawCrops = includeCrops
     ? store.db.crops.filter(
         (c) =>
-          targetFarmIds.includes(c.farmId) &&
+          cropFarmIds.includes(c.farmId) &&
           (fieldFilter === 'all' || c.fieldId === fieldFilter) &&
           inDateRange(c.plantingDate, startDate, endDate)
       )
@@ -81,7 +113,9 @@ export async function buildExistingFarmerDashboard(params: {
       harvestedKg: stockRow?.harvestedKg ?? c.harvestedQuantityKg,
       storedKg: stockRow?.storedProductionKg ?? 0,
       expectedHarvestingDate: c.expectedHarvestingDate,
-      estimatedValueZar: stockRow?.remainingStandingValueZar ?? c.estimatedValueZar,
+      estimatedValueZar: redactFinancialFarmIds.has(c.farmId)
+        ? 0
+        : stockRow?.remainingStandingValueZar ?? c.estimatedValueZar,
     };
   });
 
@@ -90,7 +124,7 @@ export async function buildExistingFarmerDashboard(params: {
   const rawGroups = includeLivestock
     ? store.db.livestockGroups.filter(
         (g) =>
-          targetFarmIds.includes(g.farmId) &&
+          livestockFarmIds.includes(g.farmId) &&
           (fieldFilter === 'all' || g.fieldId === fieldFilter) &&
           inDateRange(g.registrationDate, startDate, endDate)
       )
@@ -103,7 +137,9 @@ export async function buildExistingFarmerDashboard(params: {
   for (const g of rawGroups) {
     const cur = livestockByAnimalMap.get(g.animalType) || { quantity: 0, estimatedValueZar: 0 };
     cur.quantity += g.quantity;
-    cur.estimatedValueZar += Number((g.quantity * g.estimatedUnitValueZar).toFixed(2));
+    if (!redactFinancialFarmIds.has(g.farmId)) {
+      cur.estimatedValueZar += Number((g.quantity * g.estimatedUnitValueZar).toFixed(2));
+    }
     livestockByAnimalMap.set(g.animalType, cur);
   }
   const byAnimalType = Array.from(livestockByAnimalMap.entries()).map(([animalType, vals]) => ({
@@ -124,7 +160,9 @@ export async function buildExistingFarmerDashboard(params: {
       breed: g.breed,
       quantity: g.quantity,
       healthStatus: g.healthStatus,
-      estimatedValueZar: row?.remainingValueZar ?? Number((g.quantity * g.estimatedUnitValueZar).toFixed(2)),
+      estimatedValueZar: redactFinancialFarmIds.has(g.farmId)
+        ? 0
+        : row?.remainingValueZar ?? Number((g.quantity * g.estimatedUnitValueZar).toFixed(2)),
     };
   });
 
@@ -155,12 +193,15 @@ export async function buildExistingFarmerDashboard(params: {
   );
   const activeIncidentsCount = filteredIncidents.filter((i) => i.status !== 'resolved').length;
 
-  // Weather summary & warnings for primary target farm
-  const focusFarm = farms[0] || null;
+  // Weather summary & warnings for primary target farm (respecting weather grant scope)
+  const focusFarm = farms.find((f) => weatherFarmIds.includes(f.id)) || null;
   let weatherSummary = {
     farmName: focusFarm?.name || 'No farm selected',
     locationLabel: 'South Africa',
-    forecastSummary: 'Select or register a farm with coordinates to retrieve local weather.',
+    forecastSummary:
+      farms.length > 0 && !focusFarm
+        ? 'Weather sharing permission is not granted for the selected farm.'
+        : 'Select or register a farm with coordinates to retrieve local weather.',
     latestTemperatureC: null as number | null,
     latestRainForecastMm: null as number | null,
     latestFarmerReport: null as (typeof store.db.weatherObservations)[number] | null,
@@ -240,7 +281,7 @@ export async function buildExistingFarmerDashboard(params: {
   }
 
   // Upcoming activities derived from crop harvest schedules, active incident follow-ups, and weather/soil checks
-  const todayIso = new Date().toISOString().slice(0, 10);
+  const todayIso = getSastDateString();
   const upcomingActivities: {
     id: string;
     dueDate: string;
@@ -300,43 +341,61 @@ export async function buildExistingFarmerDashboard(params: {
 
   const estimatedCropStockValueZar = Number(
     filteredCropStocks
+      .filter((c) => !redactFinancialFarmIds.has(c.farmId))
       .reduce((s, c) => s + c.remainingStandingValueZar + c.storedStockValueZar, 0)
       .toFixed(2)
   );
   const estimatedLivestockValueZar = Number(
-    filteredLivestockStocks.reduce((s, l) => s + l.remainingValueZar, 0).toFixed(2)
+    filteredLivestockStocks
+      .filter((l) => !redactFinancialFarmIds.has(l.farmId))
+      .reduce((s, l) => s + l.remainingValueZar, 0)
+      .toFixed(2)
   );
   const estimatedTotalStockValueZar = Number(
     (estimatedCropStockValueZar + estimatedLivestockValueZar).toFixed(2)
   );
 
-  // Actual Expenses (from real database ledgers)
+  // Actual Expenses (from real database ledgers, restricted to financialSummary grant)
+  const financialFarmIds = targetFarmIds.filter((fid) => !redactFinancialFarmIds.has(fid));
   const mixedEntries = store.db.mixedFarmingEntries.filter(
     (e) => targetFarmIds.includes(e.farmId) && inDateRange(e.entryDate, startDate, endDate)
   );
   const cropActs = store.db.cropActivities.filter(
     (a) =>
-      targetFarmIds.includes(a.farmId) &&
+      cropFarmIds.includes(a.farmId) &&
       (fieldFilter === 'all' || a.fieldId === fieldFilter) &&
       inDateRange(a.activityDate, startDate, endDate)
   );
   const lvkRecs = store.db.livestockRecords.filter(
     (r) =>
-      targetFarmIds.includes(r.farmId) &&
+      livestockFarmIds.includes(r.farmId) &&
       groupIdsSet.has(r.livestockGroupId) &&
       inDateRange(r.recordDate, startDate, endDate)
   );
 
-  const mixedExpensesZar = Number(mixedEntries.reduce((s, e) => s + e.expenseZar, 0).toFixed(2));
+  const mixedExpensesZar = Number(
+    mixedEntries
+      .filter((e) => financialFarmIds.includes(e.farmId))
+      .reduce((s, e) => s + e.expenseZar, 0)
+      .toFixed(2)
+  );
   const cropActivityExpensesZar = Number(
     cropActs
-      .filter((a) => ['irrigation', 'fertiliser', 'pest', 'disease'].includes(a.activityType))
+      .filter(
+        (a) =>
+          financialFarmIds.includes(a.farmId) &&
+          ['irrigation', 'fertiliser', 'pest', 'disease'].includes(a.activityType)
+      )
       .reduce((s, a) => s + a.valueZar, 0)
       .toFixed(2)
   );
   const livestockExpensesZar = Number(
     lvkRecs
-      .filter((r) => ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType))
+      .filter(
+        (r) =>
+          financialFarmIds.includes(r.farmId) &&
+          ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType)
+      )
       .reduce((s, r) => s + r.valueZar, 0)
       .toFixed(2)
   );
@@ -346,7 +405,7 @@ export async function buildExistingFarmerDashboard(params: {
 
   const estimatedPlannedBudgetZar = Number(
     store.db.businessPlans
-      .filter((p) => p.farmId && targetFarmIds.includes(p.farmId))
+      .filter((p) => p.farmId && financialFarmIds.includes(p.farmId))
       .reduce(
         (s, p) =>
           s +
@@ -367,20 +426,37 @@ export async function buildExistingFarmerDashboard(params: {
     const fFields = store.db.fields.filter((fl) => fl.farmId === f.id);
     const fCrops = stockOverview.cropStocks.filter((c) => c.farmId === f.id);
     const fLvk = stockOverview.livestockStocks.filter((l) => l.farmId === f.id);
-    const fMixed = store.db.mixedFarmingEntries.filter((m) => m.farmId === f.id);
-    const fCropActs = store.db.cropActivities.filter(
-      (a) => a.farmId === f.id && ['irrigation', 'fertiliser', 'pest', 'disease'].includes(a.activityType)
-    );
-    const fLvkCosts = store.db.livestockRecords.filter(
-      (r) => r.farmId === f.id && ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType)
-    );
-    const estVal =
-      fCrops.reduce((s, c) => s + c.remainingStandingValueZar + c.storedStockValueZar, 0) +
-      fLvk.reduce((s, l) => s + l.remainingValueZar, 0);
-    const actExp =
-      fMixed.reduce((s, m) => s + m.expenseZar, 0) +
-      fCropActs.reduce((s, a) => s + a.valueZar, 0) +
-      fLvkCosts.reduce((s, r) => s + r.valueZar, 0);
+    const canSeeFinance = !redactFinancialFarmIds.has(f.id);
+    const fMixed = canSeeFinance
+      ? store.db.mixedFarmingEntries.filter(
+          (m) => m.farmId === f.id && inDateRange(m.entryDate, startDate, endDate)
+        )
+      : [];
+    const fCropActs = canSeeFinance
+      ? store.db.cropActivities.filter(
+          (a) =>
+            a.farmId === f.id &&
+            ['irrigation', 'fertiliser', 'pest', 'disease'].includes(a.activityType) &&
+            inDateRange(a.activityDate, startDate, endDate)
+        )
+      : [];
+    const fLvkCosts = canSeeFinance
+      ? store.db.livestockRecords.filter(
+          (r) =>
+            r.farmId === f.id &&
+            ['Purchase', 'Feeding', 'Veterinary', 'Vaccination'].includes(r.recordType) &&
+            inDateRange(r.recordDate, startDate, endDate)
+        )
+      : [];
+    const estVal = canSeeFinance
+      ? fCrops.reduce((s, c) => s + c.remainingStandingValueZar + c.storedStockValueZar, 0) +
+        fLvk.reduce((s, l) => s + l.remainingValueZar, 0)
+      : 0;
+    const actExp = canSeeFinance
+      ? fMixed.reduce((s, m) => s + m.expenseZar, 0) +
+        fCropActs.reduce((s, a) => s + a.valueZar, 0) +
+        fLvkCosts.reduce((s, r) => s + r.valueZar, 0)
+      : 0;
 
     return {
       id: f.id,
@@ -402,7 +478,7 @@ export async function buildExistingFarmerDashboard(params: {
 
   // Recent AI Insights
   const recentAiInsights = store.db.aiInsightRecords
-    .filter((ai) => (ai.userId === user.id || (ai.farmId && targetFarmIds.includes(ai.farmId))) && inDateRange(ai.createdAt, startDate, endDate))
+    .filter((ai) => (ai.userId === user.id || (ai.farmId && aiFarmIds.includes(ai.farmId))) && inDateRange(ai.createdAt, startDate, endDate))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 6)
     .map((ai) => ({
@@ -476,7 +552,9 @@ export async function buildExistingFarmerDashboard(params: {
     remainingQty: c.remainingPlants,
     damagedQty: c.damagedPlants,
     harvestedKg: c.harvestedKg,
-    estimatedValueZar: Number((c.remainingStandingValueZar + c.storedStockValueZar).toFixed(2)),
+    estimatedValueZar: redactFinancialFarmIds.has(c.farmId)
+      ? 0
+      : Number((c.remainingStandingValueZar + c.storedStockValueZar).toFixed(2)),
   }));
 
   const livestockPerformance = byAnimalType.map((cat) => {
@@ -532,7 +610,7 @@ export async function buildExistingFarmerDashboard(params: {
         itemLabel: m.cropName || 'Crop Stock',
         movementType: `Crop ${m.movementType}`,
         deltaLabel: `${m.quantityDelta >= 0 ? '+' : ''}${m.quantityDelta.toLocaleString()} ${m.unit}`,
-        estimatedValueDeltaZar: m.totalValueZar,
+        estimatedValueDeltaZar: redactFinancialFarmIds.has(m.farmId) ? 0 : m.totalValueZar,
       })),
     ...lvkRecs
       .filter((r) => r.quantityChange !== 0)
@@ -544,7 +622,7 @@ export async function buildExistingFarmerDashboard(params: {
           itemLabel: grp?.groupName || 'Livestock Group',
           movementType: `Livestock ${r.recordType}`,
           deltaLabel: `${r.quantityChange >= 0 ? '+' : ''}${r.quantityChange} head`,
-          estimatedValueDeltaZar: r.valueZar,
+          estimatedValueDeltaZar: redactFinancialFarmIds.has(r.farmId) ? 0 : r.valueZar,
         };
       }),
   ]
@@ -561,12 +639,12 @@ export async function buildExistingFarmerDashboard(params: {
     typeImpactMap.set(label, cur);
   }
 
-  // Weather impact summary
+  // Weather impact summary (restricted to weather grant farms)
   const farmForecasts = store.db.weatherForecastRecords.filter(
-    (fc) => targetFarmIds.includes(fc.farmId) && inDateRange(fc.forecastDate, startDate, endDate)
+    (fc) => weatherFarmIds.includes(fc.farmId) && inDateRange(fc.forecastDate, startDate, endDate)
   );
   const farmObservations = store.db.weatherObservations.filter(
-    (ob) => targetFarmIds.includes(ob.farmId) && inDateRange(ob.observationDate, startDate, endDate)
+    (ob) => weatherFarmIds.includes(ob.farmId) && inDateRange(ob.observationDate, startDate, endDate)
   );
   const recentWeatherDates = Array.from(
     new Set([...farmForecasts.map((f) => f.forecastDate), ...farmObservations.map((o) => o.observationDate)])
@@ -770,51 +848,15 @@ export function buildProspectiveFarmerDashboard(params: {
   const farmingPlans = store.db.businessPlans
     .filter((p) => p.ownerId === user.id)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-    .map((p) => {
-      const startup = p.equipmentCostZar + p.infrastructureCostZar;
-      const operating =
-        p.seedsPlantingCostZar +
-        p.fertilisersCostZar +
-        p.feedCostZar +
-        p.waterCostZar +
-        p.labourCostZar +
-        p.operatingExpensesZar;
-      const rev = p.expectedProductionQty * p.sellingPricePerUnitZar;
-      return {
-        ...p,
-        farmName: null,
-        calculation: {
-          estimatedStartupCostsZar: Number(startup.toFixed(2)),
-          estimatedOperatingCostsZar: Number(operating.toFixed(2)),
-          totalYearOneOutlayZar: Number((startup + operating).toFixed(2)),
-          estimatedProductionQty: p.expectedProductionQty,
-          productionUnit: p.productionUnit,
-          estimatedRevenueZar: Number(rev.toFixed(2)),
-          estimatedOperatingProfitLossZar: Number((rev - operating).toFixed(2)),
-          estimatedNetYearOneZar: Number((rev - startup - operating).toFixed(2)),
-          breakEvenUnits: p.sellingPricePerUnitZar > 0 ? Math.ceil(operating / p.sellingPricePerUnitZar) : null,
-          breakEvenPriceZar:
-            p.expectedProductionQty > 0 ? Number((operating / p.expectedProductionQty).toFixed(2)) : null,
-          costPerHectareZar: Number((operating / Math.max(0.1, p.farmSizeHectares)).toFixed(2)),
-          revenuePerHectareZar: Number((rev / Math.max(0.1, p.farmSizeHectares)).toFixed(2)),
-          costBreakdown: [],
-          resourceRequirements: {
-            waterDemandM3: p.waterDemandM3,
-            waterDemandLiters: Math.round(p.waterDemandM3 * 1000),
-            labourWorkers: p.labourWorkers,
-            farmSizeHectares: p.farmSizeHectares,
-            summaryText: `${p.farmSizeHectares} ha · ${p.labourWorkers} worker(s)`,
-          },
-          actualFarmExpensesZar: null,
-          actualExpensesNote: 'Prospective scenario — estimated planning budget only.',
-          disclaimer: 'Estimated non-guaranteed planning assumptions.',
-        },
-      };
-    });
+    .map((p) => ({
+      ...p,
+      farmName: null,
+      calculation: computeBusinessPlanMetrics(p),
+    }));
 
   const startupTotals = farmingPlans.map((p) => p.calculation.estimatedStartupCostsZar);
-  const estimatedLowestStartupZar =
-    startupTotals.length > 0 ? Math.min(...startupTotals) : 46500;
+  const estimatedLowestStartupZar: number | null =
+    startupTotals.length > 0 ? Math.min(...startupTotals) : null;
 
   const learningPayload = buildLearningCentrePayload({
     user,

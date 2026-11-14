@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { LANGUAGE_LIST } from '../i18n/translations';
 import { apiRequest } from '../lib/api';
+import { getOfflineStaleness, isLikelyOfflineError, loadOfflineBundle } from '../lib/offlineSync';
 import {
   AuthUser,
   LanguageCode,
@@ -93,6 +94,7 @@ interface LearningCentreViewProps {
 }
 
 export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
+  user,
   languageCode,
   largeMode,
   isSpeaking,
@@ -104,6 +106,8 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [isCacheStale, setIsCacheStale] = useState(false);
 
   const [viewMode, setViewMode] = useState<'all' | 'saved' | 'progress' | 'admin'>('all');
   const [searchQuery, setSearchQuery] = useState('');
@@ -162,18 +166,74 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
           `/api/learning/materials?${qs.toString()}`
         );
         setPayload(data);
+        setCachedAt(null);
+        setIsCacheStale(false);
         setSelectedMaterialId((prev) =>
           prev && data.materials.some((m) => m.id === prev)
             ? prev
             : data.materials[0]?.id || null
         );
       } catch (err: unknown) {
+        if (isLikelyOfflineError(err)) {
+          const bundle = await loadOfflineBundle(user.id);
+          if (bundle && bundle.learningGuides?.length > 0) {
+            const staleness = getOfflineStaleness(bundle);
+            const catMap = new Map<string, LearningCategoryMeta>();
+            for (const m of bundle.learningGuides) {
+              if (!catMap.has(m.category)) {
+                catMap.set(m.category, {
+                  code: m.category,
+                  label: m.categoryLabel,
+                  description: `${m.categoryLabel} offline guide`,
+                });
+              }
+            }
+            const completedCount = bundle.learningGuides.filter(
+              (m) => m.userProgress.status === 'completed'
+            ).length;
+            const inProgressCount = bundle.learningGuides.filter(
+              (m) => m.userProgress.status === 'in_progress'
+            ).length;
+            const savedCount = bundle.learningGuides.filter((m) => m.userProgress.isSaved).length;
+            const offlinePayload: LearningCentrePayload = {
+              categories: Array.from(catMap.values()),
+              materials: bundle.learningGuides,
+              canManageContent: false,
+              learnerStats: {
+                totalPublished: bundle.learningGuides.length,
+                completedCount,
+                inProgressCount,
+                savedCount,
+                overallPercent:
+                  bundle.learningGuides.length > 0
+                    ? Math.round((completedCount / bundle.learningGuides.length) * 100)
+                    : 0,
+              },
+              officialGuidanceNotice:
+                'Offline mode: viewing locally downloaded learning guides. Progress updates and bookmarks sync when internet returns.',
+            };
+            setPayload(offlinePayload);
+            setCachedAt(bundle.downloadedAt);
+            setIsCacheStale(staleness.isBundleStale);
+            setSelectedMaterialId((prev) =>
+              prev && offlinePayload.materials.some((m) => m.id === prev)
+                ? prev
+                : offlinePayload.materials[0]?.id || null
+            );
+            setNotice(
+              `Offline mode: viewing ${offlinePayload.materials.length} downloaded guide(s) cached on ${new Date(
+                bundle.downloadedAt
+              ).toLocaleString()}.`
+            );
+            return;
+          }
+        }
         setError(err instanceof Error ? err.message : 'Unable to load learning materials.');
       } finally {
         setLoading(false);
       }
     },
-    [languageCode]
+    [languageCode, user.id]
   );
 
   useEffect(() => {
@@ -238,6 +298,10 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       });
       await loadMaterials(viewMode === 'admin');
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        setNotice('Reading guides is available offline, while saving bookmark state requires internet connectivity.');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to update saved state.');
     }
   };
@@ -259,6 +323,10 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       });
       await loadMaterials(viewMode === 'admin');
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        setNotice('Reading guides works offline; updating cloud progress percentage requires internet connectivity.');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to save step progress.');
     }
   };
@@ -281,6 +349,10 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       });
       await loadMaterials(viewMode === 'admin');
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        setNotice('Reading guides works offline; updating cloud completion status requires internet connectivity.');
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to update completion status.');
     }
   };
@@ -580,6 +652,24 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
             'Published learning materials follow reviewed South African agricultural extension references. Consult a qualified agronomist or veterinarian for site-specific diagnosis or treatment.'}
         </span>
       </div>
+
+      {cachedAt && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-xs sm:text-sm ${
+            isCacheStale
+              ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
+              : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#35443B]'
+          }`}
+        >
+          <span className="font-semibold">
+            {isCacheStale ? 'Outdated Offline Guide Cache' : 'Viewing Saved Offline Learning Guides'}
+          </span>{' '}
+          · Downloaded <span className="font-mono">{new Date(cachedAt).toLocaleString()}</span>.
+          {isCacheStale
+            ? ' Cache is older than 24 hours — reconnect to refresh guides and sync reading progress.'
+            : ' Guides remain readable offline; progress and bookmark updates require internet.'}
+        </div>
+      )}
 
       {error && (
         <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">

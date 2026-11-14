@@ -11,6 +11,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import { getSastDateString } from '../lib/saTime';
 import {
   AuthUser,
   FarmItem,
@@ -133,7 +134,7 @@ export const ReportingExportsView: React.FC<ReportingExportsViewProps> = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fieldshift-${activeReport.reportType}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `fieldshift-${activeReport.reportType}-${getSastDateString()}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -224,7 +225,7 @@ export const ReportingExportsView: React.FC<ReportingExportsViewProps> = ({
       });
     }
 
-    doc.save(`fieldshift-${activeReport.reportType}-${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`fieldshift-${activeReport.reportType}-${getSastDateString()}.pdf`);
   };
 
   const selectedMeta = reportTypes.find((rt) => rt.code === selectedType);

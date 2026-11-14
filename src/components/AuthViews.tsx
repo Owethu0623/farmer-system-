@@ -325,15 +325,15 @@ export const AuthViews: React.FC<AuthViewsProps> = ({
                   <ShieldCheck className="w-4 h-4" />
                   <span>
                     {showDemoHelpers
-                      ? 'Hide seeded test accounts'
-                      : 'Test any of the 5 seeded South African roles'}
+                      ? 'Hide demonstration accounts'
+                      : 'Sign in with a seeded South African demonstration account'}
                   </span>
                 </button>
 
                 {showDemoHelpers && (
                   <div className="mt-3 space-y-2 bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
                     <p className="text-xs text-[#4A5A50]">
-                      Click any seeded account below to populate credentials and sign in through the real backend authenticator (Password: <span className="font-mono font-semibold text-[#17201B]">FieldShift2026!</span>):
+                      <strong className="text-[#143326]">Demonstration Accounts Only:</strong> Select a seeded role below to explore sample South African farm data (Password: <span className="font-mono font-semibold text-[#17201B]">FieldShift2026!</span>). Self-registered accounts start with clean, non-demonstration workspaces.
                     </p>
                     <div className="grid grid-cols-1 gap-1.5">
                       {DEMO_ACCOUNTS.map((acc) => (

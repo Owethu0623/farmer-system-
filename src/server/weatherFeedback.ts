@@ -1,5 +1,6 @@
 import crypto from 'node:crypto';
 import { GoogleGenAI, ThinkingLevel } from '@google/genai';
+import { getSastDateString } from './saTime.ts';
 import { store } from './store.ts';
 import {
   FarmerWeatherObservation,
@@ -18,7 +19,7 @@ function getGeminiClient(): GoogleGenAI | null {
   return new GoogleGenAI({
     apiKey,
     httpOptions: {
-      timeout: 15000,
+      timeout: 30000,
       retryOptions: { attempts: 1 },
       headers: { 'User-Agent': 'aistudio-build' },
     },
@@ -87,7 +88,7 @@ export function recordForecastSnapshots(params: {
     );
     if (existing) {
       // Keep original snapshot if already locked for historical comparisons; update only today/future forecasts
-      const todayIso = now.slice(0, 10);
+      const todayIso = getSastDateString();
       if (day.date >= todayIso) {
         existing.fetchedAt = now;
         existing.sourceName = params.sourceName;
@@ -476,20 +477,44 @@ export async function generateAiLocalWeatherSummary(params: {
     .join('\n');
 
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-4-hydrogen',
-      contents: [
-        `Generate a concise, practical local weather comparison summary in ${languageName} for farm "${overview.farmName}" (${overview.farmLocationLabel}).`,
-        `Verified Station Status: ${overview.verifiedStationStatus.note}`,
-        `Paired Observations vs Forecasts:\n${pairedText}`,
-        `Rules: Explicitly distinguish forecast information from unverified farmer-reported observations. Never claim farmer reports are verified station data or retrain AI models. Keep to 3–5 clear sentences.`,
-      ].join('\n\n'),
-      config: {
-        abortSignal: AbortSignal.timeout(15000),
-        thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
-      },
-    });
-    const text = (response.text || '').trim();
+    const promptContents = [
+      `Generate a concise, practical local weather comparison summary in ${languageName} for farm "${overview.farmName}" (${overview.farmLocationLabel}).`,
+      `Verified Station Status: ${overview.verifiedStationStatus.note}`,
+      `Paired Observations vs Forecasts:\n${pairedText}`,
+      `Rules: Explicitly distinguish forecast information from unverified farmer-reported observations. Never claim farmer reports are verified station data or retrain AI models. Keep to 3–5 clear sentences.`,
+    ].join('\n\n');
+
+    let text = '';
+    try {
+      const response = await ai.models.generateContent({
+        model: 'gemini-4-hydrogen',
+        contents: promptContents,
+        config: {
+          abortSignal: AbortSignal.timeout(22000),
+          thinkingConfig: { thinkingLevel: ThinkingLevel.LOW },
+        },
+      });
+      text = (response.text || '').trim();
+    } catch (primaryErr) {
+      const msg = primaryErr instanceof Error ? primaryErr.message : String(primaryErr);
+      const isTransient =
+        msg.includes('DEADLINE_EXCEEDED') ||
+        msg.includes('504') ||
+        msg.includes('503') ||
+        msg.includes('UNAVAILABLE') ||
+        msg.includes('TimeoutError') ||
+        msg.includes('aborted');
+      if (!isTransient) throw primaryErr;
+      const fallbackRes = await ai.models.generateContent({
+        model: 'gemini-3.1-flash-lite',
+        contents: promptContents,
+        config: {
+          abortSignal: AbortSignal.timeout(15000),
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MINIMAL },
+        },
+      });
+      text = (fallbackRes.text || '').trim();
+    }
     return {
       ...overview.summary,
       sourceCategory: 'ai_generated_estimate' as const,
@@ -501,12 +526,17 @@ export async function generateAiLocalWeatherSummary(params: {
         ...overview.summary.caveats,
       ],
     };
-  } catch {
+  } catch (err: unknown) {
+    const reason = err instanceof Error ? err.message : 'AI service unavailable';
     return {
       ...overview.summary,
       sourceCategory: 'ai_generated_estimate' as const,
       poweredBy: 'deterministic_summary' as const,
       generatedAt: new Date().toISOString(),
+      caveats: [
+        `AI synthesis unavailable (${reason}); displaying deterministic numerical summary from recorded observations.`,
+        ...overview.summary.caveats,
+      ],
     };
   }
 }

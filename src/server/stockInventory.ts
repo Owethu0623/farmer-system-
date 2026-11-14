@@ -1,4 +1,5 @@
 import crypto from 'node:crypto';
+import { getSastDateString } from './saTime.ts';
 import { store } from './store.ts';
 import {
   CropRecord,
@@ -47,17 +48,21 @@ export function computeCropStoredAndSold(crop: CropRecord): {
   salesValueZar: number;
 } {
   const movements = store.db.cropStockMovements.filter((m) => m.cropId === crop.id);
-  const harvestOrStorageMoves = movements.filter(
-    (m) => m.movementType === 'harvest' || m.movementType === 'storage_in'
-  );
+  const harvestMovesKg = movements
+    .filter((m) => m.movementType === 'harvest')
+    .reduce((s, m) => s + Math.abs(m.quantityDelta), 0);
+  const storageInMovesKg = movements
+    .filter((m) => m.movementType === 'storage_in')
+    .reduce((s, m) => s + Math.abs(m.quantityDelta), 0);
+  const adjustmentKg = movements
+    .filter((m) => m.movementType === 'adjustment' && (m.unit || '').toLowerCase().includes('kg'))
+    .reduce((s, m) => s + m.quantityDelta, 0);
   const saleMoves = movements.filter((m) => m.movementType === 'sale');
   const spoilageMoves = movements.filter((m) => m.movementType === 'spoilage');
 
-  const storedInFromMoves = harvestOrStorageMoves.reduce(
-    (s, m) => s + Math.abs(m.quantityDelta),
-    0
-  );
-  const baseHarvestKg = Math.max(crop.harvestedQuantityKg, storedInFromMoves);
+  // 'harvest' already increments crop.harvestedQuantityKg; avoid double counting harvest movements with crop.harvestedQuantityKg
+  const harvestedTotalKg = Math.max(crop.harvestedQuantityKg, harvestMovesKg);
+  const baseHarvestKg = harvestedTotalKg + storageInMovesKg + adjustmentKg;
   const soldKg = saleMoves.reduce((s, m) => s + Math.abs(m.quantityDelta), 0);
   const spoilageKg = spoilageMoves.reduce((s, m) => s + Math.abs(m.quantityDelta), 0);
   const storedKg = Math.max(0, Number((baseHarvestKg - soldKg - spoilageKg).toFixed(2)));
@@ -343,7 +348,7 @@ export function recordCropStockMovement(params: {
     farmId: crop.farmId,
     actorUserId: params.actorUserId,
     movementType,
-    movementDate: movementDate || now.slice(0, 10),
+    movementDate: movementDate || getSastDateString(),
     quantityDelta,
     unit: params.unit || (movementType === 'damage' || movementType === 'planting' ? 'plants' : 'kg'),
     unitPriceZar,

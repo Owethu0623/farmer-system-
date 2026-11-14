@@ -23,6 +23,7 @@ import {
   TrendingUp,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import { getOfflineStaleness, isLikelyOfflineError, loadOfflineBundle } from '../lib/offlineSync';
 import {
   AuthUser,
   ExistingFarmerDashboardPayload,
@@ -127,6 +128,8 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
   const [prospectivePayload, setProspectivePayload] = useState<ProspectiveDashboardPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [cachedAt, setCachedAt] = useState<string | null>(null);
+  const [isCacheStale, setIsCacheStale] = useState(false);
 
   const availableFields = useMemo(() => {
     if (filterFarmId === 'all') {
@@ -158,12 +161,323 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
         );
         setExistingPayload(data);
       }
+      setCachedAt(null);
+      setIsCacheStale(false);
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(user.id);
+        if (bundle) {
+          const staleness = getOfflineStaleness(bundle);
+          setCachedAt(bundle.downloadedAt);
+          setIsCacheStale(staleness.isBundleStale);
+          if (user.roleCode === 'prospective_farmer') {
+            const plans = bundle.businessPlans || [];
+            const completedGuides = (bundle.learningGuides || []).filter(
+              (g) => g.userProgress?.status === 'completed'
+            ).length;
+            const totalGuides = (bundle.learningGuides || []).length;
+            const startups = plans
+              .map((p) => p.calculation.estimatedStartupCostsZar)
+              .filter((n) => Number.isFinite(n));
+            setProspectivePayload({
+              mode: 'prospective_farmer',
+              overview: {
+                savedLocationsCount: 0,
+                farmingPlansCount: plans.length,
+                estimatedLowestStartupZar: startups.length > 0 ? Math.min(...startups) : null,
+                learningCompletedCount: completedGuides,
+                learningTotalCount: totalGuides,
+                learningProgressPercent:
+                  totalGuides > 0 ? Math.round((completedGuides / totalGuides) * 100) : 0,
+                estimationNotice:
+                  'Offline cached snapshot — startup estimates and saved business plans are loaded from local device storage.',
+              },
+              opportunities: [],
+              savedLocations: [],
+              landSuitabilityRecommendations: [],
+              suggestedActivities: [],
+              farmingPlans: plans,
+              learningProgress: {
+                totalPublished: totalGuides,
+                completedCount: completedGuides,
+                inProgressCount: (bundle.learningGuides || []).filter(
+                  (g) => g.userProgress?.status === 'in_progress'
+                ).length,
+                savedCount: (bundle.learningGuides || []).filter(
+                  (g) => g.userProgress?.isSaved
+                ).length,
+                overallPercent:
+                  totalGuides > 0 ? Math.round((completedGuides / totalGuides) * 100) : 0,
+                recentMaterials: (bundle.learningGuides || []).slice(0, 4),
+              },
+              recommendedNextSteps: [
+                {
+                  id: 'offline-planner',
+                  title: 'Review or Draft Business Plan Offline',
+                  detail: 'Create or adjust scenarios and sync automatically when online.',
+                  completed: plans.length > 0,
+                  actionTab: 'planner',
+                  actionLabel: 'Open Planner',
+                },
+                {
+                  id: 'offline-learning',
+                  title: 'Read Cached Learning Guides',
+                  detail: `${totalGuides} guide(s) stored in your offline pack.`,
+                  completed: completedGuides > 0,
+                  actionTab: 'learning',
+                  actionLabel: 'Open Learning',
+                },
+              ],
+              recentAiInsights: [],
+              announcements: [],
+            });
+            setLoading(false);
+            return;
+          } else {
+            const targetFarms =
+              filterFarmId && filterFarmId !== 'all'
+                ? bundle.farms.filter((f) => f.id === filterFarmId)
+                : bundle.farms;
+            const farmIdSet = new Set(targetFarms.map((f) => f.id));
+            const crops = (bundle.crops || []).filter(
+              (c) => farmIdSet.has(c.farmId) && (filterFieldId === 'all' || c.fieldId === filterFieldId)
+            );
+            const livestock = (bundle.livestockGroups || []).filter((l) => farmIdSet.has(l.farmId));
+            const incidents = (bundle.incidents || []).filter((i) => farmIdSet.has(i.farmId));
+            const cropStocks = (bundle.stockOverview?.cropStocks || []).filter((s) =>
+              farmIdSet.has(s.farmId)
+            );
+            const livestockStocks = (bundle.stockOverview?.livestockStocks || []).filter((s) =>
+              farmIdSet.has(s.farmId)
+            );
+            const totalHectares = Number(
+              targetFarms.reduce((acc, f) => acc + (f.farmSizeHectares || 0), 0).toFixed(2)
+            );
+            const cultivatedHectares = Number(
+              crops.reduce((acc, c) => acc + (c.cultivatedAreaHectares || 0), 0).toFixed(2)
+            );
+            const estCropVal = cropStocks.reduce(
+              (acc, r) => acc + r.remainingStandingValueZar + r.storedStockValueZar,
+              0
+            );
+            const estLiveVal = livestockStocks.reduce((acc, r) => acc + r.remainingValueZar, 0);
+            const firstSnap = bundle.weatherSnapshots?.[0] || null;
+            const firstFc = firstSnap?.forecasts?.[0] || null;
+            const firstObs = firstSnap?.recentObservations?.[0] || null;
+
+            setExistingPayload({
+              mode: 'existing_farmer',
+              filtersApplied: {
+                farmId: filterFarmId,
+                fieldId: filterFieldId,
+                startDate: filterStartDate,
+                endDate: filterEndDate,
+                category: filterCategory,
+              },
+              overview: {
+                registeredFarmsCount: targetFarms.length,
+                totalHectares,
+                cultivatedHectares,
+                grazingHectares: Number(Math.max(0, totalHectares - cultivatedHectares).toFixed(2)),
+                farmingTypes: Array.from(
+                  new Set(targetFarms.flatMap((f) => f.farmingActivities || []))
+                ),
+                registeredCropsCount: crops.length,
+                totalRemainingPlants: crops.reduce(
+                  (acc, c) => acc + Math.max(0, c.plantingQuantity - (c.damagedPlants || 0)),
+                  0
+                ),
+                totalDamagedPlants: crops.reduce((acc, c) => acc + (c.damagedPlants || 0), 0),
+                totalStoredCropKg: cropStocks.reduce((acc, r) => acc + r.storedProductionKg, 0),
+                totalLivestockQuantity: livestock.reduce((acc, l) => acc + l.quantity, 0),
+                activeIncidentsCount: incidents.filter((i) => i.status !== 'resolved').length,
+                activeWarningsCount: 0,
+                estimatedCropStockValueZar: Math.round(estCropVal),
+                estimatedLivestockValueZar: Math.round(estLiveVal),
+                estimatedTotalStockValueZar: Math.round(estCropVal + estLiveVal),
+                actualRecordedExpensesZar: 0,
+                estimationNotice:
+                  'Offline cached snapshot — metrics reflect locally saved farm records from your last sync. Fresh weather forecasts, external SoilGrids/ARC data, and online AI require internet.',
+              },
+              farmsSummary: targetFarms.map((f) => ({
+                id: f.id,
+                name: f.name,
+                province: f.location?.province || 'South Africa',
+                district: f.location?.districtMunicipality || 'Local District',
+                totalHectares: f.farmSizeHectares || 0,
+                fieldCount: f.fields.length,
+                farmingTypes: f.farmingActivities || [],
+                cropsCount: crops.filter((c) => c.farmId === f.id).length,
+                livestockCount: livestock
+                  .filter((l) => l.farmId === f.id)
+                  .reduce((acc, l) => acc + l.quantity, 0),
+                estimatedStockValueZar: Math.round(
+                  cropStocks
+                    .filter((s) => s.farmId === f.id)
+                    .reduce((a, s) => a + s.remainingStandingValueZar + s.storedStockValueZar, 0) +
+                    livestockStocks
+                      .filter((s) => s.farmId === f.id)
+                      .reduce((a, s) => a + s.remainingValueZar, 0)
+                ),
+                actualExpensesZar: 0,
+                activeIncidentsCount: incidents.filter(
+                  (i) => i.farmId === f.id && i.status !== 'resolved'
+                ).length,
+              })),
+              registeredCrops: crops.map((c) => ({
+                id: c.id,
+                farmId: c.farmId,
+                farmName: c.farmName || targetFarms.find((f) => f.id === c.farmId)?.name || 'Farm',
+                fieldName: c.fieldName || 'Field',
+                cropName: c.cropName,
+                cropVariety: c.cropVariety,
+                growthStage: c.growthStage,
+                cultivatedAreaHectares: c.cultivatedAreaHectares,
+                remainingPlants: Math.max(0, c.plantingQuantity - (c.damagedPlants || 0)),
+                damagedPlants: c.damagedPlants || 0,
+                harvestedKg:
+                  cropStocks.find((s) => s.cropId === c.id)?.harvestedKg ?? c.harvestedQuantityKg ?? 0,
+                storedKg: cropStocks.find((s) => s.cropId === c.id)?.storedProductionKg || 0,
+                expectedHarvestingDate: c.expectedHarvestingDate,
+                estimatedValueZar:
+                  cropStocks.find((s) => s.cropId === c.id)?.remainingStandingValueZar || 0,
+              })),
+              livestockSummary: {
+                byAnimalType: (['Cattle', 'Sheep', 'Goats', 'Pigs', 'Poultry'] as const)
+                  .map((animalType) => {
+                    const matching = livestock.filter((l) => l.animalType === animalType);
+                    return {
+                      animalType,
+                      quantity: matching.reduce((acc, l) => acc + l.quantity, 0),
+                      estimatedValueZar: Number(
+                        matching
+                          .reduce(
+                            (acc, l) =>
+                              acc +
+                              (livestockStocks.find((s) => s.livestockGroupId === l.id)?.remainingValueZar ??
+                                l.quantity * l.estimatedUnitValueZar),
+                            0
+                          )
+                          .toFixed(2)
+                      ),
+                    };
+                  })
+                  .filter((row) => row.quantity > 0),
+                groups: livestock.map((l) => ({
+                  id: l.id,
+                  farmId: l.farmId,
+                  farmName: l.farmName || targetFarms.find((f) => f.id === l.farmId)?.name || 'Farm',
+                  groupName: l.groupName,
+                  animalType: l.animalType,
+                  breed: l.breed,
+                  quantity: l.quantity,
+                  healthStatus: l.healthStatus,
+                  estimatedValueZar:
+                    livestockStocks.find((s) => s.livestockGroupId === l.id)?.remainingValueZar || 0,
+                })),
+              },
+              weatherSummary: {
+                farmName: firstSnap?.farmName || targetFarms[0]?.name || 'Farm',
+                locationLabel: 'Offline Weather Snapshot',
+                forecastSummary: firstFc
+                  ? `Cached ${firstFc.forecastDate}: ${firstFc.weatherDescription}, ${firstFc.predictedRainfallMm} mm expected.`
+                  : 'Connect to the internet to fetch fresh weather forecasts.',
+                latestTemperatureC: firstFc ? firstFc.predictedTempMaxC : null,
+                latestRainForecastMm: firstFc ? firstFc.predictedRainfallMm : null,
+                latestFarmerReport: firstObs,
+                activeWarnings: [],
+              },
+              upcomingActivities: [],
+              recentIncidents: incidents.slice(0, 6),
+              recentAiInsights: [],
+              recommendedNextActions: [
+                {
+                  id: 'offline-act',
+                  priority: 'normal',
+                  title: 'Record Activities or Incidents Offline',
+                  reason: 'Any crop, livestock, stock, or incident logs you save offline will queue for sync.',
+                  actionTab: 'incidents',
+                  actionLabel: 'Open Incidents',
+                },
+              ],
+              analytics: {
+                cropPerformance: cropStocks.map((s) => ({
+                  label: s.cropName,
+                  plantedQty: s.originalPlantedQty,
+                  remainingQty: s.remainingPlants,
+                  damagedQty: s.damagedPlants,
+                  harvestedKg: s.harvestedKg,
+                  estimatedValueZar: s.remainingStandingValueZar,
+                })),
+                livestockPerformance: (['Cattle', 'Sheep', 'Goats', 'Pigs', 'Poultry'] as const)
+                  .map((animalType) => {
+                    const matchingStocks = livestockStocks.filter((s) => s.animalType === animalType);
+                    const matchingGroups = livestock.filter((l) => l.animalType === animalType);
+                    const headCount = matchingGroups.reduce((acc, g) => acc + g.quantity, 0);
+                    return {
+                      animalType,
+                      headCount,
+                      birthsAndPurchases: matchingStocks.reduce((acc, s) => acc + s.births + s.purchases, 0),
+                      deathsAndSales: matchingStocks.reduce((acc, s) => acc + s.deaths + s.sales, 0),
+                      estimatedValueZar: Number(
+                        matchingStocks.reduce((acc, s) => acc + s.remainingValueZar, 0).toFixed(2)
+                      ),
+                    };
+                  })
+                  .filter((r) => r.headCount > 0 || r.birthsAndPurchases > 0 || r.deathsAndSales > 0),
+                productionTrends: [],
+                stockChanges: [],
+                expenseSummaries: {
+                  mixedExpensesZar: 0,
+                  cropActivityExpensesZar: 0,
+                  livestockExpensesZar: 0,
+                  totalActualExpensesZar: 0,
+                  estimatedPlannedBudgetZar: 0,
+                  byCategory: [],
+                },
+                damageAndLoss: {
+                  totalIncidents: incidents.length,
+                  activeIncidents: incidents.filter((i) => i.status !== 'resolved').length,
+                  affectedPlants: incidents
+                    .filter((i) => i.cropId)
+                    .reduce((acc, i) => acc + (i.affectedQuantity || 0), 0),
+                  affectedLivestock: incidents
+                    .filter((i) => i.livestockGroupId)
+                    .reduce((acc, i) => acc + (i.affectedQuantity || 0), 0),
+                  affectedHectares: Number(
+                    incidents.reduce((acc, i) => acc + (i.affectedAreaHectares || 0), 0).toFixed(2)
+                  ),
+                  estimatedFinancialImpactZar: incidents.reduce(
+                    (acc, i) => acc + (i.estimatedFinancialImpactZar || 0),
+                    0
+                  ),
+                  byIncidentType: [],
+                },
+                weatherImpact: {
+                  storedForecastDays: firstSnap?.forecasts?.length || 0,
+                  farmerObservationsCount: firstSnap?.recentObservations?.length || 0,
+                  avgRainfallVarianceMm: null,
+                  weatherIncidentsCount: 0,
+                  recentDays: (firstSnap?.forecasts || []).slice(0, 5).map((f) => ({
+                    date: f.forecastDate,
+                    forecastRainMm: f.predictedRainfallMm,
+                    reportedRainMm: null,
+                  })),
+                },
+              },
+              announcements: [],
+            });
+            setLoading(false);
+            return;
+          }
+        }
+      }
       setError(err instanceof Error ? err.message : 'Unable to load dashboard overview.');
     } finally {
       setLoading(false);
     }
   }, [
+    user.id,
     user.roleCode,
     prospectiveProvince,
     filterFarmId,
@@ -281,9 +595,16 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
 
         <div className="bg-[#143326] text-white rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6">
           <div className="space-y-2 max-w-2xl">
-            <p className="text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">
-              Prospective Farmer · {user.profile?.province || 'South Africa'}
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">
+                Prospective Farmer · {user.profile?.province || 'South Africa'}
+              </p>
+              {user.isDemonstration && (
+                <span className="px-2 py-0.5 rounded bg-[#2D6A4F] text-[#E4F0E7] text-[10px] font-mono uppercase tracking-wider">
+                  Demonstration Account
+                </span>
+              )}
+            </div>
             <h1 className="font-display text-2xl sm:text-3xl font-bold">
               Welcome, {user.profile?.fullName}
             </h1>
@@ -339,6 +660,22 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
           </div>
         </div>
 
+        {cachedAt && (
+          <div
+            className={`rounded-xl border px-4 py-3 text-xs sm:text-sm ${
+              isCacheStale
+                ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
+                : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#35443B]'
+            }`}
+          >
+            <span className="font-semibold">
+              {isCacheStale ? 'Outdated Offline Snapshot' : 'Viewing Saved Offline Snapshot'}
+            </span>{' '}
+            · Last downloaded <span className="font-mono">{new Date(cachedAt).toLocaleString()}</span>.
+            Fresh weather forecasts, external lookups, and online AI analysis require internet connectivity.
+          </div>
+        )}
+
         {error && (
           <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
             {error}
@@ -365,9 +702,15 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
             <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
               <p className="text-xs text-[#4A5A50]">Lowest Startup Budget (Estimated)</p>
               <p className="font-mono text-2xl font-bold tabular-nums text-[#1B4332] mt-1">
-                R{(data.overview.estimatedLowestStartupZar ?? 0).toLocaleString()}
+                {data.overview.estimatedLowestStartupZar !== null
+                  ? `R${data.overview.estimatedLowestStartupZar.toLocaleString()}`
+                  : 'No saved plan'}
               </p>
-              <p className="text-xs text-[#4A5A50] mt-0.5">Non-guaranteed estimate</p>
+              <p className="text-xs text-[#4A5A50] mt-0.5">
+                {data.overview.estimatedLowestStartupZar !== null
+                  ? 'Non-guaranteed estimate'
+                  : 'Create a plan in Business Planner'}
+              </p>
             </div>
             <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
               <p className="text-xs text-[#4A5A50]">Learning Progress</p>
@@ -782,7 +1125,14 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
       {/* Header Banner */}
       <div className="bg-[#143326] text-white rounded-2xl p-6 sm:p-8 flex flex-wrap items-center justify-between gap-6">
         <div className="space-y-1.5">
-          <p className="text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">{roleLabel}</p>
+          <div className="flex flex-wrap items-center gap-2">
+            <p className="text-xs font-mono uppercase tracking-wider text-[#B7DEC4]">{roleLabel}</p>
+            {(user.isDemonstration || farms.some((f) => f.isDemonstration)) && (
+              <span className="px-2 py-0.5 rounded bg-[#2D6A4F] text-[#E4F0E7] text-[10px] font-mono uppercase tracking-wider">
+                Demonstration Data
+              </span>
+            )}
+          </div>
           <h1 className="font-display text-2xl sm:text-3xl font-bold">{user.profile?.fullName}</h1>
           <p className="text-sm text-[#DCE8DF]">
             <span className="font-mono font-bold tabular-nums">
@@ -940,6 +1290,23 @@ export const RoleDashboard: React.FC<RoleDashboardProps> = ({
           </div>
         </div>
       </section>
+
+      {cachedAt && (
+        <div
+          className={`rounded-xl border px-4 py-3 text-xs sm:text-sm ${
+            isCacheStale
+              ? 'bg-[#FFF6EB] border-[#F0D3A8] text-[#6B440B]'
+              : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#35443B]'
+          }`}
+        >
+          <span className="font-semibold">
+            {isCacheStale ? 'Outdated Offline Dashboard Cache' : 'Viewing Offline Farm Snapshot'}
+          </span>{' '}
+          · Last synced <span className="font-mono">{new Date(cachedAt).toLocaleString()}</span>.
+          {isCacheStale ? ' Data is older than 24 hours — reconnect to refresh.' : ''}{' '}
+          Fresh weather forecasts, external SoilGrids/ARC data, and online AI analysis require internet connectivity.
+        </div>
+      )}
 
       {error && (
         <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">

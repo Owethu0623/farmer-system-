@@ -160,7 +160,8 @@
       "activationToken": null,
       "lastLoginAt": "2026-11-14T14:41:32.168Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T14:41:32.168Z"
+      "updatedAt": "2026-11-14T14:41:32.168Z",
+      "isDemonstration": true
     },
     {
       "id": "user-existing-1",
@@ -173,9 +174,10 @@
       "isEmailVerified": true,
       "onboardingCompleted": true,
       "activationToken": null,
-      "lastLoginAt": "2026-11-14T14:53:02.348Z",
+      "lastLoginAt": "2026-11-14T15:51:43.013Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T14:53:02.348Z"
+      "updatedAt": "2026-11-14T15:51:43.013Z",
+      "isDemonstration": true
     },
     {
       "id": "user-expert-1",
@@ -190,7 +192,8 @@
       "activationToken": null,
       "lastLoginAt": "2026-11-14T14:52:53.584Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T14:52:53.584Z"
+      "updatedAt": "2026-11-14T14:52:53.584Z",
+      "isDemonstration": true
     },
     {
       "id": "user-org-1",
@@ -205,7 +208,8 @@
       "activationToken": null,
       "lastLoginAt": "2026-11-14T14:53:02.418Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T14:53:02.418Z"
+      "updatedAt": "2026-11-14T14:53:02.418Z",
+      "isDemonstration": true
     },
     {
       "id": "user-admin-1",
@@ -220,7 +224,24 @@
       "activationToken": null,
       "lastLoginAt": "2026-11-14T14:41:32.344Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T14:41:32.344Z"
+      "updatedAt": "2026-11-14T14:41:32.344Z",
+      "isDemonstration": true
+    },
+    {
+      "id": "user-existing-demo-2",
+      "email": "jan.botha@fieldshift.co.za",
+      "passwordHash": "fa84a3f77df007afa5f8c44bca0d5829a160967c1784090f906d4820159c78bf0961b293385bc18b939a0d98bd5ca008392436b62c6fce99b975740eb6b1af38",
+      "passwordSalt": "fa919c4e3afa60800ed6d7867a163f7a",
+      "roleId": "role-existing",
+      "preferredLanguageCode": "af",
+      "isActive": true,
+      "isEmailVerified": true,
+      "onboardingCompleted": true,
+      "isDemonstration": true,
+      "activationToken": null,
+      "lastLoginAt": "2026-11-14T15:50:39.369Z",
+      "createdAt": "2026-11-14T15:50:39.369Z",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
     }
   ],
   "userProfiles": [
@@ -322,6 +343,22 @@
       "bio": "Platform System Administrator for Field Shift South Africa.",
       "createdAt": "2026-11-14T13:22:54.784Z",
       "updatedAt": "2026-11-14T13:22:54.784Z"
+    },
+    {
+      "id": "prof-6-demo",
+      "userId": "user-existing-demo-2",
+      "fullName": "Jan Botha (Demonstration Farmer)",
+      "phoneNumber": "+27 82 614 7780",
+      "province": "Free State",
+      "district": "Thabo Mofutsanyana District",
+      "farmerExperienceYears": 14,
+      "accessibilityLargeText": false,
+      "accessibilityAudioGuidance": false,
+      "accessibilityVoiceInput": false,
+      "prospectiveData": null,
+      "bio": "Demonstration multi-province producer illustrating Free State Highveld summer grain and Western Cape winter-rainfall orchard systems.",
+      "createdAt": "2026-11-14T15:50:39.369Z",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
     }
   ],
   "userPermissions": [
@@ -1132,6 +1169,126 @@
       "permissionKey": "reports:export",
       "isAllowed": true,
       "createdAt": "2026-11-14T14:41:23.093Z"
+    },
+    {
+      "id": "perm-23896760-3718-4a62-a1f7-f3d6014c2465",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "profile:read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-4848323e-3840-455f-8267-2df3c739e0bb",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "profile:update",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-7afdc285-86ff-4c9b-90f5-fe9c2dcf0255",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "farms:create",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-91310f5a-4a42-48c7-91a3-71ab946fb774",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "farms:read_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-d61dd172-0d3d-4178-9a97-e0d6b6542758",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "farms:update_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-f9dfdbcc-53e0-471c-a58a-6eb247a1e041",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "farms:delete_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-17959f97-86a1-4ee9-840a-f9c0b10269cb",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "fields:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-2649676d-3fa8-4aca-bf8f-55cbbd393d21",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "crops:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-a1972df4-6cef-43f9-8ece-1e86433394cf",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "livestock:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-8043c3bc-e70e-4fb4-b385-dd062afb69fa",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "mixed:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-db594139-6750-4543-92c9-92179ca757c1",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "business:plan",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-d7bb2029-59ee-49c4-a976-4c9a4c184d28",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "learning:access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-0e21de72-6162-4be5-91e4-f7cfc477c4b9",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "reports:generate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-cd09c820-b008-43b3-ada5-03658ff8de4d",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "reports:export",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
+    },
+    {
+      "id": "perm-bb64bd90-538f-4273-b7b3-7dd1b465e693",
+      "roleId": "role-existing",
+      "userId": "user-existing-demo-2",
+      "permissionKey": "ai:advise",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T15:51:31.040Z"
     }
   ],
   "farmingTypes": [
@@ -1209,7 +1366,8 @@
       ],
       "status": "active",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T13:38:18.150Z"
+      "updatedAt": "2026-11-14T13:38:18.150Z",
+      "isDemonstration": true
     },
     {
       "id": "farm-mkhambathini-2",
@@ -1231,7 +1389,52 @@
       ],
       "status": "active",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T13:22:54.784Z"
+      "updatedAt": "2026-11-14T13:22:54.784Z",
+      "isDemonstration": true
+    },
+    {
+      "id": "farm-bethlehem-demo-3",
+      "ownerId": "user-existing-demo-2",
+      "name": "Bethlehem Highveld Grain Demo Farm",
+      "farmingActivities": [
+        "Maize & Dryland Grain",
+        "Beef & Nguni Cattle"
+      ],
+      "farmSizeHectares": 48,
+      "yearsOfExperience": 14,
+      "waterAvailability": "Dryland Summer Rainfall + Borehole",
+      "existingCrops": [
+        "White Maize",
+        "Soybeans"
+      ],
+      "existingLivestock": [
+        "Bonsmara Beef Cattle (42 head)"
+      ],
+      "status": "active",
+      "isDemonstration": true,
+      "createdAt": "2026-11-14T15:50:39.369Z",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
+    },
+    {
+      "id": "farm-winelands-demo-4",
+      "ownerId": "user-existing-demo-2",
+      "name": "Breede Valley Stone Fruit & Wheat Demo",
+      "farmingActivities": [
+        "Citrus & Subtropical Fruit",
+        "Maize & Dryland Grain"
+      ],
+      "farmSizeHectares": 18,
+      "yearsOfExperience": 14,
+      "waterAvailability": "Registered Irrigation Scheme & Storage Dam",
+      "existingCrops": [
+        "Winter Wheat",
+        "Stone Fruit Orchard"
+      ],
+      "existingLivestock": [],
+      "status": "active",
+      "isDemonstration": true,
+      "createdAt": "2026-11-14T15:50:39.369Z",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
     }
   ],
   "farmLocations": [
@@ -1268,6 +1471,40 @@
       "gpsLongitude": null,
       "gpsAccuracyMeters": null,
       "gpsCapturedAt": null
+    },
+    {
+      "id": "loc-3-demo",
+      "farmId": "farm-bethlehem-demo-3",
+      "province": "Free State",
+      "districtMunicipality": "Thabo Mofutsanyana District",
+      "localMunicipality": "Dihlabeng",
+      "townOrVillage": "Bethlehem / Saulspoort",
+      "latitude": -28.235,
+      "longitude": 28.312,
+      "locationSource": "manual_map_pin",
+      "gpsLatitude": null,
+      "gpsLongitude": null,
+      "gpsAccuracyMeters": null,
+      "gpsCapturedAt": null,
+      "centroidWkt": "SRID=4326;POINT(28.312000 -28.235000)",
+      "elevationMeters": 1688
+    },
+    {
+      "id": "loc-4-demo",
+      "farmId": "farm-winelands-demo-4",
+      "province": "Western Cape",
+      "districtMunicipality": "Cape Winelands District",
+      "localMunicipality": "Breede Valley",
+      "townOrVillage": "Worcester / Hex River",
+      "latitude": -33.649,
+      "longitude": 19.452,
+      "locationSource": "manual_map_pin",
+      "gpsLatitude": null,
+      "gpsLongitude": null,
+      "gpsAccuracyMeters": null,
+      "gpsCapturedAt": null,
+      "centroidWkt": "SRID=4326;POINT(19.452000 -33.649000)",
+      "elevationMeters": 223
     }
   ],
   "farmBoundaries": [
@@ -1342,6 +1579,78 @@
       "perimeterMeters": 1414.3,
       "source": "user_sketch",
       "updatedAt": "2026-11-14T13:22:54.784Z"
+    },
+    {
+      "id": "bnd-3-demo",
+      "farmId": "farm-bethlehem-demo-3",
+      "boundaryWkt": "SRID=4326;POLYGON((28.308468 -28.231888, 28.315532 -28.231888, 28.315532 -28.238112, 28.308468 -28.238112, 28.308468 -28.231888))",
+      "geojson": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              28.308468,
+              -28.231888
+            ],
+            [
+              28.315532,
+              -28.231888
+            ],
+            [
+              28.315532,
+              -28.238112
+            ],
+            [
+              28.308468,
+              -28.238112
+            ],
+            [
+              28.308468,
+              -28.231888
+            ]
+          ]
+        ]
+      },
+      "calculatedAreaHectares": 48,
+      "perimeterMeters": 2771.3,
+      "source": "drawn_polygon",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
+    },
+    {
+      "id": "bnd-4-demo",
+      "farmId": "farm-winelands-demo-4",
+      "boundaryWkt": "SRID=4326;POLYGON((19.449711 -33.647094, 19.454289 -33.647094, 19.454289 -33.650906, 19.449711 -33.650906, 19.449711 -33.647094))",
+      "geojson": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              19.449711,
+              -33.647094
+            ],
+            [
+              19.454289,
+              -33.647094
+            ],
+            [
+              19.454289,
+              -33.650906
+            ],
+            [
+              19.449711,
+              -33.650906
+            ],
+            [
+              19.449711,
+              -33.647094
+            ]
+          ]
+        ]
+      },
+      "calculatedAreaHectares": 18,
+      "perimeterMeters": 1697.2,
+      "source": "drawn_polygon",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
     }
   ],
   "fields": [
@@ -1512,6 +1821,90 @@
       "notes": "Scheduled foliar micronutrient spray next week.",
       "createdAt": "2026-11-14T13:22:54.784Z",
       "updatedAt": "2026-11-14T13:22:54.784Z"
+    },
+    {
+      "id": "fld-5-demo",
+      "farmId": "farm-bethlehem-demo-3",
+      "name": "Saulspoort Summer Maize & Soya Block",
+      "farmingTypeId": "ft-maize",
+      "cropOrLivestock": "White Maize & Soybeans",
+      "areaHectares": 32,
+      "soilType": "Avalon Sandy Loam",
+      "irrigationType": "Dryland Summer Rainfall",
+      "fieldWkt": null,
+      "geojson": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              28.309116,
+              -28.232459
+            ],
+            [
+              28.314884,
+              -28.232459
+            ],
+            [
+              28.314884,
+              -28.237541
+            ],
+            [
+              28.309116,
+              -28.237541
+            ],
+            [
+              28.309116,
+              -28.232459
+            ]
+          ]
+        ]
+      },
+      "status": "active",
+      "notes": "Highveld conservation-tillage summer grain demonstration block.",
+      "createdAt": "2026-11-14T15:50:39.369Z",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
+    },
+    {
+      "id": "fld-6-demo",
+      "farmId": "farm-winelands-demo-4",
+      "name": "Hex River Winter Wheat & Orchard Block",
+      "farmingTypeId": "ft-citrus",
+      "cropOrLivestock": "Stone Fruit & Winter Cover Oats",
+      "areaHectares": 14,
+      "soilType": "Alluvial Loam",
+      "irrigationType": "Scheme Drip Irrigation",
+      "fieldWkt": null,
+      "geojson": {
+        "type": "Polygon",
+        "coordinates": [
+          [
+            [
+              19.449981,
+              -33.647319
+            ],
+            [
+              19.454019,
+              -33.647319
+            ],
+            [
+              19.454019,
+              -33.650681
+            ],
+            [
+              19.449981,
+              -33.650681
+            ],
+            [
+              19.449981,
+              -33.647319
+            ]
+          ]
+        ]
+      },
+      "status": "active",
+      "notes": "Mediterranean winter-rainfall orchard demonstration block.",
+      "createdAt": "2026-11-14T15:50:39.369Z",
+      "updatedAt": "2026-11-14T15:50:39.369Z"
     }
   ],
   "notifications": [
@@ -1712,6 +2105,30 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit-5f6e9e31-c9d3-4664-84b7-17add5b72a1b",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGOUT",
+      "entityType": "Session",
+      "entityId": "sess-24c0c07d-203b-46e0-a9ae-1d2b066737ad",
+      "details": {},
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T15:51:46.565Z"
+    },
+    {
+      "id": "audit-fcad4452-4aa5-4a17-9687-91dbb71514a8",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T15:51:43.016Z"
+    },
     {
       "id": "audit-eddd17e9-8967-4269-b60e-97ecf606cef5",
       "actorUserId": "user-org-1",
@@ -6002,5 +6419,6 @@
       "providerNote": "Delivered to in-app inbox (af).",
       "createdAt": "2026-11-14T14:52:15.232Z"
     }
-  ]
+  ],
+  "processedSyncIds": []
 }

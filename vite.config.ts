@@ -5,10 +5,30 @@ import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 export default defineConfig(() => {
+  const hmrEnabled = process.env.ENABLE_HMR === 'true' && process.env.DISABLE_HMR !== 'true';
   return {
     plugins: [
       react(),
       tailwindcss(),
+      !hmrEnabled && {
+        name: 'field-shift:disable-hmr-client-ws',
+        apply: 'serve' as const,
+        enforce: 'post' as const,
+        transform(code: string, id: string) {
+          if (id.includes('vite/dist/client/client')) {
+            return code
+              .replace(
+                'transport.connect(createHMRHandler(handleMessage));',
+                '/* HMR WebSocket disabled */'
+              )
+              .replace(
+                'setupForwardConsoleHandler(transport, forwardConsole);',
+                '/* forwardConsole disabled */'
+              );
+          }
+          return null;
+        },
+      },
       VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png'],
@@ -45,6 +65,7 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           navigateFallback: '/index.html',
           navigateFallbackDenylist: [/^\/api\//],
@@ -106,12 +127,16 @@ export default defineConfig(() => {
     ],
     resolve: {
       alias: {
-        '@': path.resolve(__dirname, '.'),
+        '@': path.resolve(import.meta.dirname, '.'),
       },
     },
     server: {
-      hmr: process.env.DISABLE_HMR !== 'true',
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      host: '0.0.0.0',
+      port: 3000,
+      allowedHosts: true as const,
+      hmr: hmrEnabled,
+      ws: hmrEnabled ? undefined : (false as const),
+      watch: hmrEnabled ? {} : null,
     },
   };
 });

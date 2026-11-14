@@ -1,3 +1,4 @@
+import { sastDaysAgo } from './saTime.ts';
 import { store, verifyPassword } from './store.ts';
 import { SanitizedUser } from './types.ts';
 
@@ -180,7 +181,7 @@ export function exportUserPersonalData(userId: string) {
 
 export function purgeExpiredArtifacts(actorUserId: string) {
   const nowMs = Date.now();
-  const ninetyDaysAgoIso = new Date(nowMs - 90 * 86400000).toISOString().slice(0, 10);
+  const ninetyDaysAgoIso = sastDaysAgo(90);
 
   const beforeSessions = store.db.sessions.length;
   store.db.sessions = store.db.sessions.filter(
@@ -285,7 +286,7 @@ export function eraseUserAccountPopia(params: {
     (cm) => !ownedFarmIds.has(cm.farmId) && cm.actorUserId !== user.id
   );
   store.db.stockPriceSettings = store.db.stockPriceSettings.filter(
-    (sp) => !ownedFarmIds.has(sp.farmId) && sp.ownerId !== user.id
+    (sp) => !ownedFarmIds.has(sp.farmId) && sp.updatedByUserId !== user.id
   );
   store.db.farmIncidents = store.db.farmIncidents.filter(
     (inc) => !ownedFarmIds.has(inc.farmId) && inc.ownerId !== user.id

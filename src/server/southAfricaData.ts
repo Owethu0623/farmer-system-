@@ -323,3 +323,145 @@ export const BEGINNER_GUIDES = [
     ],
   },
 ];
+
+export const SA_COORDINATE_BOUNDS = {
+  minLat: -35.0,
+  maxLat: -21.8,
+  minLng: 16.0,
+  maxLng: 33.5,
+} as const;
+
+export interface SaCoordinateValidationResult {
+  valid: boolean;
+  lat: number | null;
+  lng: number | null;
+  error?: string;
+}
+
+/**
+ * Validates that GPS coordinates are finite numbers within South Africa's geographic bounds.
+ * Prevents (0,0) null-island or foreign coordinates from corrupting spatial/weather queries.
+ */
+export function validateSaCoordinates(latRaw: unknown, lngRaw: unknown): SaCoordinateValidationResult {
+  if (latRaw === undefined || latRaw === null || latRaw === '' || lngRaw === undefined || lngRaw === null || lngRaw === '') {
+    return { valid: false, lat: null, lng: null, error: 'Latitude and longitude are required.' };
+  }
+  const lat = typeof latRaw === 'number' ? latRaw : Number(latRaw);
+  const lng = typeof lngRaw === 'number' ? lngRaw : Number(lngRaw);
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    return { valid: false, lat: null, lng: null, error: 'Coordinates must be valid numbers.' };
+  }
+  if (
+    lat < SA_COORDINATE_BOUNDS.minLat ||
+    lat > SA_COORDINATE_BOUNDS.maxLat ||
+    lng < SA_COORDINATE_BOUNDS.minLng ||
+    lng > SA_COORDINATE_BOUNDS.maxLng
+  ) {
+    return {
+      valid: false,
+      lat,
+      lng,
+      error: `Coordinates (${lat.toFixed(4)}, ${lng.toFixed(4)}) lie outside South Africa (lat ${SA_COORDINATE_BOUNDS.minLat} to ${SA_COORDINATE_BOUNDS.maxLat}, lng ${SA_COORDINATE_BOUNDS.minLng} to ${SA_COORDINATE_BOUNDS.maxLng}).`,
+    };
+  }
+  return { valid: true, lat, lng };
+}
+
+/**
+ * Estimates typical agricultural elevation (meters above sea level) by South African province/zone
+ * when real topographic DEM data is unavailable offline.
+ */
+export function estimateSaElevationMeters(province?: string, lat?: number, lng?: number): number {
+  const p = (province || '').toLowerCase();
+  if (p.includes('gauteng')) return 1550;
+  if (p.includes('free state')) return 1420;
+  if (p.includes('mpumalanga')) return lng !== undefined && lng > 30.6 ? 680 : 1480;
+  if (p.includes('north west')) return 1280;
+  if (p.includes('northern cape')) return 980;
+  if (p.includes('limpopo')) return lat !== undefined && lat > -23.5 ? 620 : 1120;
+  if (p.includes('kwazulu')) return lng !== undefined && lng > 31.0 ? 220 : 960;
+  if (p.includes('eastern cape')) return lng !== undefined && lng < 26.5 ? 450 : 620;
+  if (p.includes('western cape')) return lng !== undefined && lng < 19.2 ? 140 : 320;
+  return 950;
+}
+
+export interface SaSeasonalGuidance {
+  regime: 'Winter Rainfall (Mediterranean)' | 'Summer Rainfall (Interior Highveld)' | 'All-Year / Subtropical Coastal';
+  seasonLabel: string;
+  plantingWindow: string;
+  recommendedCrops: string[];
+  livestockAdvisory: string;
+}
+
+export function getSaSeasonalGuidance(province: string, month: number): SaSeasonalGuidance {
+  const p = province.toLowerCase();
+  const isWinterRain = p.includes('western cape');
+  const isCoastalSubtrop = p.includes('kwazulu') || p.includes('eastern cape') || p.includes('limpopo');
+
+  const seasonLabel =
+    month >= 9 && month <= 11
+      ? 'Spring (Sep–Nov)'
+      : month === 12 || month <= 2
+      ? 'Summer (Dec–Feb)'
+      : month >= 3 && month <= 5
+      ? 'Autumn (Mar–May)'
+      : 'Winter (Jun–Aug)';
+
+  if (isWinterRain) {
+    return {
+      regime: 'Winter Rainfall (Mediterranean)',
+      seasonLabel,
+      plantingWindow:
+        month >= 4 && month <= 6
+          ? 'Peak winter grain (wheat, barley, canola) & cover-crop planting window'
+          : month >= 9 && month <= 11
+          ? 'Irrigated summer vegetables, vineyard canopy care, and stone fruit thinning'
+          : 'Orchard pruning, dam storage review, and soil conditioning',
+      recommendedCrops:
+        month >= 4 && month <= 8
+          ? ['Winter Wheat', 'Canola', 'Lupins', 'Brassicas', 'Cover Oats']
+          : ['Table/Wine Grapes (maintenance)', 'Stone Fruit', 'Irrigated Tomatoes', 'Onions'],
+      livestockAdvisory: 'Monitor winter camp drainage in Boland/Overberg; supplement trace minerals on dry summer stubble.',
+    };
+  }
+
+  if (isCoastalSubtrop && !p.includes('free state')) {
+    return {
+      regime: 'All-Year / Subtropical Coastal',
+      seasonLabel,
+      plantingWindow:
+        month >= 9 && month <= 12
+          ? 'Main summer maize, dry beans, macadamia flush, and subtropical horticulture'
+          : month >= 3 && month <= 5
+          ? 'Cool-season vegetables (cabbage, spinach, onions) and sugarcane planting'
+          : 'Frost-free coastal horticulture & winter dry-season irrigation scheduling',
+      recommendedCrops:
+        month >= 9 || month <= 2
+          ? ['Maize', 'Dry Beans', 'Butternut', 'Tomatoes', 'Subtropical Fruit']
+          : ['Cabbage', 'Spinach', 'Carrots', 'Potatoes', 'Green Beans'],
+      livestockAdvisory: 'Maintain high-frequency tick/dipping control in humid summer; reserve hay bales for Jun–Aug dry spell.',
+    };
+  }
+
+  return {
+    regime: 'Summer Rainfall (Interior Highveld)',
+    seasonLabel,
+    plantingWindow:
+      month >= 10 && month <= 12
+        ? 'Primary dryland maize, soybean, sunflower & sorghum planting window'
+        : month >= 1 && month <= 3
+        ? 'Late-season forage crops (sorghum/oats) and top-dressing checks'
+        : month >= 5 && month <= 8
+        ? 'Highveld frost season: soil sampling, lime incorporation & winter wheat under irrigation'
+        : 'Pre-rain soil ripping, seed/fertilizer procurement & planter calibration',
+    recommendedCrops:
+      month >= 9 && month <= 12
+        ? ['White & Yellow Maize', 'Soybeans', 'Sunflower', 'Dry Beans', 'Sorghum']
+        : ['Irrigated Winter Wheat', 'Spinach', 'Cabbage', 'Oats Forage'],
+    livestockAdvisory:
+      month >= 5 && month <= 8
+        ? 'Highveld winter protein licks and firebreak maintenance critical for beef cattle and sheep.'
+        : 'Rotational veld camps to match spring grass flush and prevent Haemonchus/internal parasites after rain.',
+  };
+}
+

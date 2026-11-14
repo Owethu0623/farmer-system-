@@ -1,4 +1,5 @@
-import { SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
+import { getSastDateString, getSastIsoMinute, getSastMonth, sastDaysAgo } from './saTime.ts';
+import { getSaSeasonalGuidance, SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
 import { store } from './store.ts';
 import { CropRecord, Farm, FarmLocation, Field, LivestockGroup } from './types.ts';
 
@@ -68,6 +69,27 @@ export interface WeatherIntelligencePayload {
     seasonalClimateNote: string;
     historicalDays: { date: string; precipitationMm: number; tempMaxC: number; tempMinC: number }[];
   };
+  nasaPower?: {
+    serviceAvailable: boolean;
+    unavailableReason: string | null;
+    source: string;
+    periodLabel: string;
+    solarUnit: string;
+    avgSolarIrradiance: number | null;
+    totalPrecipitationMm: number | null;
+    avgMaxTempC: number | null;
+    avgMinTempC: number | null;
+    avgRelativeHumidityPercent: number | null;
+    daysCount: number;
+    lastUpdated: string | null;
+  };
+  seasonalCalendar?: {
+    regime: string;
+    seasonLabel: string;
+    plantingWindow: string;
+    recommendedCrops: string[];
+    livestockAdvisory: string;
+  };
   operationsWindow: {
     sprayingStatus: 'Suitable' | 'Caution' | 'Avoid' | 'Unknown';
     sprayingReason: string;
@@ -83,7 +105,12 @@ const WEATHER_CACHE = new Map<
   string,
   { timestampMs: number; payload: WeatherIntelligencePayload }
 >();
+const NASA_POWER_CACHE = new Map<
+  string,
+  { timestampMs: number; data: NonNullable<WeatherIntelligencePayload['nasaPower']> }
+>();
 const CACHE_TTL_MS = 15 * 60 * 1000;
+const NASA_CACHE_TTL_MS = 60 * 60 * 1000;
 
 function wmoCodeToText(code: number | null | undefined): string {
   if (code === null || code === undefined) return 'Unknown conditions';
@@ -103,7 +130,106 @@ function getSawsStatusLabel(): string {
   if (process.env.SAWS_API_KEY && process.env.SAWS_API_URL) {
     return 'South African Weather Service (SAWS) Feed Configured';
   }
-  return 'SAWS Adapter Ready (Using Live Open-Meteo WMO Coordinate Feed; set SAWS_API_KEY for official SAWS CAP alert stream)';
+  return 'SAWS Adapter Ready (Using Live Open-Meteo WMO + NASA POWER Agro-Met Feeds; set SAWS_API_KEY for official SAWS CAP alert stream)';
+}
+
+async function fetchNasaPowerSummary(
+  latitude: number,
+  longitude: number
+): Promise<NonNullable<WeatherIntelligencePayload['nasaPower']>> {
+  const key = `${latitude.toFixed(2)},${longitude.toFixed(2)}`;
+  const cached = NASA_POWER_CACHE.get(key);
+  if (cached && Date.now() - cached.timestampMs < NASA_CACHE_TTL_MS) {
+    return cached.data;
+  }
+
+  const startStr = sastDaysAgo(33).replace(/-/g, '');
+  const endStr = sastDaysAgo(3).replace(/-/g, '');
+  const periodLabel = `${sastDaysAgo(33)} to ${sastDaysAgo(3)} (SAST)`;
+
+  const url =
+    `https://power.larc.nasa.gov/api/temporal/daily/point` +
+    `?parameters=ALLSKY_SFC_SW_DWN,PRECTOTCORR,T2M_MAX,T2M_MIN,RH2M` +
+    `&community=AG` +
+    `&longitude=${encodeURIComponent(longitude)}` +
+    `&latitude=${encodeURIComponent(latitude)}` +
+    `&start=${startStr}&end=${endStr}&format=JSON`;
+
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    if (!res.ok) {
+      throw new Error(`NASA POWER responded with HTTP ${res.status}`);
+    }
+    const raw = (await res.json()) as {
+      parameters?: Record<string, { units?: string }>;
+      properties?: {
+        parameter?: {
+          ALLSKY_SFC_SW_DWN?: Record<string, number>;
+          PRECTOTCORR?: Record<string, number>;
+          T2M_MAX?: Record<string, number>;
+          T2M_MIN?: Record<string, number>;
+          RH2M?: Record<string, number>;
+        };
+      };
+    };
+
+    const params = raw.properties?.parameter || {};
+    const valid = (rec?: Record<string, number>) =>
+      Object.values(rec || {}).filter((v) => typeof v === 'number' && Number.isFinite(v) && v > -900);
+
+    const solarVals = valid(params.ALLSKY_SFC_SW_DWN);
+    const rainVals = valid(params.PRECTOTCORR);
+    const tmaxVals = valid(params.T2M_MAX);
+    const tminVals = valid(params.T2M_MIN);
+    const rhVals = valid(params.RH2M);
+
+    const avg = (arr: number[]) =>
+      arr.length > 0 ? Number((arr.reduce((s, v) => s + v, 0) / arr.length).toFixed(1)) : null;
+
+    const result: NonNullable<WeatherIntelligencePayload['nasaPower']> = {
+      serviceAvailable: solarVals.length > 0 || rainVals.length > 0 || tmaxVals.length > 0,
+      unavailableReason: null,
+      source: 'NASA POWER Agroclimatology Daily Point API (Community: AG)',
+      periodLabel,
+      solarUnit: raw.parameters?.ALLSKY_SFC_SW_DWN?.units || 'MJ/m^2/day',
+      avgSolarIrradiance: avg(solarVals),
+      totalPrecipitationMm:
+        rainVals.length > 0 ? Number(rainVals.reduce((s, v) => s + v, 0).toFixed(1)) : null,
+      avgMaxTempC: avg(tmaxVals),
+      avgMinTempC: avg(tminVals),
+      avgRelativeHumidityPercent: avg(rhVals),
+      daysCount: Math.max(solarVals.length, rainVals.length, tmaxVals.length),
+      lastUpdated: new Date().toISOString(),
+    };
+
+    if (!result.serviceAvailable) {
+      result.unavailableReason = 'NASA POWER returned no valid satellite observations for this window.';
+    } else {
+      NASA_POWER_CACHE.set(key, { timestampMs: Date.now(), data: result });
+    }
+    return result;
+  } catch (err: unknown) {
+    if (cached) {
+      return {
+        ...cached.data,
+        unavailableReason: `Refresh failed (${err instanceof Error ? err.message : 'network error'}); showing cached NASA POWER summary.`,
+      };
+    }
+    return {
+      serviceAvailable: false,
+      unavailableReason: `NASA POWER service unreachable (${err instanceof Error ? err.message : 'offline'}).`,
+      source: 'NASA POWER Agroclimatology Daily Point API (Unavailable)',
+      periodLabel,
+      solarUnit: 'MJ/m^2/day',
+      avgSolarIrradiance: null,
+      totalPrecipitationMm: null,
+      avgMaxTempC: null,
+      avgMinTempC: null,
+      avgRelativeHumidityPercent: null,
+      daysCount: 0,
+      lastUpdated: null,
+    };
+  }
 }
 
 function deriveAgriculturalWarnings(params: {
@@ -403,8 +529,14 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
     `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,et0_fao_evapotranspiration` +
     `&past_days=30&forecast_days=7&timezone=Africa%2FJohannesburg`;
 
+  const seasonalCalendar = getSaSeasonalGuidance(location.province, getSastMonth());
+  const nasaPowerPromise = fetchNasaPowerSummary(location.latitude, location.longitude);
+
   try {
-    const response = await fetch(url, { signal: AbortSignal.timeout(7000) });
+    const [response, nasaPower] = await Promise.all([
+      fetch(url, { signal: AbortSignal.timeout(7000) }),
+      nasaPowerPromise,
+    ]);
     if (!response.ok) {
       throw new Error(`Weather API responded with HTTP ${response.status}`);
     }
@@ -439,7 +571,7 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
       };
     };
 
-    const todayStr = new Date().toISOString().slice(0, 10);
+    const todayStr = getSastDateString();
     const allDaily = (raw.daily?.time || []).map((date, idx) => ({
       date,
       tempMaxC: Number((raw.daily?.temperature_2m_max?.[idx] ?? 0).toFixed(1)),
@@ -478,10 +610,10 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
         .toFixed(1)
     );
 
-    const nowHourIso = new Date().toISOString().slice(0, 13);
+    const nowHourSast = getSastIsoMinute().slice(0, 13);
     const hourlyStartIdx = Math.max(
       0,
-      (raw.hourly?.time || []).findIndex((t) => t.slice(0, 13) >= nowHourIso)
+      (raw.hourly?.time || []).findIndex((t) => t.slice(0, 13) >= nowHourSast)
     );
     const hourly = (raw.hourly?.time || [])
       .slice(hourlyStartIdx, hourlyStartIdx + 24)
@@ -559,6 +691,8 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
         seasonalClimateNote,
         historicalDays,
       },
+      nasaPower,
+      seasonalCalendar,
       operationsWindow: derived.operationsWindow,
       warnings: derived.warnings,
     };
@@ -566,9 +700,12 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
     WEATHER_CACHE.set(cacheKey, { timestampMs: Date.now(), payload });
     return payload;
   } catch (err: unknown) {
+    const nasaPower = await nasaPowerPromise;
     if (cached) {
       return {
         ...cached.payload,
+        nasaPower: nasaPower.serviceAvailable ? nasaPower : cached.payload.nasaPower,
+        seasonalCalendar,
         isCachedFallback: true,
         unavailableReason: `Live weather refresh failed (${err instanceof Error ? err.message : 'network error'}). Showing last verified observation from ${new Date(cached.payload.lastUpdated || '').toLocaleString()}.`,
       };
@@ -594,6 +731,8 @@ export async function getFarmWeatherIntelligence(farmId: string): Promise<Weathe
         seasonalClimateNote,
         historicalDays: [],
       },
+      nasaPower,
+      seasonalCalendar,
       operationsWindow: {
         sprayingStatus: 'Unknown',
         sprayingReason: 'Live wind and precipitation telemetry unavailable — check local wind conditions before spraying.',

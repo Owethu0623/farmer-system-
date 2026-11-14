@@ -221,6 +221,10 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
       'learning',
       'reports',
       'advisor',
+      'expert',
+      'organisation',
+      'offline',
+      'notifications',
       'profile',
       'settings',
     ];

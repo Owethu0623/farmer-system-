@@ -81,6 +81,15 @@ export const FarmerAccessControlPanel: React.FC<FarmerAccessControlPanelProps> =
   const handleGrant = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!farmId) return;
+    const recipientId = granteeType === 'expert' ? granteeUserId : organisationId;
+    if (!recipientId) {
+      setError(
+        granteeType === 'expert'
+          ? 'Please select an agricultural expert before granting access.'
+          : 'Please select an agricultural organisation before granting access.'
+      );
+      return;
+    }
     setSubmitting(true);
     setNotice(null);
     setError(null);
@@ -248,8 +257,11 @@ export const FarmerAccessControlPanel: React.FC<FarmerAccessControlPanelProps> =
           />
           <button
             type="submit"
-            disabled={submitting}
-            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
+            disabled={
+              submitting ||
+              !(granteeType === 'expert' ? granteeUserId : organisationId)
+            }
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg bg-[#1B4332] hover:bg-[#143326] disabled:opacity-50 text-white text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer"
           >
             <UserCheck className="w-3.5 h-3.5" />
             <span>{submitting ? 'Granting...' : 'Grant Access'}</span>

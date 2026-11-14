@@ -21,7 +21,6 @@ export interface AuthRequest extends Request {
 
 export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction): void {
   res.setHeader('X-Content-Type-Options', 'nosniff');
-  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
   res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
   res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self)');
   if (req.path.startsWith('/api/')) {
@@ -92,6 +91,7 @@ export function sanitizeUser(user: User): SanitizedUser {
     onboardingCompleted: user.onboardingCompleted,
     lastLoginAt: user.lastLoginAt,
     createdAt: user.createdAt,
+    isDemonstration: Boolean(user.isDemonstration),
     profile,
     permissions,
   };
@@ -189,6 +189,14 @@ export function requireRoles(...allowedRoles: RoleCode[]) {
       return;
     }
     if (!allowedRoles.includes(req.authUser.roleCode)) {
+      store.logAudit(
+        req.authUser.id,
+        'RBAC_ACCESS_DENIED',
+        'Route',
+        req.path,
+        { roleCode: req.authUser.roleCode, allowedRoles, method: req.method },
+        req.ip || '127.0.0.1'
+      );
       res.status(403).json({ error: 'Access denied for your current role.' });
       return;
     }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { BarChart3, MessageSquare, RefreshCw, Send, Sparkles } from 'lucide-react';
 import { LANGUAGE_LIST } from '../i18n/translations';
 import { apiRequest } from '../lib/api';
+import { isLikelyOfflineError } from '../lib/offlineSync';
 import {
   AiFarmAnalyticsReport,
   AiStructuredResponse,
@@ -115,7 +116,13 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
         setQuestion('');
       }
     } catch (err: unknown) {
-      setChatError(err instanceof Error ? err.message : 'Unable to reach AI advisor.');
+      if (isLikelyOfflineError(err)) {
+        setChatError(
+          'Online AI agricultural analysis requires an active internet connection. Your downloaded farm plans and Learning Centre guides remain available offline.'
+        );
+      } else {
+        setChatError(err instanceof Error ? err.message : 'Unable to reach AI advisor.');
+      }
     } finally {
       setLoadingChat(false);
     }
@@ -134,9 +141,15 @@ export const GeminiAdvisorPanel: React.FC<GeminiAdvisorPanelProps> = ({
       });
       setAnalyticsReport(report);
     } catch (err: unknown) {
-      setAnalyticsError(
-        err instanceof Error ? err.message : 'Unable to generate AI farm analytics.'
-      );
+      if (isLikelyOfflineError(err)) {
+        setAnalyticsError(
+          'Online AI analytics requires an active internet connection. Cached farm snapshots remain viewable in Offline Sync.'
+        );
+      } else {
+        setAnalyticsError(
+          err instanceof Error ? err.message : 'Unable to generate AI farm analytics.'
+        );
+      }
     } finally {
       setLoadingAnalytics(false);
     }

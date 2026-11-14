@@ -3,6 +3,7 @@ import { Bell, CheckCircle2, Download, Globe, Lock, Shield, Trash2, UserCheck } 
 import { LANGUAGE_LIST } from '../i18n/translations';
 import { apiRequest } from '../lib/api';
 import { wipeUserOfflineVault } from '../lib/offlineSync';
+import { getSastDateString } from '../lib/saTime';
 import { AuthUser, LanguageCode, NotificationItem, PopiaPrivacySummaryPayload } from '../types';
 import { EasyReadToggle } from './AccessibilityControls';
 
@@ -122,7 +123,7 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `field-shift-popia-export-${new Date().toISOString().slice(0, 10)}.json`;
+      a.download = `field-shift-popia-export-${getSastDateString()}.json`;
       document.body.appendChild(a);
       a.click();
       a.remove();

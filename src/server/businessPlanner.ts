@@ -1,3 +1,4 @@
+import { getActiveFarmGrantForExpert } from './expertPortal.ts';
 import { store } from './store.ts';
 import {
   BusinessPlanScenario,
@@ -442,19 +443,36 @@ export function computeBusinessPlanMetrics(
 }
 
 export function buildBusinessPlannerOverview(user: SanitizedUser, accessibleFarmIds: string[]) {
+  const isPrivilegedAdmin =
+    user.roleCode === 'system_administrator' &&
+    user.permissions.includes('admin:private_farmer_records');
+
+  const canViewFarmFinance = (farmId: string | null | undefined): boolean => {
+    if (!farmId) return true;
+    if (user.roleCode !== 'agricultural_expert') return true;
+    return Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
+  };
+
   const savedPlans = store.db.businessPlans
-    .filter((p) => p.ownerId === user.id || user.roleCode === 'system_administrator')
+    .filter((p) => p.ownerId === user.id || isPrivilegedAdmin)
     .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
     .map((p) => {
       const farm = p.farmId ? store.db.farms.find((f) => f.id === p.farmId) : null;
+      const calc = computeBusinessPlanMetrics(p);
+      if (p.farmId && !canViewFarmFinance(p.farmId)) {
+        calc.actualFarmExpensesZar = null;
+        calc.actualExpensesNote =
+          'Actual farm expenses are hidden because financialSummary permission was not granted for the linked farm.';
+      }
       return {
         ...p,
         farmName: farm?.name || null,
-        calculation: computeBusinessPlanMetrics(p),
+        calculation: calc,
       };
     });
 
   const farmActualExpenses = accessibleFarmIds
+    .filter((fid) => canViewFarmFinance(fid))
     .map((fid) => getActualFarmExpenses(fid))
     .filter((x): x is NonNullable<typeof x> => Boolean(x));
 

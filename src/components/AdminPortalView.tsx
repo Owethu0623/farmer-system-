@@ -541,7 +541,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     {overview.stats.totalUsers}
                   </p>
                   <p className="text-xs text-[#2D6A4F] mt-1 font-mono tabular-nums">
-                    {overview.stats.activeUsers} active · {overview.stats.inactiveUsers} inactive
+                    {overview.stats.realUsers ?? 0} real · {overview.stats.demonstrationUsers ?? 0} demo ·{' '}
+                    {overview.stats.activeUsers} active
                   </p>
                 </div>
                 <div className="bg-white border border-[#E2E6DF] rounded-xl p-4">
@@ -568,7 +569,8 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                     {overview.stats.totalRegisteredFarms}
                   </p>
                   <p className="text-xs text-[#4A5A50] mt-1 font-mono tabular-nums">
-                    {overview.stats.totalHectares} ha · {overview.stats.totalIncidentsReported} incidents
+                    {overview.stats.realFarms ?? 0} real · {overview.stats.demonstrationFarms ?? 0} demo ·{' '}
+                    {overview.stats.totalHectares} ha
                   </p>
                 </div>
               </div>
@@ -989,7 +991,12 @@ export const AdminPortalView: React.FC<AdminPortalViewProps> = ({
                         .map((f) => (
                           <tr key={f.farmId}>
                             <td className="py-2.5 pr-4 font-semibold text-[#143326]">
-                              {f.farmNameDisplay}
+                              <span>{f.farmNameDisplay}</span>
+                              {f.isDemonstration && (
+                                <span className="ml-2 px-1.5 py-0.5 rounded bg-[#EDF5EF] text-[#2D6A4F] text-[10px] font-mono uppercase">
+                                  Demo
+                                </span>
+                              )}
                             </td>
                             <td className="py-2.5 pr-4 text-[#35443B]">
                               {f.districtMunicipality}, {f.province}
