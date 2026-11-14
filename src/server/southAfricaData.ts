@@ -7,6 +7,10 @@ export interface DistrictInfo {
 export interface ProvinceInfo {
   code: string;
   name: string;
+  capital: string;
+  centerLat: number;
+  centerLng: number;
+  rainfallRegime: string;
   climateZone: string;
   annualRainfallMm: string;
   keyCommodities: string[];
@@ -17,6 +21,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'KZN',
     name: 'KwaZulu-Natal',
+    capital: 'Pietermaritzburg',
+    centerLat: -29.6006,
+    centerLng: 30.3794,
+    rainfallRegime: 'Summer Rainfall',
     climateZone: 'Subtropical Coastal & Midland Grasslands',
     annualRainfallMm: '750 - 1,100 mm',
     keyCommodities: ['Sugarcane', 'Maize', 'Macadamia', 'Beef Cattle', 'Vegetables', 'Timber'],
@@ -41,6 +49,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'MP',
     name: 'Mpumalanga',
+    capital: 'Mbombela',
+    centerLat: -25.4753,
+    centerLng: 30.9694,
+    rainfallRegime: 'Summer Rainfall',
     climateZone: 'Highveld Summer Rainfall & Subtropical Lowveld',
     annualRainfallMm: '650 - 1,050 mm',
     keyCommodities: ['Maize', 'Soybeans', 'Citrus', 'Avocados', 'Vegetables', 'Beef Cattle'],
@@ -65,6 +77,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'LP',
     name: 'Limpopo',
+    capital: 'Polokwane',
+    centerLat: -23.9045,
+    centerLng: 29.4689,
+    rainfallRegime: 'Summer Rainfall',
     climateZone: 'Savanna Bushveld & Subtropical Escarpment',
     annualRainfallMm: '400 - 850 mm',
     keyCommodities: ['Citrus', 'Tomatoes', 'Potatoes', 'Mangoes', 'Avocados', 'Goats & Beef'],
@@ -89,6 +105,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'EC',
     name: 'Eastern Cape',
+    capital: 'Bhisho',
+    centerLat: -32.7854,
+    centerLng: 27.3924,
+    rainfallRegime: 'All-Year & Summer Rainfall',
     climateZone: 'Coastal Temperate, Karoo & Subtropical East',
     annualRainfallMm: '350 - 900 mm',
     keyCommodities: ['Citrus', 'Mohair & Goats', 'Sheep', 'Dairy', 'Maize', 'Chicory'],
@@ -113,6 +133,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'WC',
     name: 'Western Cape',
+    capital: 'Cape Town',
+    centerLat: -33.6462,
+    centerLng: 19.4485,
+    rainfallRegime: 'Winter Rainfall',
     climateZone: 'Mediterranean Winter Rainfall & Klein Karoo',
     annualRainfallMm: '300 - 800 mm',
     keyCommodities: ['Pome & Stone Fruit', 'Wine & Table Grapes', 'Wheat', 'Vegetables', 'Dairy'],
@@ -137,6 +161,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'FS',
     name: 'Free State',
+    capital: 'Bloemfontein',
+    centerLat: -28.2308,
+    centerLng: 28.3071,
+    rainfallRegime: 'Summer Rainfall',
     climateZone: 'Highveld Semi-Arid Summer Grain Belt',
     annualRainfallMm: '450 - 700 mm',
     keyCommodities: ['Maize', 'Wheat', 'Soybeans', 'Sunflower', 'Beef Cattle', 'Sheep'],
@@ -161,6 +189,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'NW',
     name: 'North West',
+    capital: 'Mahikeng',
+    centerLat: -25.8652,
+    centerLng: 25.6442,
+    rainfallRegime: 'Summer Rainfall',
     climateZone: 'Semi-Arid Bushveld & Summer Grain Savanna',
     annualRainfallMm: '350 - 650 mm',
     keyCommodities: ['Maize', 'Sunflower', 'Groundnuts', 'Beef Cattle', 'Lucerne', 'Poultry'],
@@ -185,6 +217,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'GP',
     name: 'Gauteng',
+    capital: 'Johannesburg',
+    centerLat: -26.1103,
+    centerLng: 27.7725,
+    rainfallRegime: 'Summer Rainfall',
     climateZone: 'Highveld Peri-Urban & Intensive Agriculture',
     annualRainfallMm: '600 - 750 mm',
     keyCommodities: ['Hydroponic & Tunnel Vegetables', 'Poultry & Eggs', 'Piggery', 'Maize', 'Dairy'],
@@ -209,6 +245,10 @@ export const SOUTH_AFRICA_PROVINCES: ProvinceInfo[] = [
   {
     code: 'NC',
     name: 'Northern Cape',
+    capital: 'Kimberley',
+    centerLat: -28.7282,
+    centerLng: 24.7499,
+    rainfallRegime: 'Semi-Arid Summer Rainfall',
     climateZone: 'Arid Karoo & Orange River Irrigated Corridor',
     annualRainfallMm: '120 - 350 mm',
     keyCommodities: ['Table Grapes', 'Dates', 'Pecans', 'Lucerne', 'Sheep', 'Game & Goats'],

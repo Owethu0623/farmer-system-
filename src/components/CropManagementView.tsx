@@ -23,11 +23,14 @@ import {
   CropGrowthStage,
   CropItem,
   FarmItem,
+  ProvinceInfo,
 } from '../types';
+import { CropRotationPlannerPanel } from './CropRotationPlannerPanel';
 
 interface CropManagementViewProps {
   userId?: string;
   farms: FarmItem[];
+  provinces?: ProvinceInfo[];
   selectedFarmId: string | null;
   onSelectFarmFilter: (farmId: string | null) => void;
   onDataChanged: () => void;
@@ -56,10 +59,12 @@ const ACTIVITY_TYPES: { value: CropActivityType; label: string; unitHint: string
 export const CropManagementView: React.FC<CropManagementViewProps> = ({
   userId,
   farms,
+  provinces = [],
   selectedFarmId,
   onSelectFarmFilter,
   onDataChanged,
 }) => {
+  const [activeSubTab, setActiveSubTab] = useState<'crops' | 'rotation'>('crops');
   const [farmFilter, setFarmFilter] = useState<string>(selectedFarmId || 'all');
   const [crops, setCrops] = useState<CropItem[]>([]);
   const [analytics, setAnalytics] = useState<CropAnalytics | null>(null);
@@ -375,15 +380,23 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
     ...(analytics?.timeline.map((t) => t.harvestKg || t.activitiesCount * 1000) || [1])
   );
 
+  const activeFarmForRotation = useMemo(
+    () =>
+      farms.find((f) => f.id === (farmFilter !== 'all' ? farmFilter : selectedFarmId)) ||
+      farms[0] ||
+      null,
+    [farms, farmFilter, selectedFarmId]
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
+        <div className="min-w-0">
           <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
-            Crop Management & Analytics
+            Crop Management, Rotation & Analytics
           </h1>
           <p className="text-sm text-[#475569] mt-0.5">
-            Track planting quantities, growth stages, irrigation, fertiliser, pests, damage, harvests, and historical snapshots.
+            Track planting quantities, growth stages, irrigation, fertiliser, pests, harvests, and 3-season botanical crop rotation scenarios.
           </p>
         </div>
 
@@ -404,11 +417,11 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
             ))}
           </select>
 
-          {farms.length > 0 && (
+          {farms.length > 0 && activeSubTab === 'crops' && (
             <button
               type="button"
               onClick={openCreateModal}
-              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer min-h-[42px]"
+              className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white font-semibold text-sm cursor-pointer min-h-[42px] whitespace-nowrap"
             >
               <Plus className="w-4 h-4" />
               <span>Register Crop</span>
@@ -416,6 +429,45 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
           )}
         </div>
       </div>
+
+      {/* Segmented Sub-Tabs */}
+      <div className="flex flex-wrap items-center gap-1 p-1 bg-white border border-[#CBD5E1] rounded-xl w-fit max-w-full">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('crops')}
+          className={`px-3.5 py-2 min-h-[40px] rounded-lg text-xs sm:text-sm font-semibold cursor-pointer sm:whitespace-nowrap text-left transition-colors ${
+            activeSubTab === 'crops'
+              ? 'bg-[#0B3D91] text-white'
+              : 'text-[#334155] hover:bg-[#F8FAFC]'
+          }`}
+        >
+          Registered Crops & Activity Logs
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveSubTab('rotation')}
+          className={`px-3.5 py-2 min-h-[40px] rounded-lg text-xs sm:text-sm font-semibold cursor-pointer sm:whitespace-nowrap text-left transition-colors ${
+            activeSubTab === 'rotation'
+              ? 'bg-[#0B3D91] text-white'
+              : 'text-[#334155] hover:bg-[#F8FAFC]'
+          }`}
+        >
+          3-Season Crop Rotation & Scenario Planner
+        </button>
+      </div>
+
+      {activeSubTab === 'rotation' && (
+        <CropRotationPlannerPanel
+          farmId={activeFarmForRotation?.id || null}
+          province={activeFarmForRotation?.location?.province}
+          waterAvailability={activeFarmForRotation?.waterAvailability}
+          farmSizeHectares={activeFarmForRotation?.farmSizeHectares}
+          provinces={provinces}
+        />
+      )}
+
+      {activeSubTab === 'crops' && (
+        <>
 
       {notice && (
         <div className="bg-[#ECF5F2] border border-[#A7D7C5] text-[#174C3C] rounded-xl px-4 py-3 text-sm">
@@ -671,6 +723,8 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
           </div>
         )}
       </div>
+        </>
+      )}
 
       {/* Register / Update Crop Modal */}
       {cropModalMode && (

@@ -46,11 +46,15 @@ import {
   getSiteSoilAndLandIntelligence,
 } from './src/server/soilLandIntelligence.ts';
 import {
+  FARMER_PRIORITY_OPTIONS,
   SOUTH_AFRICA_ROTATION_CATALOG,
   analyzeCropRotationScenario,
+  simulateRotationSequence,
 } from './src/server/cropRotation.ts';
+import type { SavedRotationPlan, SoilProvenanceType } from './src/server/types.ts';
 import { computeCropStoredAndSold, buildStockOverview, recordCropStockMovement, updateStockUnitPrice } from './src/server/stockInventory.ts';
 import { enrichVisualAnalysis, runVisualAgriculturalAnalysis } from './src/server/visualAnalysis.ts';
+import { getNasaRegistrySummary } from './src/server/nasaPowerService.ts';
 import { getFarmWeatherIntelligence, getSiteWeatherIntelligence } from './src/server/weather.ts';
 import {
   buildWeatherFeedbackOverview,
@@ -166,6 +170,48 @@ async function startServer() {
   app.use(express.json({ limit: '15mb' }));
 
   const authRateLimiter = createAuthRateLimiter(15, 60_000);
+  const apiRateLimiter = createAuthRateLimiter(120, 60_000);
+
+  // Per-request X-Request-Id correlation + clean structured operational logging (no tokens/passwords/bodies)
+  app.use((req, res, next) => {
+    const incomingId = req.header('x-request-id');
+    const requestId =
+      incomingId && /^[a-zA-Z0-9_-]{4,64}$/.test(incomingId)
+        ? incomingId
+        : `req-${crypto.randomUUID()}`;
+    res.setHeader('X-Request-Id', requestId);
+    const startMs = Date.now();
+    res.on('finish', () => {
+      if (req.path.startsWith('/api')) {
+        const durationMs = Date.now() - startMs;
+        console.info(
+          JSON.stringify({
+            level: 'info',
+            requestId,
+            method: req.method,
+            path: req.path,
+            status: res.statusCode,
+            durationMs,
+          })
+        );
+      }
+    });
+    next();
+  });
+
+  // Transparent /api/v1/* API version prefix support alongside existing /api/* routes
+  app.use((req, _res, next) => {
+    if (req.url === '/api/v1' || req.url.startsWith('/api/v1/')) {
+      req.url = req.url.replace(/^\/api\/v1\b/, '/api');
+    }
+    next();
+  });
+
+  app.use('/api/weather', apiRateLimiter);
+  app.use('/api/soil-land', apiRateLimiter);
+  app.use('/api/crops/rotation-analysis', apiRateLimiter);
+  app.use('/api/crops/rotation-simulate', apiRateLimiter);
+  app.use('/api/nasa', apiRateLimiter);
 
   // Enforce runtime maintenance mode for operational API calls while allowing auth, health & admin access
   app.use('/api', (req, res, next) => {
@@ -1485,6 +1531,18 @@ async function startServer() {
       areaHectares,
       soilType,
       irrigationType,
+      soilTexture,
+      organicMatterLevel,
+      soilDrainage,
+      waterHoldingCharacteristic,
+      soilPhMeasured,
+      nitrogenMeasuredMgKg,
+      phosphorusMeasuredMgKg,
+      potassiumMeasuredMgKg,
+      currentCrop,
+      previousSeasonCrop,
+      twoSeasonsAgoCrop,
+      farmingSystem,
       status,
       notes,
       geojson,
@@ -1508,8 +1566,51 @@ async function startServer() {
       farmingTypeId: farmingTypeId || null,
       cropOrLivestock: String(cropOrLivestock).trim(),
       areaHectares: areaHa,
-      soilType: String(soilType || 'Loam'),
+      soilType: String(soilType || soilTexture || 'Unknown'),
       irrigationType: String(irrigationType || 'Rain-fed'),
+      soilTexture: (['Sandy', 'Loam', 'Clay Loam', 'Clay', 'Unknown'].includes(soilTexture)
+        ? soilTexture
+        : 'Unknown') as 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown',
+      organicMatterLevel: (['Low', 'Medium', 'High', 'Unknown'].includes(organicMatterLevel)
+        ? organicMatterLevel
+        : 'Unknown') as 'Low' | 'Medium' | 'High' | 'Unknown',
+      soilDrainage: (['Poor', 'Moderate', 'Good', 'Unknown'].includes(soilDrainage)
+        ? soilDrainage
+        : 'Unknown') as 'Poor' | 'Moderate' | 'Good' | 'Unknown',
+      waterHoldingCharacteristic: ([
+        'Low',
+        'Moderate',
+        'High',
+        'Unknown',
+      ].includes(waterHoldingCharacteristic)
+        ? waterHoldingCharacteristic
+        : 'Unknown') as 'Low' | 'Moderate' | 'High' | 'Unknown',
+      soilPhMeasured:
+        soilPhMeasured !== undefined && soilPhMeasured !== null && soilPhMeasured !== ''
+          ? Number(soilPhMeasured)
+          : null,
+      nitrogenMeasuredMgKg:
+        nitrogenMeasuredMgKg !== undefined &&
+        nitrogenMeasuredMgKg !== null &&
+        nitrogenMeasuredMgKg !== ''
+          ? Number(nitrogenMeasuredMgKg)
+          : null,
+      phosphorusMeasuredMgKg:
+        phosphorusMeasuredMgKg !== undefined &&
+        phosphorusMeasuredMgKg !== null &&
+        phosphorusMeasuredMgKg !== ''
+          ? Number(phosphorusMeasuredMgKg)
+          : null,
+      potassiumMeasuredMgKg:
+        potassiumMeasuredMgKg !== undefined &&
+        potassiumMeasuredMgKg !== null &&
+        potassiumMeasuredMgKg !== ''
+          ? Number(potassiumMeasuredMgKg)
+          : null,
+      currentCrop: String(currentCrop || cropOrLivestock || '').trim(),
+      previousSeasonCrop: String(previousSeasonCrop || '').trim(),
+      twoSeasonsAgoCrop: String(twoSeasonsAgoCrop || '').trim(),
+      farmingSystem: String(farmingSystem || '').trim(),
       fieldWkt: poly ? polygonToWkt(poly) : null,
       geojson: poly,
       status: (['active', 'fallow', 'preparing'].includes(status) ? status : 'active') as
@@ -1545,8 +1646,28 @@ async function startServer() {
       return;
     }
 
-    const { name, cropOrLivestock, areaHectares, soilType, irrigationType, status, notes, geojson } =
-      req.body || {};
+    const {
+      name,
+      cropOrLivestock,
+      areaHectares,
+      soilType,
+      irrigationType,
+      soilTexture,
+      organicMatterLevel,
+      soilDrainage,
+      waterHoldingCharacteristic,
+      soilPhMeasured,
+      nitrogenMeasuredMgKg,
+      phosphorusMeasuredMgKg,
+      potassiumMeasuredMgKg,
+      currentCrop,
+      previousSeasonCrop,
+      twoSeasonsAgoCrop,
+      farmingSystem,
+      status,
+      notes,
+      geojson,
+    } = req.body || {};
     if (name) field.name = String(name).trim();
     if (cropOrLivestock) field.cropOrLivestock = String(cropOrLivestock).trim();
     if (isValidPolygon(geojson)) {
@@ -1563,6 +1684,45 @@ async function startServer() {
     }
     if (soilType) field.soilType = String(soilType);
     if (irrigationType) field.irrigationType = String(irrigationType);
+    if (['Sandy', 'Loam', 'Clay Loam', 'Clay', 'Unknown'].includes(soilTexture)) {
+      field.soilTexture = soilTexture;
+      if (soilTexture !== 'Unknown' && !soilType) field.soilType = soilTexture;
+    }
+    if (['Low', 'Medium', 'High', 'Unknown'].includes(organicMatterLevel)) {
+      field.organicMatterLevel = organicMatterLevel;
+    }
+    if (['Poor', 'Moderate', 'Good', 'Unknown'].includes(soilDrainage)) {
+      field.soilDrainage = soilDrainage;
+    }
+    if (['Low', 'Moderate', 'High', 'Unknown'].includes(waterHoldingCharacteristic)) {
+      field.waterHoldingCharacteristic = waterHoldingCharacteristic;
+    }
+    if (soilPhMeasured !== undefined) {
+      field.soilPhMeasured =
+        soilPhMeasured === null || soilPhMeasured === '' ? null : Number(soilPhMeasured);
+    }
+    if (nitrogenMeasuredMgKg !== undefined) {
+      field.nitrogenMeasuredMgKg =
+        nitrogenMeasuredMgKg === null || nitrogenMeasuredMgKg === ''
+          ? null
+          : Number(nitrogenMeasuredMgKg);
+    }
+    if (phosphorusMeasuredMgKg !== undefined) {
+      field.phosphorusMeasuredMgKg =
+        phosphorusMeasuredMgKg === null || phosphorusMeasuredMgKg === ''
+          ? null
+          : Number(phosphorusMeasuredMgKg);
+    }
+    if (potassiumMeasuredMgKg !== undefined) {
+      field.potassiumMeasuredMgKg =
+        potassiumMeasuredMgKg === null || potassiumMeasuredMgKg === ''
+          ? null
+          : Number(potassiumMeasuredMgKg);
+    }
+    if (currentCrop !== undefined) field.currentCrop = String(currentCrop).trim();
+    if (previousSeasonCrop !== undefined) field.previousSeasonCrop = String(previousSeasonCrop).trim();
+    if (twoSeasonsAgoCrop !== undefined) field.twoSeasonsAgoCrop = String(twoSeasonsAgoCrop).trim();
+    if (farmingSystem !== undefined) field.farmingSystem = String(farmingSystem).trim();
     if (status && ['active', 'fallow', 'preparing'].includes(status)) field.status = status;
     if (notes !== undefined) field.notes = String(notes);
     field.updatedAt = new Date().toISOString();
@@ -1573,6 +1733,113 @@ async function startServer() {
       'Field',
       field.id,
       { name: field.name },
+      req.ip || '127.0.0.1'
+    );
+    res.json(field);
+  });
+
+  app.put('/api/fields/:fieldId/soil-profile', requireAuth, (req: AuthRequest, res) => {
+    const field = store.db.fields.find((fl) => fl.id === req.params.fieldId);
+    if (!field) {
+      res.status(404).json({ error: 'Field not found.' });
+      return;
+    }
+    if (!userCanModifyFarm(req.authUser!, field.farmId)) {
+      res.status(403).json({ error: 'Only the farm owner can update field soil and crop history.' });
+      return;
+    }
+
+    const {
+      soilTexture,
+      organicMatterLevel,
+      soilDrainage,
+      waterHoldingCharacteristic,
+      irrigationType,
+      soilPhMeasured,
+      nitrogenMeasuredMgKg,
+      phosphorusMeasuredMgKg,
+      potassiumMeasuredMgKg,
+      currentCrop,
+      previousSeasonCrop,
+      twoSeasonsAgoCrop,
+      farmingSystem,
+      soilValueProvenance,
+    } = req.body || {};
+
+    if (['Sandy', 'Loam', 'Clay Loam', 'Clay', 'Unknown'].includes(soilTexture)) {
+      field.soilTexture = soilTexture;
+      if (soilTexture !== 'Unknown') field.soilType = soilTexture;
+    }
+    if (['Low', 'Medium', 'High', 'Unknown'].includes(organicMatterLevel)) {
+      field.organicMatterLevel = organicMatterLevel;
+    }
+    if (['Poor', 'Moderate', 'Good', 'Unknown'].includes(soilDrainage)) {
+      field.soilDrainage = soilDrainage;
+    }
+    if (['Low', 'Moderate', 'High', 'Unknown'].includes(waterHoldingCharacteristic)) {
+      field.waterHoldingCharacteristic = waterHoldingCharacteristic;
+    }
+    if (irrigationType) field.irrigationType = String(irrigationType).trim();
+    if (soilPhMeasured !== undefined) {
+      if (soilPhMeasured === null || soilPhMeasured === '') {
+        field.soilPhMeasured = null;
+      } else {
+        const parsedPh = Number(soilPhMeasured);
+        if (!Number.isFinite(parsedPh) || parsedPh < 3.5 || parsedPh > 9.5) {
+          res.status(400).json({ error: 'Measured soil pH must be between 3.5 and 9.5.' });
+          return;
+        }
+        field.soilPhMeasured = Number(parsedPh.toFixed(1));
+      }
+    }
+    if (nitrogenMeasuredMgKg !== undefined) {
+      field.nitrogenMeasuredMgKg =
+        nitrogenMeasuredMgKg === null || nitrogenMeasuredMgKg === ''
+          ? null
+          : Number(nitrogenMeasuredMgKg);
+    }
+    if (phosphorusMeasuredMgKg !== undefined) {
+      field.phosphorusMeasuredMgKg =
+        phosphorusMeasuredMgKg === null || phosphorusMeasuredMgKg === ''
+          ? null
+          : Number(phosphorusMeasuredMgKg);
+    }
+    if (potassiumMeasuredMgKg !== undefined) {
+      field.potassiumMeasuredMgKg =
+        potassiumMeasuredMgKg === null || potassiumMeasuredMgKg === ''
+          ? null
+          : Number(potassiumMeasuredMgKg);
+    }
+    if (currentCrop !== undefined) {
+      field.currentCrop = String(currentCrop).trim();
+      if (field.currentCrop) field.cropOrLivestock = field.currentCrop;
+    }
+    if (previousSeasonCrop !== undefined) field.previousSeasonCrop = String(previousSeasonCrop).trim();
+    if (twoSeasonsAgoCrop !== undefined) field.twoSeasonsAgoCrop = String(twoSeasonsAgoCrop).trim();
+    if (farmingSystem !== undefined) field.farmingSystem = String(farmingSystem).trim();
+
+    if (soilValueProvenance && typeof soilValueProvenance === 'object') {
+      const validProv = new Set<SoilProvenanceType>([
+        'farmer_provided',
+        'laboratory_measured',
+        'external_dataset',
+        'estimated',
+        'unknown',
+      ]);
+      const cleaned: Record<string, SoilProvenanceType> = { ...(field.soilValueProvenance || {}) };
+      for (const [k, v] of Object.entries(soilValueProvenance as Record<string, string>)) {
+        if (validProv.has(v as SoilProvenanceType)) cleaned[k] = v as SoilProvenanceType;
+      }
+      field.soilValueProvenance = cleaned;
+    }
+
+    field.updatedAt = new Date().toISOString();
+    store.logAudit(
+      req.authUser!.id,
+      'FIELD_SOIL_PROFILE_UPDATED',
+      'Field',
+      field.id,
+      { farmId: field.farmId, name: field.name, soilTexture: field.soilTexture },
       req.ip || '127.0.0.1'
     );
     res.json(field);
@@ -2784,7 +3051,8 @@ async function startServer() {
     }
     try {
       const selectedFarmingType = req.query.farmingType ? String(req.query.farmingType) : undefined;
-      const payload = await getFarmSoilAndLandIntelligence(farmId, selectedFarmingType);
+      const fieldId = req.query.fieldId ? String(req.query.fieldId) : undefined;
+      const payload = await getFarmSoilAndLandIntelligence(farmId, selectedFarmingType, fieldId);
       res.json(payload);
     } catch (err: unknown) {
       res.status(404).json({ error: err instanceof Error ? err.message : 'Unable to load soil intelligence.' });
@@ -2832,28 +3100,50 @@ async function startServer() {
       SOUTH_AFRICA_ROTATION_CATALOG.map((c) => ({
         id: c.id,
         name: c.name,
+        category: c.category,
         botanicalFamily: c.botanicalFamily,
         familyGroupLabel: c.familyGroupLabel,
         preferredSeason: c.preferredSeason,
         waterNeed: c.waterNeed,
+        waterRequirementMmRange: c.waterRequirementMmRange,
         idealPhRange: c.idealPhRange,
         typicalCycleDays: c.typicalCycleDays,
         nitrogenRole: c.nitrogenRole,
+        residueContribution: c.residueContribution,
+        temperatureSensitivity: c.temperatureSensitivity,
+        soilPreferences: c.soilPreferences,
+        growthCharacteristics: c.growthCharacteristics,
+        nitrogenCharacteristics: c.nitrogenCharacteristics,
+        rotationConsiderations: c.rotationConsiderations,
+        diseaseAndPestConsiderations: c.diseaseAndPestConsiderations,
+        agronomicReference: c.agronomicReference,
         summary: c.summary,
       }))
     );
+  });
+
+  app.get('/api/crops/rotation-priorities', requireAuth, (_req: AuthRequest, res) => {
+    res.json(FARMER_PRIORITY_OPTIONS);
   });
 
   app.post('/api/crops/rotation-analysis', requireAuth, async (req: AuthRequest, res) => {
     try {
       const {
         farmId,
+        fieldId,
         province,
         waterAvailability,
         soilType,
+        soilTexture,
+        organicMatterLevel,
+        soilDrainage,
+        waterHoldingCharacteristic,
         soilPh,
         farmSizeHectares,
+        previousSeasonCrop,
+        twoSeasonsAgoCrop,
         farmerPriority,
+        farmerPriorities,
         selectedCrops,
       } = req.body || {};
 
@@ -2864,18 +3154,30 @@ async function startServer() {
 
       const payload = await analyzeCropRotationScenario({
         farmId: farmId ? String(farmId) : null,
+        fieldId: fieldId ? String(fieldId) : null,
         province: province ? String(province) : undefined,
         waterAvailability: waterAvailability ? String(waterAvailability) : undefined,
         soilType: soilType ? String(soilType) : undefined,
+        soilTexture: soilTexture ? String(soilTexture) : undefined,
+        organicMatterLevel: organicMatterLevel ? String(organicMatterLevel) : undefined,
+        soilDrainage: soilDrainage ? String(soilDrainage) : undefined,
+        waterHoldingCharacteristic: waterHoldingCharacteristic
+          ? String(waterHoldingCharacteristic)
+          : undefined,
         soilPh:
           soilPh !== undefined && soilPh !== null && soilPh !== '' ? Number(soilPh) : undefined,
         farmSizeHectares:
           farmSizeHectares !== undefined && farmSizeHectares !== null
             ? Number(farmSizeHectares)
             : undefined,
+        previousSeasonCrop: previousSeasonCrop ? String(previousSeasonCrop) : undefined,
+        twoSeasonsAgoCrop: twoSeasonsAgoCrop ? String(twoSeasonsAgoCrop) : undefined,
         farmerPriority: farmerPriority ? String(farmerPriority) : undefined,
+        farmerPriorities: Array.isArray(farmerPriorities)
+          ? farmerPriorities.slice(0, 3).map((v) => String(v))
+          : undefined,
         selectedCrops: Array.isArray(selectedCrops)
-          ? selectedCrops.slice(0, 5).map((v) => String(v))
+          ? selectedCrops.slice(0, 6).map((v) => String(v))
           : undefined,
       });
       res.json(payload);
@@ -2884,6 +3186,205 @@ async function startServer() {
         error: err instanceof Error ? err.message : 'Unable to compute crop rotation scenario analysis.',
       });
     }
+  });
+
+  app.post('/api/crops/rotation-simulate', requireAuth, async (req: AuthRequest, res) => {
+    try {
+      const {
+        farmId,
+        fieldId,
+        province,
+        waterAvailability,
+        soilType,
+        soilTexture,
+        organicMatterLevel,
+        soilDrainage,
+        waterHoldingCharacteristic,
+        soilPh,
+        farmSizeHectares,
+        previousSeasonCrop,
+        twoSeasonsAgoCrop,
+        farmerPriorities,
+        season1CropId,
+        season2CropId,
+        season3CropId,
+        strategyName,
+      } = req.body || {};
+
+      if (farmId && !userCanAccessFarm(req.authUser!, String(farmId), 'soil')) {
+        res.status(403).json({ error: 'You do not have soil access to this farm.' });
+        return;
+      }
+
+      const payload = await simulateRotationSequence({
+        farmId: farmId ? String(farmId) : null,
+        fieldId: fieldId ? String(fieldId) : null,
+        province: province ? String(province) : undefined,
+        waterAvailability: waterAvailability ? String(waterAvailability) : undefined,
+        soilType: soilType ? String(soilType) : undefined,
+        soilTexture: soilTexture ? String(soilTexture) : undefined,
+        organicMatterLevel: organicMatterLevel ? String(organicMatterLevel) : undefined,
+        soilDrainage: soilDrainage ? String(soilDrainage) : undefined,
+        waterHoldingCharacteristic: waterHoldingCharacteristic
+          ? String(waterHoldingCharacteristic)
+          : undefined,
+        soilPh:
+          soilPh !== undefined && soilPh !== null && soilPh !== '' ? Number(soilPh) : undefined,
+        farmSizeHectares:
+          farmSizeHectares !== undefined && farmSizeHectares !== null
+            ? Number(farmSizeHectares)
+            : undefined,
+        previousSeasonCrop: previousSeasonCrop ? String(previousSeasonCrop) : undefined,
+        twoSeasonsAgoCrop: twoSeasonsAgoCrop ? String(twoSeasonsAgoCrop) : undefined,
+        farmerPriorities: Array.isArray(farmerPriorities)
+          ? farmerPriorities.slice(0, 3).map((v) => String(v))
+          : undefined,
+        season1CropId: String(season1CropId || 'maize'),
+        season2CropId: String(season2CropId || 'soybeans'),
+        season3CropId: String(season3CropId || 'sunflower'),
+        strategyName: strategyName ? String(strategyName) : undefined,
+      });
+      res.json(payload);
+    } catch (err: unknown) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Unable to simulate 3-season rotation sequence.',
+      });
+    }
+  });
+
+  app.get('/api/crops/rotation-plans', requireAuth, (req: AuthRequest, res) => {
+    const farmIdFilter = req.query.farmId ? String(req.query.farmId) : null;
+    const fieldIdFilter = req.query.fieldId ? String(req.query.fieldId) : null;
+    const accessibleIds = new Set(getAccessibleFarmIds(req.authUser!, 'soil'));
+    const allPlans = store.db.savedRotationPlans || [];
+
+    const visible = allPlans.filter((plan) => {
+      if (farmIdFilter && plan.farmId !== farmIdFilter) return false;
+      if (fieldIdFilter && plan.fieldId !== fieldIdFilter) return false;
+      if (plan.userId === req.authUser!.id) return true;
+      return accessibleIds.has(plan.farmId);
+    });
+
+    res.json(
+      [...visible].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    );
+  });
+
+  app.post('/api/crops/rotation-plans', requireAuth, (req: AuthRequest, res) => {
+    const {
+      farmId,
+      fieldId,
+      planName,
+      planSource,
+      selectedPriorities,
+      seasons,
+      decisionSupportScore,
+      summary,
+      warnings,
+      tradeOffs,
+      missingInformation,
+      environmentalSnapshotLabel,
+      soilSnapshotLabel,
+    } = req.body || {};
+
+    if (!farmId || !planName || !Array.isArray(seasons) || seasons.length !== 3) {
+      res.status(400).json({
+        error: 'Farm ID, plan name, and a 3-season rotation sequence are required to save a plan.',
+      });
+      return;
+    }
+
+    const farm = store.db.farms.find((f) => f.id === String(farmId));
+    if (!farm) {
+      res.status(404).json({ error: 'Selected farm not found.' });
+      return;
+    }
+    if (!userCanModifyFarm(req.authUser!, farm.id)) {
+      res.status(403).json({ error: 'Only the farm owner can save rotation plans for this farm.' });
+      return;
+    }
+
+    const field = fieldId
+      ? store.db.fields.find((fl) => fl.id === String(fieldId) && fl.farmId === farm.id)
+      : null;
+
+    if (!Array.isArray(store.db.savedRotationPlans)) {
+      store.db.savedRotationPlans = [];
+    }
+
+    const now = new Date().toISOString();
+    const record: SavedRotationPlan = {
+      id: `rplan-${crypto.randomUUID()}`,
+      userId: req.authUser!.id,
+      farmId: farm.id,
+      farmName: farm.name,
+      fieldId: field ? field.id : null,
+      fieldName: field ? field.name : null,
+      planName: String(planName).trim(),
+      planSource:
+        planSource === 'custom_simulation' ? 'custom_simulation' : 'recommended_strategy',
+      planStatus: 'proposed_plan',
+      selectedPriorities: Array.isArray(selectedPriorities)
+        ? selectedPriorities.slice(0, 3).map((v) => String(v))
+        : [],
+      seasons: seasons.map((s: Record<string, unknown>, idx: number) => ({
+        seasonNumber: Number(s.seasonNumber || idx + 1),
+        seasonLabel: String(s.seasonLabel || `Season ${idx + 1}`),
+        plantingWindow: String(s.plantingWindow || 'Seasonal Window'),
+        cropId: String(s.cropId || ''),
+        cropName: String(s.cropName || 'Crop'),
+        botanicalFamily: String(s.botanicalFamily || ''),
+        nitrogenRole: String(s.nitrogenRole || ''),
+      })),
+      decisionSupportScore: Number(decisionSupportScore || 0),
+      summary: String(summary || '').trim(),
+      warnings: Array.isArray(warnings) ? warnings.map((w) => String(w)) : [],
+      tradeOffs: Array.isArray(tradeOffs) ? tradeOffs.map((t) => String(t)) : [],
+      missingInformation: Array.isArray(missingInformation)
+        ? missingInformation.map((m) => String(m))
+        : [],
+      environmentalSnapshotLabel: String(environmentalSnapshotLabel || 'NASA POWER Regional Snapshot'),
+      soilSnapshotLabel: String(soilSnapshotLabel || 'Field & Soil Profile Snapshot'),
+      disclaimer:
+        'Saved as a proposed decision-support rotation plan only. Saving this plan does NOT create planted crop activities or guarantee yields.',
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    store.db.savedRotationPlans.unshift(record);
+    store.logAudit(
+      req.authUser!.id,
+      'ROTATION_PLAN_SAVED',
+      'SavedRotationPlan',
+      record.id,
+      { farmId: farm.id, fieldId: record.fieldId, planName: record.planName },
+      req.ip || '127.0.0.1'
+    );
+
+    res.status(201).json(record);
+  });
+
+  app.delete('/api/crops/rotation-plans/:planId', requireAuth, (req: AuthRequest, res) => {
+    const allPlans = store.db.savedRotationPlans || [];
+    const target = allPlans.find((p) => p.id === req.params.planId);
+    if (!target) {
+      res.status(404).json({ error: 'Saved rotation plan not found.' });
+      return;
+    }
+    if (!userCanModifyFarm(req.authUser!, target.farmId) && target.userId !== req.authUser!.id) {
+      res.status(403).json({ error: 'Access denied.' });
+      return;
+    }
+    store.db.savedRotationPlans = allPlans.filter((p) => p.id !== target.id);
+    store.logAudit(
+      req.authUser!.id,
+      'ROTATION_PLAN_DELETED',
+      'SavedRotationPlan',
+      target.id,
+      { farmId: target.farmId, planName: target.planName },
+      req.ip || '127.0.0.1'
+    );
+    res.json({ ok: true });
   });
 
   app.post('/api/soil-land/farms/:farmId/reports', requireAuth, (req: AuthRequest, res) => {
@@ -3060,6 +3561,28 @@ async function startServer() {
         error: err instanceof Error ? err.message : 'Unable to retrieve candidate site weather telemetry.',
       });
     }
+  });
+
+  app.get('/api/nasa/registry', requireAuth, (_req: AuthRequest, res) => {
+    res.json(getNasaRegistrySummary());
+  });
+
+  app.get('/api/nasa/retrievals', requireAuth, (_req: AuthRequest, res) => {
+    const items = (store.db.nasaRetrievals || []).slice(0, 25).map((r) => ({
+      id: r.id,
+      requestId: r.requestId || null,
+      coordinatesLabel: r.coordinatesLabel,
+      temporalResolution: r.temporalResolution,
+      dateWindowLabel: r.dateWindowLabel,
+      parametersRequested: r.parametersRequested,
+      httpStatus: r.httpStatus,
+      cacheHit: r.cacheHit,
+      validObservationCount: r.validObservationCount,
+      fillValueCount: r.fillValueCount,
+      errorMessage: r.errorMessage,
+      retrievedAt: r.retrievedAt,
+    }));
+    res.json({ retrievals: items });
   });
 
   app.get('/api/weather/farms/:farmId/feedback', requireAuth, (req: AuthRequest, res) => {
@@ -5221,7 +5744,7 @@ async function startServer() {
     }
     if (user.roleCode === 'prospective_farmer') {
       res.json(
-        buildProspectiveFarmerDashboard({
+        await buildProspectiveFarmerDashboard({
           user,
           provinceFilter: req.query.province ? String(req.query.province) : undefined,
         })
@@ -5300,12 +5823,24 @@ async function startServer() {
   // ------------------------------------------------------------------
   // Reporting & Data Export Endpoints (PDF / CSV / Organisation Aggregate)
   // ------------------------------------------------------------------
-  app.get('/api/reports/types', requireAuth, (_req: AuthRequest, res) => {
+  app.get('/api/reports/types', requireAuth, (req: AuthRequest, res) => {
+    if (req.authUser!.roleCode === 'prospective_farmer') {
+      res.status(403).json({
+        error: 'Farming performance reports are available after registering an active farm.',
+      });
+      return;
+    }
     res.json(REPORT_TYPES);
   });
 
   app.get('/api/reports/history', requireAuth, (req: AuthRequest, res) => {
     const user = req.authUser!;
+    if (user.roleCode === 'prospective_farmer') {
+      res.status(403).json({
+        error: 'Farming performance reports are available after registering an active farm.',
+      });
+      return;
+    }
     const list = store.db.generatedReports
       .filter((r) => r.userId === user.id)
       .slice(0, 50);

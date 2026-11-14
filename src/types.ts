@@ -161,6 +161,13 @@ export interface FarmBoundary {
   updatedAt: string;
 }
 
+export type SoilProvenanceType =
+  | 'farmer_provided'
+  | 'laboratory_measured'
+  | 'external_dataset'
+  | 'estimated'
+  | 'unknown';
+
 export interface FieldItem {
   id: string;
   farmId: string;
@@ -170,6 +177,19 @@ export interface FieldItem {
   areaHectares: number;
   soilType: string;
   irrigationType: string;
+  soilTexture?: 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown';
+  organicMatterLevel?: 'Low' | 'Medium' | 'High' | 'Unknown';
+  soilDrainage?: 'Poor' | 'Moderate' | 'Good' | 'Unknown';
+  waterHoldingCharacteristic?: 'Low' | 'Moderate' | 'High' | 'Unknown';
+  soilPhMeasured?: number | null;
+  nitrogenMeasuredMgKg?: number | null;
+  phosphorusMeasuredMgKg?: number | null;
+  potassiumMeasuredMgKg?: number | null;
+  currentCrop?: string;
+  previousSeasonCrop?: string;
+  twoSeasonsAgoCrop?: string;
+  farmingSystem?: string;
+  soilValueProvenance?: Record<string, SoilProvenanceType>;
   geojson?: GeoJsonPolygon | null;
   status: 'active' | 'fallow' | 'preparing';
   notes: string;
@@ -396,6 +416,10 @@ export interface MixedFarmingSummary {
 export interface ProvinceInfo {
   code: string;
   name: string;
+  capital: string;
+  centerLat: number;
+  centerLng: number;
+  rainfallRegime: string;
   climateZone: string;
   annualRainfallMm: string;
   keyCommodities: string[];
@@ -567,11 +591,42 @@ export interface SoilMetricPoint {
   sourceNote: string;
 }
 
+export interface SoilProvenanceEntry {
+  key: string;
+  label: string;
+  displayValue: string;
+  provenance: SoilProvenanceType;
+  provenanceLabel: string;
+  detailNote: string;
+}
+
+export interface FieldSoilHistorySummary {
+  fieldId: string;
+  fieldName: string;
+  areaHectares: number;
+  irrigationType: string;
+  soilType: string;
+  soilTexture: 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown';
+  organicMatterLevel: 'Low' | 'Medium' | 'High' | 'Unknown';
+  soilDrainage: 'Poor' | 'Moderate' | 'Good' | 'Unknown';
+  waterHoldingCharacteristic: 'Low' | 'Moderate' | 'High' | 'Unknown';
+  soilPhMeasured: number | null;
+  nitrogenMeasuredMgKg: number | null;
+  phosphorusMeasuredMgKg: number | null;
+  potassiumMeasuredMgKg: number | null;
+  currentCrop: string;
+  previousSeasonCrop: string;
+  twoSeasonsAgoCrop: string;
+  farmingSystem: string;
+  soilValueProvenance: Record<string, SoilProvenanceType>;
+}
+
 export interface SuitabilityOption {
   id: string;
   farmingOption: string;
   category: string;
   suitabilityLevel: 'Well Suited' | 'Conditionally Suitable' | 'Needs Remediation / Assessment';
+  confidenceLevel?: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
   whySuitable: string;
   supportingInformation: string[];
   missingInformation: string[];
@@ -582,8 +637,15 @@ export interface SuitabilityOption {
 export interface SoilLandIntelligence {
   farmId: string;
   farmName: string;
+  selectedFieldId?: string | null;
+  selectedFieldName?: string | null;
   fetchedAt: string;
   coordinates: { latitude: number; longitude: number; locationSource: LocationSource };
+  fieldsSummary?: FieldSoilHistorySummary[];
+  selectedFieldProfile?: FieldSoilHistorySummary | null;
+  soilProvenanceMatrix?: SoilProvenanceEntry[];
+  missingMeasurementsGuidance?: string[];
+  dataConfidenceLevel?: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
   landIntelligence: {
     elevationMeters: number | null;
     elevationSource: string;
@@ -593,6 +655,9 @@ export interface SoilLandIntelligence {
     temperaturePattern: string;
     environmentalConditions: string;
     waterAvailabilitySummary: string;
+    nasaGwetRoot?: number | null;
+    nasaGwetTop?: number | null;
+    nasaSoilWetnessNote?: string;
   };
   dataSources: {
     id: string;
@@ -672,26 +737,91 @@ export interface WeatherIntelligence {
   historicalRainfall: {
     past14DaysMm: number | null;
     past30DaysMm: number | null;
+    past60DaysMm?: number | null;
+    longestDrySpellDays60d?: number | null;
+    currentDrySpellDays?: number | null;
+    hotDays32cCount60d?: number | null;
+    hotDays35cCount60d?: number | null;
+    frostRiskDays2cCount60d?: number | null;
+    frostDays0cCount60d?: number | null;
     seasonalClimateNote: string;
     historicalDays: { date: string; precipitationMm: number; tempMaxC: number; tempMinC: number }[];
   };
   nasaPower?: {
     serviceAvailable: boolean;
     unavailableReason: string | null;
+    isCachedFallback?: boolean;
     source: string;
+    coordinatesLabel?: string;
     periodLabel: string;
     solarUnit: string;
     avgSolarIrradiance: number | null;
     totalPrecipitationMm: number | null;
+    past30DaysNasaMm?: number | null;
+    past60DaysNasaMm?: number | null;
+    avgMeanTempC?: number | null;
     avgMaxTempC: number | null;
     avgMinTempC: number | null;
+    avgDewPointC?: number | null;
     avgRelativeHumidityPercent: number | null;
+    avgWindSpeedMs?: number | null;
+    avgEvlandMmDay?: number | null;
+    totalEvland60dMm?: number | null;
+    avgEvptrnsMjM2Day?: number | null;
+    avgVpdKpa?: number | null;
+    gwetRootRecent?: number | null;
+    gwetTopRecent?: number | null;
+    gwetProfRecent?: number | null;
+    gwetRootLabel?: string;
+    gwetTopLabel?: string;
+    gwetProfLabel?: string;
+    gwetDisclaimer?: string;
+    nasaDrySpellDays?: number | null;
+    nasaHotDays32c?: number | null;
+    nasaHotDays35c?: number | null;
+    nasaFrostDays2c?: number | null;
+    nasaFrostDays0c?: number | null;
     daysCount: number;
     lastUpdated: string | null;
+    dailySeries?: {
+      date: string;
+      precipitationMm: number | null;
+      tempMeanC: number | null;
+      tempMaxC: number | null;
+      tempMinC: number | null;
+      solarMjM2Day: number | null;
+      humidityPercent: number | null;
+      dewPointC: number | null;
+      windSpeedMs: number | null;
+      evlandMmDay: number | null;
+      evptrnsMjM2Day: number | null;
+      vpdKpa: number | null;
+      gwetRoot: number | null;
+      gwetTop: number | null;
+      gwetProf: number | null;
+    }[];
+    parameterMetadata?: {
+      parameterCode: string;
+      parameterName: string;
+      unit: string;
+      source: string;
+      coordinatesLabel: string;
+      observationPeriod: string;
+      retrievedAt: string | null;
+      status: 'live' | 'cached' | 'unavailable';
+      valueKind:
+        | 'satellite_reanalysis_observation'
+        | 'model_derived_soil_wetness_estimate'
+        | 'model_derived_evaporation_estimate'
+        | 'system_indicator'
+        | 'historical_climatology';
+      note: string;
+    }[];
   };
   nasaClimateComparison?: {
     serviceAvailable: boolean;
     unavailableReason: string | null;
+    isCachedFallback?: boolean;
     source: string;
     datasetName: string;
     coordinatesLabel: string;
@@ -699,40 +829,134 @@ export interface WeatherIntelligence {
     baselinePeriodLabel: string;
     recentPeriodLabel: string;
     retrievedAt: string | null;
+    rainfallRegimeClassification?:
+      | 'Summer-Rainfall'
+      | 'Winter-Rainfall'
+      | 'All-Year / Transitional'
+      | 'Semi-Arid';
+    seasonalDistribution?: {
+      summerDjfBaselineMm: number | null;
+      summerDjfRecentMm: number | null;
+      autumnMamBaselineMm: number | null;
+      autumnMamRecentMm: number | null;
+      winterJjaBaselineMm: number | null;
+      winterJjaRecentMm: number | null;
+      springSonBaselineMm: number | null;
+      springSonRecentMm: number | null;
+    } | null;
+    monthlyDistribution?: {
+      monthIndex: number;
+      monthLabel: string;
+      baselineRainfallMm: number | null;
+      recentRainfallMm: number | null;
+      baselineT2mC?: number | null;
+      recentT2mC?: number | null;
+      baselineTmaxC: number | null;
+      recentTmaxC: number | null;
+      baselineTminC?: number | null;
+      recentTminC?: number | null;
+      baselineSolarMj?: number | null;
+      recentSolarMj?: number | null;
+      baselineEvlandMmDay?: number | null;
+      recentEvlandMmDay?: number | null;
+      baselineGwetRoot: number | null;
+      recentGwetRoot: number | null;
+      baselineGwetTop?: number | null;
+      recentGwetTop?: number | null;
+    }[];
+    annualSeries?: {
+      year: number;
+      annualRainfallMm: number | null;
+      avgMeanTempC?: number | null;
+      avgMaxTempC: number | null;
+      avgMinTempC: number | null;
+      avgSolarMj?: number | null;
+      avgEvlandMmDay?: number | null;
+      avgGwetRoot: number | null;
+      isDryYear: boolean;
+    }[];
+    recurringDryYears?: {
+      thresholdMm: number | null;
+      dryYearsList: number[];
+      totalDryYearsCount: number;
+      recent5YearDryCount: number;
+      note: string;
+    };
     baselineMetrics: {
       meanAnnualRainfallMm: number | null;
       summerDjRainfallMm: number | null;
       winterJjaRainfallMm: number | null;
+      avgMeanTempC?: number | null;
       avgMaxTempC: number | null;
       avgMinTempC: number | null;
       avgSolarIrradiance: number | null;
       avgRelativeHumidityPercent: number | null;
+      avgEvlandMmDay?: number | null;
+      avgGwetRoot?: number | null;
+      avgGwetTop?: number | null;
+      avgGwetProf?: number | null;
       yearsCovered: number;
     } | null;
     recentMetrics: {
       meanAnnualRainfallMm: number | null;
       summerDjRainfallMm: number | null;
       winterJjaRainfallMm: number | null;
+      avgMeanTempC?: number | null;
       avgMaxTempC: number | null;
       avgMinTempC: number | null;
       avgSolarIrradiance: number | null;
       avgRelativeHumidityPercent: number | null;
+      avgEvlandMmDay?: number | null;
+      avgGwetRoot?: number | null;
+      avgGwetTop?: number | null;
+      avgGwetProf?: number | null;
       yearsCovered: number;
     } | null;
     delta: {
       annualRainfallChangeMm: number | null;
       annualRainfallChangePercent: number | null;
+      avgMeanTempChangeC?: number | null;
       avgMaxTempChangeC: number | null;
       avgMinTempChangeC: number | null;
       solarIrradianceChange: number | null;
       humidityChangePercent: number | null;
+      evlandChangeMmDay?: number | null;
+      gwetRootChange?: number | null;
+      gwetTopChange?: number | null;
     } | null;
     localInterpretation: {
       summary: string;
       soilAndMoistureNote: string;
       cropPlanningNote: string;
+      rotationDecisionRelevance?: string;
+      scientificFramingNote?: string;
       dataLimitations: string;
     };
+    parameterMetadata?: {
+      parameterCode: string;
+      parameterName: string;
+      unit: string;
+      source: string;
+      coordinatesLabel: string;
+      observationPeriod: string;
+      retrievedAt: string | null;
+      status: 'live' | 'cached' | 'unavailable';
+      valueKind:
+        | 'satellite_reanalysis_observation'
+        | 'model_derived_soil_wetness_estimate'
+        | 'model_derived_evaporation_estimate'
+        | 'system_indicator'
+        | 'historical_climatology';
+      note: string;
+    }[];
+  };
+  climateProjectionsStatus?: {
+    datasetName: string;
+    configured: boolean;
+    statusLabel: string;
+    scenariosSupported: string[];
+    explanation: string;
+    scientificSeparationNote: string;
   };
   seasonalCalendar?: {
     regime: string;
@@ -1319,25 +1543,124 @@ export interface LearningCentrePayload {
   officialGuidanceNotice: string;
 }
 
+export type FarmerPriorityCode =
+  | 'improve_soil_health'
+  | 'conserve_water'
+  | 'adapt_to_climate'
+  | 'diversify_crops'
+  | 'long_term_resilience'
+  | 'spread_market_risk';
+
+export interface FarmerPriorityOption {
+  code: FarmerPriorityCode;
+  label: string;
+  description: string;
+}
+
 export interface CropRotationCatalogOption {
   id: string;
   name: string;
+  category?: 'Cereal' | 'Legume' | 'Oilseed' | 'Vegetable / Cover';
   botanicalFamily: string;
   familyGroupLabel: string;
   preferredSeason: 'Main Summer' | 'Cool / Transition' | 'Year-round';
   waterNeed: 'Low' | 'Moderate' | 'High';
+  waterRequirementMmRange?: string;
   idealPhRange: [number, number];
   typicalCycleDays: string;
   nitrogenRole: 'Nitrogen-fixing legume' | 'Heavy nitrogen feeder' | 'Moderate feeder' | 'Deep-rooting scavenger';
+  residueContribution?: 'Low' | 'Moderate' | 'High';
+  temperatureSensitivity?: string;
+  soilPreferences?: string;
+  growthCharacteristics?: string;
+  nitrogenCharacteristics?: string;
+  rotationConsiderations?: string;
+  diseaseAndPestConsiderations?: string;
+  agronomicReference?: string;
   summary: string;
+}
+
+export interface ScoreComponentItem {
+  key: string;
+  label: string;
+  weightPercent: number;
+  rawScore: number;
+  weightedPoints: number;
+  rationale: string;
+}
+
+export interface SequenceEvaluationResult {
+  sequenceId: string;
+  strategyName: string;
+  seasons: {
+    seasonNumber: number;
+    seasonLabel: string;
+    plantingWindow: string;
+    cropId: string;
+    cropName: string;
+    category: string;
+    botanicalFamily: string;
+    nitrogenRole: string;
+    waterNeed: 'Low' | 'Moderate' | 'High';
+    residueContribution: 'Low' | 'Moderate' | 'High';
+    suitabilityLevel: 'Strong Fit' | 'Conditional Fit' | 'Caution';
+    suitabilityReasons: string[];
+    benefits: string[];
+    risks: string[];
+    plantingChecklist: string[];
+  }[];
+  decisionSupportScore: number;
+  scoreBreakdown: {
+    formula: string;
+    statusLabel: string;
+    components: ScoreComponentItem[];
+  };
+  indicators: {
+    botanicalDiversityCount: number;
+    distinctFamilies: string[];
+    legumeIncluded: boolean;
+    estimatedNitrogenSupport: 'High (Biological N Fixation)' | 'Moderate' | 'Low (External N Needed)';
+    residueCoverRating: 'High Cover' | 'Moderate Cover' | 'Low Cover';
+    waterResilienceRating: 'High' | 'Moderate' | 'Low';
+    climateResilienceRating: 'High' | 'Moderate' | 'Low';
+    soilMoistureSuitability: 'Well Aligned' | 'Conditional' | 'Mismatch / Stress Risk';
+  };
+  sourceTags: {
+    indicator: string;
+    sourceCategory:
+      | 'NASA Observation'
+      | 'NASA Model Wetness (GWETROOT/GWETTOP)'
+      | 'Farmer-Provided Soil / Field'
+      | 'Laboratory Soil Report'
+      | 'Agronomic Rule Estimate'
+      | 'Simulated Outcome';
+    detail: string;
+  }[];
+  whyRecommended: string;
+  influencingInputs: {
+    nasaObservations: string[];
+    soilAndFieldInputs: string[];
+    cropAndHistoryFactors: string[];
+    farmerPriorityFactors: string[];
+  };
+  soilHealthConsiderations: string[];
+  waterConsiderations: string[];
+  climateConsiderations: string[];
+  warnings: string[];
+  tradeOffs: string[];
+  missingInformation: string[];
+  nextSteps: string[];
+  whenAlternativePreferred: string;
 }
 
 export interface CropRotationSeasonPlan {
   seasonNumber: number;
   seasonLabel: string;
   plantingWindow: string;
-  recommendedCropId: string;
-  recommendedCropName: string;
+  recommendedCropId?: string;
+  cropId?: string;
+  recommendedCropName?: string;
+  cropName?: string;
   botanicalFamily: string;
   nitrogenRole: string;
   suitabilityLevel: 'Strong Fit' | 'Conditional Fit' | 'Caution';
@@ -1349,16 +1672,28 @@ export interface CropRotationSeasonPlan {
 
 export interface CropRotationAnalysisPayload {
   generatedAt: string;
+  dataConfidence?: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
   siteContext: {
     label: string;
+    farmId?: string | null;
+    fieldId?: string | null;
+    fieldName?: string | null;
     province: string;
     rainfallRegime: string;
     farmSizeHectares: number;
     waterAvailability: string;
     soilType: string;
+    soilTexture?: string;
+    organicMatterLevel?: string;
+    soilDrainage?: string;
+    waterHoldingCharacteristic?: string;
     soilPh: number;
+    soilPhMeasured?: number | null;
+    previousSeasonCrop?: string;
+    twoSeasonsAgoCrop?: string;
     soilDataSource: string;
     farmerPriority: string;
+    farmerPriorities?: FarmerPriorityCode[];
   };
   climateSource: {
     provider: string;
@@ -1368,10 +1703,19 @@ export interface CropRotationAnalysisPayload {
     baselineAnnualRainfallMm: number | null;
     avgMaxTempC: number | null;
     avgSolarIrradiance: number | null;
+    past30DaysNasaMm?: number | null;
+    past60DaysNasaMm?: number | null;
+    gwetRootRecent?: number | null;
+    gwetTopRecent?: number | null;
+    drySpellDays60d?: number | null;
+    hotDays32c?: number | null;
+    frostDays2c?: number | null;
+    recurringDryYearsCount?: number;
   };
   comparedCrops: {
     cropId: string;
     cropName: string;
+    category?: string;
     botanicalFamily: string;
     waterNeed: string;
     idealPhRange: [number, number];
@@ -1382,11 +1726,61 @@ export interface CropRotationAnalysisPayload {
     plantingChecklist: string[];
   }[];
   threeSeasonRotation: CropRotationSeasonPlan[];
+  topStrategies?: SequenceEvaluationResult[];
   soilHealthImplications: string[];
   climateAndMoistureAlignment: string;
   assumptions: string[];
   limitations: string[];
   disclaimer: string;
+}
+
+export interface RotationSimulationResponse {
+  generatedAt: string;
+  dataConfidence: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
+  siteContext: {
+    label: string;
+    province: string;
+    waterAvailability: string;
+    soilTexture: string;
+    soilDrainage: string;
+    soilPhMeasured: number | null;
+    previousSeasonCrop: string;
+    farmerPriorities: FarmerPriorityCode[];
+  };
+  simulation: SequenceEvaluationResult;
+  disclaimer: string;
+}
+
+export interface SavedRotationPlanItem {
+  id: string;
+  userId: string;
+  farmId: string;
+  farmName: string;
+  fieldId: string | null;
+  fieldName: string | null;
+  planName: string;
+  planSource: 'recommended_strategy' | 'custom_simulation';
+  planStatus: 'proposed_plan';
+  selectedPriorities: string[];
+  seasons: {
+    seasonNumber: number;
+    seasonLabel: string;
+    plantingWindow: string;
+    cropId: string;
+    cropName: string;
+    botanicalFamily: string;
+    nitrogenRole: string;
+  }[];
+  decisionSupportScore: number;
+  summary: string;
+  warnings: string[];
+  tradeOffs: string[];
+  missingInformation: string[];
+  environmentalSnapshotLabel: string;
+  soilSnapshotLabel: string;
+  disclaimer: string;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export interface AiInsightItem {
@@ -1516,6 +1910,50 @@ export interface ExistingFarmerDashboardPayload {
       detail: string;
     }[];
   };
+  nasaEnvironmentalSummary?: {
+    available: boolean;
+    locationLabel: string;
+    coordinatesLabel: string;
+    rainfallRegime: string;
+    past30DaysMm: number | null;
+    past60DaysMm: number | null;
+    recentAnnualMm: number | null;
+    baselineAnnualMm: number | null;
+    annualRainDeltaMm: number | null;
+    avgMeanTempC: number | null;
+    avgMaxTempC: number | null;
+    avgSolarMj: number | null;
+    avgEvlandMmDay: number | null;
+    avgVpdKpa: number | null;
+    gwetRootRecent: number | null;
+    gwetTopRecent: number | null;
+    gwetProfRecent: number | null;
+    gwetRootLabel: string;
+    hotDays32c: number | null;
+    frostDays2c: number | null;
+    drySpellDays60d: number | null;
+    recurringDryYearsCount: number;
+    climateHeadline: string;
+    limitationNote: string;
+  } | null;
+  rotationPreview?: {
+    siteLabel: string;
+    dataConfidence: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
+    soilDataSource: string;
+    hasLabSoilReport: boolean;
+    climateAlignment: string;
+    topStrategies: {
+      sequenceId: string;
+      strategyName: string;
+      decisionSupportScore: number;
+      crops: string[];
+      distinctFamilies: string[];
+      waterResilienceRating: 'High' | 'Moderate' | 'Low';
+      legumeIncluded: boolean;
+      whyRecommended: string;
+    }[];
+    missingInfo: string[];
+  } | null;
   upcomingActivities: {
     id: string;
     dueDate: string;
@@ -1607,6 +2045,8 @@ export interface ProspectiveDashboardPayload {
     learningProgressPercent: number;
     estimationNotice: string;
   };
+  nasaEnvironmentalSummary?: ExistingFarmerDashboardPayload['nasaEnvironmentalSummary'];
+  rotationPreview?: ExistingFarmerDashboardPayload['rotationPreview'];
   opportunities: FarmingOpportunity[];
   savedLocations: SavedProspectiveLocationItem[];
   landSuitabilityRecommendations: {

@@ -1,8 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  ArrowRight,
+  Award,
   Bookmark,
   BookOpen,
   CheckCircle2,
+  Circle,
   Clock,
   Edit3,
   Film,
@@ -16,7 +19,7 @@ import {
   Trash2,
 } from 'lucide-react';
 import { LANGUAGE_LIST } from '../i18n/translations';
-import { apiRequest } from '../lib/api';
+import { apiRequest, submitLearningReadinessAssessment } from '../lib/api';
 import { getOfflineStaleness, isLikelyOfflineError, loadOfflineBundle } from '../lib/offlineSync';
 import {
   AuthUser,
@@ -91,6 +94,7 @@ interface LearningCentreViewProps {
   speechSupported: boolean;
   onSpeak: (txt: string) => void;
   onStopSpeaking: () => void;
+  onOpenFarmTransition?: () => void;
 }
 
 export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
@@ -101,6 +105,7 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
   speechSupported,
   onSpeak,
   onStopSpeaking,
+  onOpenFarmTransition,
 }) => {
   const [payload, setPayload] = useState<LearningCentrePayload | null>(null);
   const [loading, setLoading] = useState(true);
@@ -120,6 +125,15 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
   // Video storyboard player state
   const [activeSlideIndex, setActiveSlideIndex] = useState(0);
   const [videoPlaying, setVideoPlaying] = useState(false);
+
+  // Readiness assessment state
+  const [readinessAnswers, setReadinessAnswers] = useState<Record<string, string>>(
+    () => user.profile?.readinessAssessment?.answers || {}
+  );
+  const [submittingAssessment, setSubmittingAssessment] = useState(false);
+  const [readinessExpanded, setReadinessExpanded] = useState(
+    user.roleCode === 'prospective_farmer'
+  );
 
   // Admin editor state
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -518,6 +532,41 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       await loadMaterials(true);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unable to save language version.');
+    }
+  };
+
+  const handleSubmitReadinessAssessment = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const questions = payload?.learningReadiness?.assessmentQuestions || [];
+    if (questions.some((q) => !readinessAnswers[q.id])) {
+      setError('Please answer all 5 practical readiness questions before submitting.');
+      return;
+    }
+    setSubmittingAssessment(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await submitLearningReadinessAssessment(readinessAnswers);
+      setPayload((prev) =>
+        prev ? { ...prev, learningReadiness: res.learningReadiness } : prev
+      );
+      if (res.learningReadiness.isReady && res.learningReadiness.completionMessage) {
+        setNotice(res.learningReadiness.completionMessage);
+      } else if (res.result.passed) {
+        setNotice(
+          `Readiness check passed (${res.result.score}/${res.result.totalQuestions}). Complete the remaining starter guides to unlock full farming readiness.`
+        );
+      } else {
+        setError(
+          `Readiness check score: ${res.result.score}/${res.result.totalQuestions} (4/${res.result.totalQuestions} required). Review the starter guides below and try again.`
+        );
+      }
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : 'Unable to submit readiness assessment.'
+      );
+    } finally {
+      setSubmittingAssessment(false);
     }
   };
 
@@ -1106,6 +1155,197 @@ export const LearningCentreView: React.FC<LearningCentreViewProps> = ({
       {/* LEARNER SEARCH, 14 CATEGORIES & READER */}
       {viewMode !== 'admin' && (
         <>
+          {/* Learning Completion & Farming Readiness Tracker */}
+          {payload?.learningReadiness && (
+            <section
+              className={`rounded-2xl border p-5 sm:p-6 space-y-4 ${
+                payload.learningReadiness.isReady
+                  ? 'bg-emerald-50 border-emerald-300'
+                  : 'bg-white border-[#CBD5E1]'
+              }`}
+            >
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#174C3C]">
+                    <Award className="w-4 h-4 shrink-0" />
+                    <span>
+                      {payload.learningReadiness.isReady
+                        ? 'Farming Readiness Verified'
+                        : 'Farming Readiness & Practical Assessment'}
+                    </span>
+                  </div>
+                  {payload.learningReadiness.isReady ? (
+                    <>
+                      <h2 className="font-display text-lg sm:text-xl font-bold text-emerald-950">
+                        {payload.learningReadiness.completionMessage ||
+                          "Congratulations! You're ready to take the next step towards starting your farming journey."}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-emerald-900 leading-relaxed">
+                        You completed all {payload.learningReadiness.requiredGuidesTotal} required starter guides and passed the Practical Readiness Assessment (
+                        {payload.learningReadiness.assessmentScore}/
+                        {payload.learningReadiness.assessmentTotalQuestions}). Your progress is saved in your account records.
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                        Complete Required Guides ({payload.learningReadiness.requiredGuidesCompleted}/
+                        {payload.learningReadiness.requiredGuidesTotal}) & Readiness Assessment (
+                        {payload.learningReadiness.assessmentPassed
+                          ? `Passed ${payload.learningReadiness.assessmentScore}/${payload.learningReadiness.assessmentTotalQuestions}`
+                          : 'Pending'}
+                        )
+                      </h2>
+                      <p className="text-xs text-[#475569] leading-relaxed">
+                        Readiness reflects actual completed learning activities and assessment results — never simply choosing a farming category.
+                      </p>
+                    </>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+                  {payload.learningReadiness.isReady && onOpenFarmTransition && (
+                    <button
+                      type="button"
+                      onClick={onOpenFarmTransition}
+                      className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[42px] rounded-xl bg-[#174C3C] hover:bg-[#113A2E] text-white text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap"
+                    >
+                      <span>I Now Have a Farm — Register My Farm</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setReadinessExpanded((v) => !v)}
+                    className="px-3.5 py-2 min-h-[40px] rounded-xl border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#0B1F3A] cursor-pointer whitespace-nowrap"
+                  >
+                    {readinessExpanded ? 'Hide Readiness Checklist' : 'Open Readiness Checklist & Quiz'}
+                  </button>
+                </div>
+              </div>
+
+              {readinessExpanded && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 pt-4 border-t border-[#CBD5E1]/70">
+                  {/* Left: 3 Required Guides Checklist */}
+                  <div className="lg:col-span-5 bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-3">
+                    <p className="text-xs font-bold uppercase tracking-wider text-[#0B3D91]">
+                      Step 1: Required Foundational Guides
+                    </p>
+                    <div className="space-y-2">
+                      {payload.learningReadiness.requiredGuideTitles.map((g) => (
+                        <div
+                          key={g.id}
+                          className="flex items-start justify-between gap-2 p-2.5 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC]"
+                        >
+                          <div className="flex items-start gap-2 min-w-0">
+                            {g.completed ? (
+                              <CheckCircle2 className="w-4 h-4 text-[#174C3C] shrink-0 mt-0.5" />
+                            ) : (
+                              <Circle className="w-4 h-4 text-[#94A3B8] shrink-0 mt-0.5" />
+                            )}
+                            <div className="min-w-0">
+                              <p className="text-xs font-semibold text-[#0B1F3A] break-words">
+                                {g.title}
+                              </p>
+                              <p className="text-[11px] text-[#475569]">
+                                {g.completed ? 'Completed in database' : 'Not yet marked completed'}
+                              </p>
+                            </div>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setViewMode('all');
+                              setSelectedCategory('all');
+                              setSelectedDifficulty('all');
+                              setSelectedType('all');
+                              setSearchQuery('');
+                              setSelectedMaterialId(g.id);
+                            }}
+                            className="px-2.5 py-1 rounded border border-[#CBD5E1] bg-white hover:bg-[#EFF6FF] text-[11px] font-semibold text-[#0B3D91] whitespace-nowrap shrink-0 cursor-pointer"
+                          >
+                            Open Guide
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Right: 5-Question Practical Readiness Assessment */}
+                  <form
+                    onSubmit={handleSubmitReadinessAssessment}
+                    className="lg:col-span-7 bg-white border border-[#E2E8F0] rounded-xl p-4 space-y-4"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-xs font-bold uppercase tracking-wider text-[#0B3D91]">
+                        Step 2: Practical Farming Readiness Assessment (Pass 4/5)
+                      </p>
+                      {payload.learningReadiness.assessmentCompletedAt && (
+                        <span className="text-[11px] font-mono text-[#475569]">
+                          Last score: {payload.learningReadiness.assessmentScore}/
+                          {payload.learningReadiness.assessmentTotalQuestions}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="space-y-3">
+                      {payload.learningReadiness.assessmentQuestions.map((q, idx) => (
+                        <div
+                          key={q.id}
+                          className="p-3 rounded-lg border border-[#E2E8F0] bg-[#F8FAFC] space-y-2"
+                        >
+                          <p className="text-xs font-semibold text-[#0B1F3A]">
+                            {idx + 1}. {q.question}
+                          </p>
+                          <div className="space-y-1.5">
+                            {q.options.map((opt) => (
+                              <label
+                                key={opt.id}
+                                className="flex items-start gap-2 text-xs text-[#334155] cursor-pointer"
+                              >
+                                <input
+                                  type="radio"
+                                  name={`readiness-${q.id}`}
+                                  value={opt.id}
+                                  checked={readinessAnswers[q.id] === opt.id}
+                                  onChange={() =>
+                                    setReadinessAnswers((prev) => ({
+                                      ...prev,
+                                      [q.id]: opt.id,
+                                    }))
+                                  }
+                                  className="mt-0.5 accent-[#0B3D91] shrink-0"
+                                />
+                                <span>{opt.label}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+                      <span className="text-[11px] text-[#475569]">
+                        Recorded against your profile in the Field Shift database.
+                      </span>
+                      <button
+                        type="submit"
+                        disabled={submittingAssessment}
+                        className="px-4 py-2 min-h-[40px] rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-60 text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                      >
+                        {submittingAssessment
+                          ? 'Grading Assessment...'
+                          : payload.learningReadiness.assessmentPassed
+                          ? 'Retake Readiness Assessment'
+                          : 'Submit Readiness Assessment'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+              )}
+            </section>
+          )}
+
           {/* Filter Toolbar */}
           <div className="bg-white border border-[#CBD5E1] rounded-2xl p-5 space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-3">

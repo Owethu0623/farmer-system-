@@ -154,17 +154,25 @@ export async function runVisualAgriculturalAnalysis(params: {
         : 'Field/livestock photograph attached for inspection.',
     ];
     explanation =
-      'Gemini multimodal analysis requires GEMINI_API_KEY configured in server secrets. Meanwhile, your media has been recorded safely against your farm record so you can save it as an incident or share it with an agricultural extension officer or veterinarian.';
+      params.category === 'soil_field_condition'
+        ? 'Visual soil and field surface inspection requires GEMINI_API_KEY configured in server secrets. Remember: visual inspection only observes surface crusting, residue cover, exposed stones, erosion gullies, or standing water — it CANNOT measure soil pH, N-P-K, or organic matter %. Your image is stored safely against this field for extension review.'
+        : 'Gemini multimodal analysis requires GEMINI_API_KEY configured in server secrets. Meanwhile, your media has been recorded safely against your farm record so you can save it as an incident or share it with an agricultural extension officer or veterinarian.';
     possibleCauses = [
       'Awaiting live multimodal AI visual inspection or on-site field/veterinary inspection.',
     ];
     confidenceLevel = 'Low';
     uncertaintyNote =
       'Image inspection has not been processed by Gemini AI yet because GEMINI_API_KEY is not active in this runtime.';
-    recommendedActions = [
-      'Save this media record as a Farm Incident if urgent damage or illness is visible.',
-      'Consult your local provincial agricultural extension officer or registered veterinarian for physical inspection.',
-    ];
+    recommendedActions =
+      params.category === 'soil_field_condition'
+        ? [
+            'Inspect surface crusting, stubble/mulch cover, and standing water drainage channels physically across the field.',
+            'Submit a 0–20 cm composite soil sample to an accredited laboratory to measure pH, P, K, and organic matter %.',
+          ]
+        : [
+            'Save this media record as a Farm Incident if urgent damage or illness is visible.',
+            'Consult your local provincial agricultural extension officer or registered veterinarian for physical inspection.',
+          ];
   } else {
     const parts: Array<
       | { inlineData: { mimeType: string; data: string } }
@@ -229,7 +237,12 @@ export async function runVisualAgriculturalAnalysis(params: {
       `2. NEVER recommend dangerous, restricted, or banned chemical pesticides, herbicides, or prescription veterinary drugs/dosages.`,
       `3. For serious crop disease, severe pest outbreaks, structural/machinery hazards, or any livestock illness/injury, explicitly recommend consulting a qualified agricultural extension officer, agronomist, or registered veterinarian.`,
       `4. If the image is blurry, dark, or ambiguous, mark confidenceLevel as "Low" and state the visual uncertainty honestly.`,
-    ].join(' ');
+      params.category === 'soil_field_condition'
+        ? `5. SOIL SURFACE RULE: Only describe visible surface conditions (soil crusting, crop residue/mulch cover, exposed rock/stones, erosion rills/gullies, standing water or drainage clues, visible vegetation health). NEVER fabricate or guess numeric soil pH, NPK, CEC, or organic matter % from a photo — explicitly state that a laboratory soil test is required for chemical fertility.`
+        : '',
+    ]
+      .filter(Boolean)
+      .join(' ');
 
     try {
       let rawText = '';

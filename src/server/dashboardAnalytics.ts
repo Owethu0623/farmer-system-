@@ -1,7 +1,12 @@
 import { computeBusinessPlanMetrics } from './businessPlanner.ts';
+import { analyzeCropRotationScenario } from './cropRotation.ts';
 import { getActiveFarmGrantForExpert } from './expertPortal.ts';
 import { buildIncidentDashboard } from './incidents.ts';
 import { buildLearningCentrePayload } from './learningCentre.ts';
+import {
+  getNasaDailyEnvironmentalSummary,
+  getNasaMultiYearClimateComparison,
+} from './nasaPowerService.ts';
 import { getSastDateString } from './saTime.ts';
 import { FARMING_OPPORTUNITIES, SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
 import { buildStockOverview } from './stockInventory.ts';
@@ -214,6 +219,51 @@ export async function buildExistingFarmerDashboard(params: {
     }[],
   };
 
+  let nasaSummaryPayload: {
+    available: boolean;
+    locationLabel: string;
+    coordinatesLabel: string;
+    rainfallRegime: string;
+    past30DaysMm: number | null;
+    past60DaysMm: number | null;
+    recentAnnualMm: number | null;
+    baselineAnnualMm: number | null;
+    annualRainDeltaMm: number | null;
+    avgMeanTempC: number | null;
+    avgMaxTempC: number | null;
+    avgSolarMj: number | null;
+    avgEvlandMmDay: number | null;
+    avgVpdKpa: number | null;
+    gwetRootRecent: number | null;
+    gwetTopRecent: number | null;
+    gwetProfRecent: number | null;
+    gwetRootLabel: string;
+    hotDays32c: number | null;
+    frostDays2c: number | null;
+    drySpellDays60d: number | null;
+    recurringDryYearsCount: number;
+    climateHeadline: string;
+    limitationNote: string;
+  } | null = null;
+  let rotationPreviewPayload: {
+    siteLabel: string;
+    dataConfidence: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
+    soilDataSource: string;
+    hasLabSoilReport: boolean;
+    climateAlignment: string;
+    topStrategies: {
+      sequenceId: string;
+      strategyName: string;
+      decisionSupportScore: number;
+      crops: string[];
+      distinctFamilies: string[];
+      waterResilienceRating: 'High' | 'Moderate' | 'Low';
+      legumeIncluded: boolean;
+      whyRecommended: string;
+    }[];
+    missingInfo: string[];
+  } | null = null;
+
   if (focusFarm) {
     const loc = store.db.farmLocations.find((l) => l.farmId === focusFarm.id);
     const farmObs = store.db.weatherObservations
@@ -221,7 +271,13 @@ export async function buildExistingFarmerDashboard(params: {
       .sort((a, b) => b.observationDate.localeCompare(a.observationDate));
 
     try {
-      const w = await getFarmWeatherIntelligence(focusFarm.id);
+      const [w, rot] = await Promise.all([
+        getFarmWeatherIntelligence(focusFarm.id),
+        analyzeCropRotationScenario({
+          farmId: focusFarm.id,
+          fieldId: fieldFilter !== 'all' ? fieldFilter : undefined,
+        }).catch(() => null),
+      ]);
       const todayDaily = w.daily[0] || null;
       const rain7d = Number(
         w.daily
@@ -251,6 +307,64 @@ export async function buildExistingFarmerDashboard(params: {
           detail: warn.whatIsHappening,
         })),
       };
+
+      const np = w.nasaPower;
+      const nc = w.nasaClimateComparison;
+      nasaSummaryPayload = {
+        available: Boolean(np?.serviceAvailable || nc?.serviceAvailable),
+        locationLabel: w.locationLabel,
+        coordinatesLabel:
+          np?.coordinatesLabel ||
+          nc?.coordinatesLabel ||
+          `${w.coordinates.latitude.toFixed(3)}°, ${w.coordinates.longitude.toFixed(3)}°`,
+        rainfallRegime: nc?.rainfallRegimeClassification || 'Seasonal Pattern',
+        past30DaysMm: np?.past30DaysNasaMm ?? null,
+        past60DaysMm: np?.past60DaysNasaMm ?? null,
+        recentAnnualMm: nc?.recentMetrics?.meanAnnualRainfallMm ?? null,
+        baselineAnnualMm: nc?.baselineMetrics?.meanAnnualRainfallMm ?? null,
+        annualRainDeltaMm: nc?.delta?.annualRainfallChangeMm ?? null,
+        avgMeanTempC: nc?.recentMetrics?.avgMeanTempC ?? np?.avgMeanTempC ?? null,
+        avgMaxTempC: nc?.recentMetrics?.avgMaxTempC ?? np?.avgMaxTempC ?? null,
+        avgSolarMj: nc?.recentMetrics?.avgSolarIrradiance ?? np?.avgSolarIrradiance ?? null,
+        avgEvlandMmDay: nc?.recentMetrics?.avgEvlandMmDay ?? np?.avgEvlandMmDay ?? null,
+        avgVpdKpa: np?.avgVpdKpa ?? null,
+        gwetRootRecent: np?.gwetRootRecent ?? nc?.recentMetrics?.avgGwetRoot ?? null,
+        gwetTopRecent: np?.gwetTopRecent ?? nc?.recentMetrics?.avgGwetTop ?? null,
+        gwetProfRecent: np?.gwetProfRecent ?? nc?.recentMetrics?.avgGwetProf ?? null,
+        gwetRootLabel: np?.gwetRootLabel || 'Model soil wetness index',
+        hotDays32c: np?.nasaHotDays32c ?? null,
+        frostDays2c: np?.nasaFrostDays2c ?? null,
+        drySpellDays60d: np?.nasaDrySpellDays ?? null,
+        recurringDryYearsCount: nc?.recurringDryYears?.totalDryYearsCount ?? 0,
+        climateHeadline:
+          nc?.localInterpretation?.rotationDecisionRelevance ||
+          nc?.localInterpretation?.summary ||
+          'NASA POWER environmental telemetry retrieved for this coordinate grid cell.',
+        limitationNote:
+          'NASA POWER (~55 km grid) provides satellite/reanalysis weather & model soil wetness (GWETROOT). It does NOT measure field soil pH or NPK — pair with a laboratory soil report.',
+      };
+
+      if (rot) {
+        const hasLab = store.db.soilReports.some((r) => r.farmId === focusFarm.id);
+        rotationPreviewPayload = {
+          siteLabel: rot.siteContext.label,
+          dataConfidence: rot.dataConfidence || 'Moderate',
+          soilDataSource: rot.siteContext.soilDataSource,
+          hasLabSoilReport: hasLab,
+          climateAlignment: rot.climateAndMoistureAlignment,
+          topStrategies: (rot.topStrategies || []).slice(0, 3).map((s) => ({
+            sequenceId: s.sequenceId,
+            strategyName: s.strategyName,
+            decisionSupportScore: s.decisionSupportScore,
+            crops: s.seasons.map((ss) => ss.cropName.split(' (')[0]),
+            distinctFamilies: s.indicators.distinctFamilies,
+            waterResilienceRating: s.indicators.waterResilienceRating,
+            legumeIncluded: s.indicators.legumeIncluded,
+            whyRecommended: s.whyRecommended,
+          })),
+          missingInfo: rot.limitations.slice(2, 5),
+        };
+      }
     } catch {
       const latestFc = store.db.weatherForecastRecords
         .filter((r) => r.farmId === focusFarm.id)
@@ -712,6 +826,8 @@ export async function buildExistingFarmerDashboard(params: {
       groups: livestockGroups,
     },
     weatherSummary,
+    nasaEnvironmentalSummary: nasaSummaryPayload,
+    rotationPreview: rotationPreviewPayload,
     upcomingActivities: upcomingActivities.slice(0, 8),
     recentIncidents: filteredIncidents.slice(0, 6),
     recentAiInsights,
@@ -771,7 +887,7 @@ export async function buildExistingFarmerDashboard(params: {
   };
 }
 
-export function buildProspectiveFarmerDashboard(params: {
+export async function buildProspectiveFarmerDashboard(params: {
   user: SanitizedUser;
   provinceFilter?: string;
   categoryFilter?: string;
@@ -903,6 +1019,134 @@ export function buildProspectiveFarmerDashboard(params: {
     (a) => a.isActive && (a.targetRole === 'all' || a.targetRole === user.roleCode)
   );
 
+  // NASA Environmental Intelligence + Top 3 Rotation Preview for target province / saved site
+  const targetLoc = savedLocations[0];
+  const targetProvName = targetLoc?.province || userProvince;
+  const targetProv =
+    SOUTH_AFRICA_PROVINCES.find((p) => p.name === targetProvName) || SOUTH_AFRICA_PROVINCES[0];
+  const siteWater = targetLoc?.waterSourceNote || 'Seasonal Rainfall Only (Dryland)';
+
+  let nasaEnvironmentalSummary: {
+    available: boolean;
+    locationLabel: string;
+    coordinatesLabel: string;
+    rainfallRegime: string;
+    past30DaysMm: number | null;
+    past60DaysMm: number | null;
+    recentAnnualMm: number | null;
+    baselineAnnualMm: number | null;
+    annualRainDeltaMm: number | null;
+    avgMeanTempC: number | null;
+    avgMaxTempC: number | null;
+    avgSolarMj: number | null;
+    avgEvlandMmDay: number | null;
+    avgVpdKpa: number | null;
+    gwetRootRecent: number | null;
+    gwetTopRecent: number | null;
+    gwetProfRecent: number | null;
+    gwetRootLabel: string;
+    hotDays32c: number | null;
+    frostDays2c: number | null;
+    drySpellDays60d: number | null;
+    recurringDryYearsCount: number;
+    climateHeadline: string;
+    limitationNote: string;
+  } | null = null;
+  let rotationPreview: {
+    siteLabel: string;
+    dataConfidence: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
+    soilDataSource: string;
+    hasLabSoilReport: boolean;
+    climateAlignment: string;
+    topStrategies: {
+      sequenceId: string;
+      strategyName: string;
+      decisionSupportScore: number;
+      crops: string[];
+      distinctFamilies: string[];
+      waterResilienceRating: 'High' | 'Moderate' | 'Low';
+      legumeIncluded: boolean;
+      whyRecommended: string;
+    }[];
+    missingInfo: string[];
+  } | null = null;
+
+  try {
+    const siteLabel = targetLoc
+      ? `${targetLoc.townOrArea}, ${targetLoc.province}`
+      : `${targetProv.capital}, ${targetProv.name}`;
+    const [np, nc, rot] = await Promise.all([
+      getNasaDailyEnvironmentalSummary(targetProv.centerLat, targetProv.centerLng).catch(() => null),
+      getNasaMultiYearClimateComparison(targetProv.centerLat, targetProv.centerLng, {
+        province: targetProv.name,
+        locationLabel: siteLabel,
+        waterAvailability: siteWater,
+      }).catch(() => null),
+      analyzeCropRotationScenario({
+        province: targetProv.name,
+        waterAvailability: siteWater,
+        farmSizeHectares: targetLoc?.intendedHectares || intendedHa,
+      }).catch(() => null),
+    ]);
+
+    nasaEnvironmentalSummary = {
+      available: Boolean(np?.serviceAvailable || nc?.serviceAvailable),
+      locationLabel: siteLabel,
+      coordinatesLabel:
+        np?.coordinatesLabel ||
+        nc?.coordinatesLabel ||
+        `${targetProv.centerLat.toFixed(3)}°, ${targetProv.centerLng.toFixed(3)}°`,
+      rainfallRegime: nc?.rainfallRegimeClassification || targetProv.rainfallRegime,
+      past30DaysMm: np?.past30DaysNasaMm ?? null,
+      past60DaysMm: np?.past60DaysNasaMm ?? null,
+      recentAnnualMm: nc?.recentMetrics?.meanAnnualRainfallMm ?? null,
+      baselineAnnualMm: nc?.baselineMetrics?.meanAnnualRainfallMm ?? null,
+      annualRainDeltaMm: nc?.delta?.annualRainfallChangeMm ?? null,
+      avgMeanTempC: nc?.recentMetrics?.avgMeanTempC ?? np?.avgMeanTempC ?? null,
+      avgMaxTempC: nc?.recentMetrics?.avgMaxTempC ?? np?.avgMaxTempC ?? null,
+      avgSolarMj: nc?.recentMetrics?.avgSolarIrradiance ?? np?.avgSolarIrradiance ?? null,
+      avgEvlandMmDay: nc?.recentMetrics?.avgEvlandMmDay ?? np?.avgEvlandMmDay ?? null,
+      avgVpdKpa: np?.avgVpdKpa ?? null,
+      gwetRootRecent: np?.gwetRootRecent ?? nc?.recentMetrics?.avgGwetRoot ?? null,
+      gwetTopRecent: np?.gwetTopRecent ?? nc?.recentMetrics?.avgGwetTop ?? null,
+      gwetProfRecent: np?.gwetProfRecent ?? nc?.recentMetrics?.avgGwetProf ?? null,
+      gwetRootLabel: np?.gwetRootLabel || 'Model soil wetness index',
+      hotDays32c: np?.nasaHotDays32c ?? null,
+      frostDays2c: np?.nasaFrostDays2c ?? null,
+      drySpellDays60d: np?.nasaDrySpellDays ?? null,
+      recurringDryYearsCount: nc?.recurringDryYears?.totalDryYearsCount ?? 0,
+      climateHeadline:
+        nc?.localInterpretation?.rotationDecisionRelevance ||
+        nc?.localInterpretation?.summary ||
+        'NASA POWER satellite environmental snapshot loaded for your target province.',
+      limitationNote:
+        'NASA POWER (~55 km grid) provides satellite/reanalysis weather & model soil wetness (GWETROOT). It does NOT measure soil pH or NPK — request a lab soil test before leasing or purchasing land.',
+    };
+
+    if (rot) {
+      rotationPreview = {
+        siteLabel: rot.siteContext.label,
+        dataConfidence: rot.dataConfidence || 'Lower Confidence',
+        soilDataSource: rot.siteContext.soilDataSource,
+        hasLabSoilReport: false,
+        climateAlignment: rot.climateAndMoistureAlignment,
+        topStrategies: (rot.topStrategies || []).slice(0, 3).map((s) => ({
+          sequenceId: s.sequenceId,
+          strategyName: s.strategyName,
+          decisionSupportScore: s.decisionSupportScore,
+          crops: s.seasons.map((ss) => ss.cropName.split(' (')[0]),
+          distinctFamilies: s.indicators.distinctFamilies,
+          waterResilienceRating: s.indicators.waterResilienceRating,
+          legumeIncluded: s.indicators.legumeIncluded,
+          whyRecommended: s.whyRecommended,
+        })),
+        missingInfo: rot.limitations.slice(2, 5),
+      };
+    }
+  } catch {
+    // Non-blocking fallback
+  }
+
   return {
     mode: 'prospective_farmer' as const,
     overview: {
@@ -915,6 +1159,8 @@ export function buildProspectiveFarmerDashboard(params: {
       estimationNotice:
         'Startup costs and revenue scenarios shown for prospective farmers are non-guaranteed estimates grounded in your planning assumptions.',
     },
+    nasaEnvironmentalSummary,
+    rotationPreview,
     opportunities,
     savedLocations,
     landSuitabilityRecommendations,

@@ -18,6 +18,11 @@ export interface TranslationBundle {
   navLivestock: string;
   navMixed: string;
   navSoilLand: string;
+  navLandSuitability: string;
+  navRotationRecs: string;
+  navRotationSim: string;
+  navRotationCompare: string;
+  navRotationPlans: string;
   navWeather: string;
   navVisualAnalysis: string;
   navStock: string;
@@ -89,8 +94,13 @@ const BASE_EN: TranslationBundle = {
   navCrops: 'Crops',
   navLivestock: 'Livestock',
   navMixed: 'Mixed Farming',
-  navSoilLand: 'Soil & Land',
-  navWeather: 'Weather',
+  navSoilLand: 'Soil & Field Intelligence',
+  navLandSuitability: 'Land Suitability',
+  navRotationRecs: 'Rotation Recommendations',
+  navRotationSim: 'Rotation Simulator',
+  navRotationCompare: 'Rotation Comparisons',
+  navRotationPlans: 'Saved Rotation Plans',
+  navWeather: 'Environmental Intelligence',
   navVisualAnalysis: 'Visual Analysis',
   navStock: 'Stock & Valuation',
   navIncidents: 'Incidents & Damage',
@@ -122,7 +132,9 @@ const BASE_EN: TranslationBundle = {
   saslVisualNote: 'SASL Visual Mode active: short sentences, clear icons, and sign-language interpreter cue cards enabled.',
 };
 
-export const TRANSLATIONS: Record<LanguageCode, TranslationBundle> = {
+export const TRANSLATIONS: Record<LanguageCode, Partial<TranslationBundle>> & {
+  en: TranslationBundle;
+} = {
   en: BASE_EN,
   af: {
     tagline: 'Jou Plaas. Jou Taal. Beter Besluite.',

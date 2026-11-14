@@ -17,22 +17,16 @@ import {
   FarmTenureRelationship,
   GeoJsonPolygon,
   LocationSource,
+  ProvinceInfo,
   SavedProspectiveLocationItem,
 } from '../types';
 import { InteractiveFarmMap, SpatialUpdatePayload } from './InteractiveFarmMap';
-
-interface ProvinceMeta {
-  name: string;
-  districts: string[];
-  centerLat: number;
-  centerLng: number;
-}
 
 interface FarmTransitionModalProps {
   isOpen: boolean;
   onClose: () => void;
   user: AuthUser;
-  provinces: ProvinceMeta[];
+  provinces: ProvinceInfo[];
   savedLocations?: SavedProspectiveLocationItem[];
   savedPlans?: BusinessPlanScenarioItem[];
   onTransitionSuccess: (updatedUser: AuthUser, newFarm: FarmItem, linkedPlansCount: number) => void;
@@ -101,7 +95,7 @@ export const FarmTransitionModal: React.FC<FarmTransitionModalProps> = ({
   const [districtMunicipality, setDistrictMunicipality] = useState(
     savedLocations[0]?.district ||
       user.profile?.district ||
-      matchedProv?.districts[0] ||
+      matchedProv?.districts[0]?.name ||
       ''
   );
   const [localMunicipality, setLocalMunicipality] = useState(
@@ -151,13 +145,13 @@ export const FarmTransitionModal: React.FC<FarmTransitionModalProps> = ({
   if (!isOpen) return null;
 
   const activeProv = provinces.find((p) => p.name === province);
-  const districts = activeProv?.districts || [];
+  const districts = (activeProv?.districts || []).map((d) => d.name);
 
   const handleProvinceChange = (newProvName: string) => {
     setProvince(newProvName);
     const p = provinces.find((item) => item.name === newProvName);
     if (p) {
-      setDistrictMunicipality(p.districts[0] || '');
+      setDistrictMunicipality(p.districts[0]?.name || '');
       setSpatial((prev) => ({
         ...prev,
         latitude: p.centerLat,

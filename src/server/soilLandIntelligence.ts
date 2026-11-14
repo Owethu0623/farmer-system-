@@ -1,6 +1,14 @@
 import { estimateSaElevationMeters, SOUTH_AFRICA_PROVINCES } from './southAfricaData.ts';
 import { store } from './store.ts';
-import { Farm, FarmLocation, Field, LocationSource, SoilReport } from './types.ts';
+import {
+  Farm,
+  FarmLocation,
+  Field,
+  LocationSource,
+  SoilProvenanceType,
+  SoilReport,
+} from './types.ts';
+import { fetchNasaPowerClimateComparison, fetchNasaPowerSummary } from './weather.ts';
 
 export interface SoilMetricPoint {
   key: string;
@@ -12,11 +20,42 @@ export interface SoilMetricPoint {
   sourceNote: string;
 }
 
+export interface SoilProvenanceEntry {
+  key: string;
+  label: string;
+  displayValue: string;
+  provenance: SoilProvenanceType;
+  provenanceLabel: string;
+  detailNote: string;
+}
+
+export interface FieldSoilHistorySummary {
+  fieldId: string;
+  fieldName: string;
+  areaHectares: number;
+  irrigationType: string;
+  soilType: string;
+  soilTexture: 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown';
+  organicMatterLevel: 'Low' | 'Medium' | 'High' | 'Unknown';
+  soilDrainage: 'Poor' | 'Moderate' | 'Good' | 'Unknown';
+  waterHoldingCharacteristic: 'Low' | 'Moderate' | 'High' | 'Unknown';
+  soilPhMeasured: number | null;
+  nitrogenMeasuredMgKg: number | null;
+  phosphorusMeasuredMgKg: number | null;
+  potassiumMeasuredMgKg: number | null;
+  currentCrop: string;
+  previousSeasonCrop: string;
+  twoSeasonsAgoCrop: string;
+  farmingSystem: string;
+  soilValueProvenance: Record<string, SoilProvenanceType>;
+}
+
 export interface SuitabilityOption {
   id: string;
   farmingOption: string;
   category: string;
   suitabilityLevel: 'Well Suited' | 'Conditionally Suitable' | 'Needs Remediation / Assessment';
+  confidenceLevel: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
   whySuitable: string;
   supportingInformation: string[];
   missingInformation: string[];
@@ -27,8 +66,15 @@ export interface SuitabilityOption {
 export interface SoilLandIntelligencePayload {
   farmId: string;
   farmName: string;
+  selectedFieldId: string | null;
+  selectedFieldName: string | null;
   fetchedAt: string;
   coordinates: { latitude: number; longitude: number; locationSource: LocationSource };
+  fieldsSummary: FieldSoilHistorySummary[];
+  selectedFieldProfile: FieldSoilHistorySummary | null;
+  soilProvenanceMatrix: SoilProvenanceEntry[];
+  missingMeasurementsGuidance: string[];
+  dataConfidenceLevel: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
   landIntelligence: {
     elevationMeters: number | null;
     elevationSource: string;
@@ -38,6 +84,9 @@ export interface SoilLandIntelligencePayload {
     temperaturePattern: string;
     environmentalConditions: string;
     waterAvailabilitySummary: string;
+    nasaGwetRoot: number | null;
+    nasaGwetTop: number | null;
+    nasaSoilWetnessNote: string;
   };
   dataSources: {
     id: string;
@@ -77,6 +126,112 @@ const SOIL_REMOTE_CACHE = new Map<
 >();
 
 const CACHE_TTL_MS = 60 * 60 * 1000;
+
+const PROVENANCE_LABELS: Record<SoilProvenanceType, string> = {
+  farmer_provided: 'Farmer-Provided',
+  laboratory_measured: 'Laboratory-Measured',
+  external_dataset: 'External Dataset (ISRIC/NASA)',
+  estimated: 'Estimated / Inferred',
+  unknown: 'Unknown / Not Recorded',
+};
+
+export function normalizeTextureFromLegacy(
+  soilType?: string | null,
+  explicitTexture?: string | null
+): 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown' {
+  if (
+    explicitTexture === 'Sandy' ||
+    explicitTexture === 'Loam' ||
+    explicitTexture === 'Clay Loam' ||
+    explicitTexture === 'Clay' ||
+    explicitTexture === 'Unknown'
+  ) {
+    return explicitTexture;
+  }
+  const s = (soilType || '').toLowerCase();
+  if (!s || s === 'unknown') return 'Unknown';
+  if (s.includes('clay loam') || s.includes('sandy clay')) return 'Clay Loam';
+  if (s.includes('clay')) return 'Clay';
+  if (s.includes('loam')) return 'Loam';
+  if (s.includes('sand')) return 'Sandy';
+  return 'Unknown';
+}
+
+export function buildFieldSummary(field: Field, labReportsForFarm: SoilReport[]): FieldSoilHistorySummary {
+  const fieldLab =
+    labReportsForFarm.find((r) => r.fieldId === field.id) || labReportsForFarm[0] || null;
+
+  const texture = normalizeTextureFromLegacy(field.soilType, field.soilTexture);
+  const omLevel: 'Low' | 'Medium' | 'High' | 'Unknown' = field.organicMatterLevel || 'Unknown';
+  const drainage: 'Poor' | 'Moderate' | 'Good' | 'Unknown' = field.soilDrainage || 'Unknown';
+  const whc: 'Low' | 'Moderate' | 'High' | 'Unknown' =
+    field.waterHoldingCharacteristic || 'Unknown';
+
+  const provMap: Record<string, SoilProvenanceType> = {
+    ...(field.soilValueProvenance || {}),
+  };
+  if (!provMap.soilTexture) {
+    provMap.soilTexture =
+      field.soilTexture && field.soilTexture !== 'Unknown'
+        ? 'farmer_provided'
+        : field.soilType && field.soilType.toLowerCase() !== 'unknown'
+          ? 'farmer_provided'
+          : 'unknown';
+  }
+  if (!provMap.soilPh) {
+    provMap.soilPh =
+      field.soilPhMeasured != null
+        ? 'farmer_provided'
+        : fieldLab?.soilPhWater != null
+          ? 'laboratory_measured'
+          : 'unknown';
+  }
+  if (!provMap.organicMatter) {
+    provMap.organicMatter =
+      field.organicMatterLevel && field.organicMatterLevel !== 'Unknown'
+        ? 'farmer_provided'
+        : fieldLab?.organicMatterPercent != null
+          ? 'laboratory_measured'
+          : 'unknown';
+  }
+  if (!provMap.soilDrainage) {
+    provMap.soilDrainage =
+      drainage !== 'Unknown'
+        ? 'farmer_provided'
+        : fieldLab?.drainageClass
+          ? 'laboratory_measured'
+          : 'unknown';
+  }
+  if (!provMap.waterHolding) {
+    provMap.waterHolding =
+      whc !== 'Unknown'
+        ? 'farmer_provided'
+        : fieldLab?.waterHoldingCapacityMmPerM != null
+          ? 'laboratory_measured'
+          : 'unknown';
+  }
+
+  return {
+    fieldId: field.id,
+    fieldName: field.name,
+    areaHectares: field.areaHectares,
+    irrigationType: field.irrigationType,
+    soilType: field.soilType,
+    soilTexture: texture,
+    organicMatterLevel: omLevel,
+    soilDrainage: drainage,
+    waterHoldingCharacteristic: whc,
+    soilPhMeasured: field.soilPhMeasured ?? fieldLab?.soilPhWater ?? null,
+    nitrogenMeasuredMgKg: field.nitrogenMeasuredMgKg ?? fieldLab?.nitrogenMgKg ?? null,
+    phosphorusMeasuredMgKg: field.phosphorusMeasuredMgKg ?? fieldLab?.phosphorusMgKg ?? null,
+    potassiumMeasuredMgKg: field.potassiumMeasuredMgKg ?? fieldLab?.potassiumMgKg ?? null,
+    currentCrop: field.currentCrop || field.cropOrLivestock || '',
+    previousSeasonCrop: field.previousSeasonCrop || '',
+    twoSeasonsAgoCrop: field.twoSeasonsAgoCrop || '',
+    farmingSystem: field.farmingSystem || 'Mixed Crop & Soil Management',
+    soilValueProvenance: provMap,
+  };
+}
 
 function classifyTexture(clay: number | null, sand: number | null, silt: number | null): string | null {
   if (clay === null || sand === null || silt === null) return null;
@@ -294,186 +449,552 @@ async function fetchRemoteElevationAndSoilGrids(lat: number, lng: number): Promi
   return { elevationMeters, elevationSource, soilGrids };
 }
 
+function buildSoilProvenanceAndGuidance(params: {
+  selectedField: FieldSoilHistorySummary | null;
+  latestLabReport: SoilReport | null;
+  soilGrids: SoilGridsParsed;
+  mappedTexture: string | null;
+  mappedAwc: number | null;
+  mappedDrainage: string | null;
+  waterAvailability: string;
+}): {
+  matrix: SoilProvenanceEntry[];
+  missingGuidance: string[];
+  confidenceLevel: 'Moderate-High' | 'Moderate' | 'Lower Confidence';
+} {
+  const {
+    selectedField,
+    latestLabReport,
+    soilGrids,
+    mappedTexture,
+    mappedAwc,
+    mappedDrainage,
+    waterAvailability,
+  } = params;
+
+  const missingGuidance: string[] = [];
+  const matrix: SoilProvenanceEntry[] = [];
+
+  // 1. Soil Texture
+  if (latestLabReport?.soilTextureClass) {
+    matrix.push({
+      key: 'texture',
+      label: 'Soil Texture',
+      displayValue: `${latestLabReport.soilTextureClass}${
+        latestLabReport.clayPercent != null ? ` (${latestLabReport.clayPercent}% clay)` : ''
+      }`,
+      provenance: 'laboratory_measured',
+      provenanceLabel: PROVENANCE_LABELS.laboratory_measured,
+      detailNote: `Lab particle-size report (${latestLabReport.laboratoryName}, ${latestLabReport.sampleDate})`,
+    });
+  } else if (selectedField && selectedField.soilTexture !== 'Unknown') {
+    matrix.push({
+      key: 'texture',
+      label: 'Soil Texture',
+      displayValue: selectedField.soilTexture,
+      provenance: 'farmer_provided',
+      provenanceLabel: PROVENANCE_LABELS.farmer_provided,
+      detailNote: `Recorded on field "${selectedField.fieldName}"`,
+    });
+  } else if (mappedTexture) {
+    matrix.push({
+      key: 'texture',
+      label: 'Soil Texture',
+      displayValue: `${mappedTexture} (${soilGrids.clayPct}% clay / ${soilGrids.sandPct}% sand)`,
+      provenance: 'external_dataset',
+      provenanceLabel: PROVENANCE_LABELS.external_dataset,
+      detailNote: 'ISRIC SoilGrids 250m global prediction (confirm with hand-feel/lab test)',
+    });
+    missingGuidance.push('Record field soil texture class (Sandy / Loam / Clay Loam / Clay) or submit a particle-size lab test.');
+  } else {
+    matrix.push({
+      key: 'texture',
+      label: 'Soil Texture',
+      displayValue: 'Unknown',
+      provenance: 'unknown',
+      provenanceLabel: PROVENANCE_LABELS.unknown,
+      detailNote: 'No farmer entry, lab report, or SoilGrids grid data available',
+    });
+    missingGuidance.push('Field soil texture is unknown — classify topsoil texture before selecting deep-rooted or water-sensitive crops.');
+  }
+
+  // 2. Soil pH
+  if (latestLabReport?.soilPhWater != null) {
+    matrix.push({
+      key: 'ph',
+      label: 'Soil pH (H₂O)',
+      displayValue: `${latestLabReport.soilPhWater}`,
+      provenance: 'laboratory_measured',
+      provenanceLabel: PROVENANCE_LABELS.laboratory_measured,
+      detailNote: `Accredited lab sample (${latestLabReport.sampleCode})`,
+    });
+  } else if (selectedField?.soilPhMeasured != null) {
+    matrix.push({
+      key: 'ph',
+      label: 'Soil pH (H₂O)',
+      displayValue: `${selectedField.soilPhMeasured}`,
+      provenance: 'farmer_provided',
+      provenanceLabel: PROVENANCE_LABELS.farmer_provided,
+      detailNote: 'Entered on field soil profile',
+    });
+  } else if (soilGrids.phWater != null) {
+    matrix.push({
+      key: 'ph',
+      label: 'Soil pH (H₂O)',
+      displayValue: `~${soilGrids.phWater}`,
+      provenance: 'external_dataset',
+      provenanceLabel: PROVENANCE_LABELS.external_dataset,
+      detailNote: 'ISRIC SoilGrids 250m mapped estimate; local lime history can shift actual pH sharply',
+    });
+    missingGuidance.push('Collect a 0–20 cm composite topsoil sample for accredited lab pH(H₂O & KCl) before legume or brassica planting.');
+  } else {
+    matrix.push({
+      key: 'ph',
+      label: 'Soil pH (H₂O)',
+      displayValue: 'Unknown (not tested)',
+      provenance: 'unknown',
+      provenanceLabel: PROVENANCE_LABELS.unknown,
+      detailNote: 'Cannot determine lime need without soil pH testing',
+    });
+    missingGuidance.push('Laboratory topsoil pH test is missing — high priority before committing capital to acid-sensitive legumes (dry beans, soybeans).');
+  }
+
+  // 3. Organic Matter Level
+  if (latestLabReport?.organicMatterPercent != null) {
+    const omPct = latestLabReport.organicMatterPercent;
+    const band = omPct < 1.5 ? 'Low' : omPct < 3.0 ? 'Medium' : 'High';
+    matrix.push({
+      key: 'om',
+      label: 'Organic Matter',
+      displayValue: `${omPct}% (${band})`,
+      provenance: 'laboratory_measured',
+      provenanceLabel: PROVENANCE_LABELS.laboratory_measured,
+      detailNote: `Lab organic carbon/matter measurement (${latestLabReport.sampleDate})`,
+    });
+  } else if (selectedField && selectedField.organicMatterLevel !== 'Unknown') {
+    matrix.push({
+      key: 'om',
+      label: 'Organic Matter',
+      displayValue: `${selectedField.organicMatterLevel} (Field Assessment)`,
+      provenance: 'farmer_provided',
+      provenanceLabel: PROVENANCE_LABELS.farmer_provided,
+      detailNote: `Entered on field "${selectedField.fieldName}"`,
+    });
+  } else if (soilGrids.organicMatterPct != null) {
+    matrix.push({
+      key: 'om',
+      label: 'Organic Matter',
+      displayValue: `~${soilGrids.organicMatterPct}%`,
+      provenance: 'external_dataset',
+      provenanceLabel: PROVENANCE_LABELS.external_dataset,
+      detailNote: 'Estimated from ISRIC SoilGrids soil organic carbon',
+    });
+    missingGuidance.push('Verify field organic matter level (Low/Medium/High) or request Walkley-Black organic carbon on your next lab test.');
+  } else {
+    matrix.push({
+      key: 'om',
+      label: 'Organic Matter',
+      displayValue: 'Unknown',
+      provenance: 'unknown',
+      provenanceLabel: PROVENANCE_LABELS.unknown,
+      detailNote: 'Not recorded',
+    });
+    missingGuidance.push('Organic matter status is unknown — consider residue retention and organic cover crops until tested.');
+  }
+
+  // 4. Soil Drainage
+  if (latestLabReport?.drainageClass) {
+    matrix.push({
+      key: 'drainage',
+      label: 'Soil Drainage',
+      displayValue: latestLabReport.drainageClass,
+      provenance: 'laboratory_measured',
+      provenanceLabel: PROVENANCE_LABELS.laboratory_measured,
+      detailNote: 'Recorded on laboratory/profile report',
+    });
+  } else if (selectedField && selectedField.soilDrainage !== 'Unknown') {
+    matrix.push({
+      key: 'drainage',
+      label: 'Soil Drainage',
+      displayValue: `${selectedField.soilDrainage} Drainage`,
+      provenance: 'farmer_provided',
+      provenanceLabel: PROVENANCE_LABELS.farmer_provided,
+      detailNote: `Observed on field "${selectedField.fieldName}"`,
+    });
+  } else if (mappedDrainage) {
+    matrix.push({
+      key: 'drainage',
+      label: 'Soil Drainage',
+      displayValue: mappedDrainage,
+      provenance: 'estimated',
+      provenanceLabel: PROVENANCE_LABELS.estimated,
+      detailNote: 'Inferred from mapped clay %; check field puddles or 1.2 m profile pit for mottling',
+    });
+    missingGuidance.push('Inspect field drainage after heavy rain (Poor / Moderate / Good) to avoid waterlogging losses in legumes or lupin.');
+  } else {
+    matrix.push({
+      key: 'drainage',
+      label: 'Soil Drainage',
+      displayValue: 'Unknown',
+      provenance: 'unknown',
+      provenanceLabel: PROVENANCE_LABELS.unknown,
+      detailNote: 'Drainage class not recorded',
+    });
+    missingGuidance.push('Field drainage status is unknown — observe infiltration speed or dig a test pit before planting root-rot-sensitive crops.');
+  }
+
+  // 5. Water-Holding Characteristic
+  if (latestLabReport?.waterHoldingCapacityMmPerM != null) {
+    matrix.push({
+      key: 'whc',
+      label: 'Water-Holding Characteristic',
+      displayValue: `${latestLabReport.waterHoldingCapacityMmPerM} mm/m`,
+      provenance: 'laboratory_measured',
+      provenanceLabel: PROVENANCE_LABELS.laboratory_measured,
+      detailNote: 'Lab soil moisture retention test',
+    });
+  } else if (selectedField && selectedField.waterHoldingCharacteristic !== 'Unknown') {
+    matrix.push({
+      key: 'whc',
+      label: 'Water-Holding Characteristic',
+      displayValue: `${selectedField.waterHoldingCharacteristic} Retention`,
+      provenance: 'farmer_provided',
+      provenanceLabel: PROVENANCE_LABELS.farmer_provided,
+      detailNote: `Recorded on field "${selectedField.fieldName}"`,
+    });
+  } else if (mappedAwc != null) {
+    matrix.push({
+      key: 'whc',
+      label: 'Water-Holding Characteristic',
+      displayValue: `~${mappedAwc} mm/m`,
+      provenance: 'estimated',
+      provenanceLabel: PROVENANCE_LABELS.estimated,
+      detailNote: 'Estimated from mapped texture class',
+    });
+  } else {
+    matrix.push({
+      key: 'whc',
+      label: 'Water-Holding Characteristic',
+      displayValue: 'Unknown',
+      provenance: 'unknown',
+      provenanceLabel: PROVENANCE_LABELS.unknown,
+      detailNote: 'No soil moisture retention data entered',
+    });
+  }
+
+  // 6. Primary Nutrients (N, P, K)
+  if (
+    latestLabReport &&
+    (latestLabReport.nitrogenMgKg != null ||
+      latestLabReport.phosphorusMgKg != null ||
+      latestLabReport.potassiumMgKg != null)
+  ) {
+    matrix.push({
+      key: 'npk',
+      label: 'Primary Nutrients (N · P · K)',
+      displayValue: `N ${latestLabReport.nitrogenMgKg ?? '—'} · P ${latestLabReport.phosphorusMgKg ?? '—'} · K ${latestLabReport.potassiumMgKg ?? '—'} mg/kg`,
+      provenance: 'laboratory_measured',
+      provenanceLabel: PROVENANCE_LABELS.laboratory_measured,
+      detailNote: `Accredited lab extractable nutrients (${latestLabReport.sampleDate})`,
+    });
+  } else if (
+    selectedField &&
+    (selectedField.nitrogenMeasuredMgKg != null ||
+      selectedField.phosphorusMeasuredMgKg != null ||
+      selectedField.potassiumMeasuredMgKg != null)
+  ) {
+    matrix.push({
+      key: 'npk',
+      label: 'Primary Nutrients (N · P · K)',
+      displayValue: `N ${selectedField.nitrogenMeasuredMgKg ?? '—'} · P ${selectedField.phosphorusMeasuredMgKg ?? '—'} · K ${selectedField.potassiumMeasuredMgKg ?? '—'} mg/kg`,
+      provenance: 'farmer_provided',
+      provenanceLabel: PROVENANCE_LABELS.farmer_provided,
+      detailNote: 'Farmer-entered field nutrient test values',
+    });
+  } else {
+    matrix.push({
+      key: 'npk',
+      label: 'Primary Nutrients (N · P · K)',
+      displayValue: 'Not measured (P & K require laboratory soil test)',
+      provenance: 'unknown',
+      provenanceLabel: PROVENANCE_LABELS.unknown,
+      detailNote: 'Satellite grids cannot reliably measure plant-available Bray-1 P or exchangeable K',
+    });
+    missingGuidance.push('Submit a laboratory N-P-K soil analysis — satellite datasets cannot determine plant-available phosphorus or potassium.');
+  }
+
+  // 7. Crop History (Current + Previous 1-2 Seasons)
+  const hasCropHistory =
+    Boolean(selectedField?.previousSeasonCrop) || Boolean(selectedField?.twoSeasonsAgoCrop);
+  matrix.push({
+    key: 'crop_history',
+    label: 'Field Crop History (2 Seasons)',
+    displayValue: selectedField
+      ? [
+          selectedField.currentCrop ? `Current: ${selectedField.currentCrop}` : null,
+          selectedField.previousSeasonCrop ? `1 Season Ago: ${selectedField.previousSeasonCrop}` : null,
+          selectedField.twoSeasonsAgoCrop ? `2 Seasons Ago: ${selectedField.twoSeasonsAgoCrop}` : null,
+        ]
+          .filter(Boolean)
+          .join(' · ') || 'Not recorded for this field'
+      : 'Select a specific field/camp to track crop history',
+    provenance: hasCropHistory ? 'farmer_provided' : 'unknown',
+    provenanceLabel: hasCropHistory ? PROVENANCE_LABELS.farmer_provided : PROVENANCE_LABELS.unknown,
+    detailNote: hasCropHistory
+      ? 'Used to detect monocropping and shared family pest/disease risks'
+      : 'Record previous 1–2 seasons crops so rotation recommendations avoid repeating botanical families',
+  });
+  if (!hasCropHistory) {
+    missingGuidance.push('Previous 1–2 season crops on this field are not recorded yet — add crop history to improve disease-break accuracy.');
+  }
+
+  if (waterAvailability.toLowerCase().includes('unverified')) {
+    missingGuidance.push('Confirm farm/field water availability and borehole/dam reliability.');
+  }
+
+  const labOrFarmerCount = matrix.filter(
+    (m) => m.provenance === 'laboratory_measured' || m.provenance === 'farmer_provided'
+  ).length;
+  const confidenceLevel: 'Moderate-High' | 'Moderate' | 'Lower Confidence' =
+    latestLabReport && labOrFarmerCount >= 5
+      ? 'Moderate-High'
+      : labOrFarmerCount >= 3
+        ? 'Moderate'
+        : 'Lower Confidence';
+
+  return { matrix, missingGuidance, confidenceLevel };
+}
+
 export function computeLandSuitability(params: {
   farm: Farm;
   location: FarmLocation;
   fields: Field[];
+  selectedField: FieldSoilHistorySummary | null;
   latestLabReport: SoilReport | null;
   soilGrids: SoilGridsParsed;
+  nasaGwetRoot: number | null;
+  nasaRainfallDeltaMm: number | null;
   selectedFarmingType?: string;
 }): SuitabilityOption[] {
-  const { farm, location, fields, latestLabReport, soilGrids, selectedFarmingType } = params;
+  const {
+    farm,
+    location,
+    fields,
+    selectedField,
+    latestLabReport,
+    soilGrids,
+    nasaGwetRoot,
+    nasaRainfallDeltaMm,
+    selectedFarmingType,
+  } = params;
   const prov = SOUTH_AFRICA_PROVINCES.find((p) => p.name === location.province);
-  const ph = latestLabReport?.soilPhWater ?? soilGrids.phWater;
-  const phSource = latestLabReport?.soilPhWater != null
-    ? `Lab measured pH ${latestLabReport.soilPhWater} (${latestLabReport.laboratoryName}, ${latestLabReport.sampleDate})`
-    : soilGrids.phWater != null
-    ? `Mapped satellite estimate pH ${soilGrids.phWater} (SoilGrids 250m — not lab tested)`
-    : null;
+  const ph =
+    selectedField?.soilPhMeasured ?? latestLabReport?.soilPhWater ?? soilGrids.phWater ?? null;
+  const phSource =
+    latestLabReport?.soilPhWater != null
+      ? `Lab measured pH ${latestLabReport.soilPhWater} (${latestLabReport.laboratoryName}, ${latestLabReport.sampleDate})`
+      : selectedField?.soilPhMeasured != null
+        ? `Farmer-entered field pH ${selectedField.soilPhMeasured}`
+        : soilGrids.phWater != null
+          ? `External SoilGrids 250m estimate pH ~${soilGrids.phWater} (unverified)`
+          : null;
 
-  const water = farm.waterAvailability.toLowerCase();
+  const drainageStr = (
+    selectedField?.soilDrainage !== 'Unknown' && selectedField?.soilDrainage
+      ? selectedField.soilDrainage
+      : latestLabReport?.drainageClass || 'Unknown'
+  ).toLowerCase();
+  const poorDrainage = drainageStr.includes('poor');
+  const fieldTexture = selectedField?.soilTexture || 'Unknown';
+  const sandyRisk = fieldTexture === 'Sandy';
+
+  const water = (selectedField?.irrigationType || farm.waterAvailability).toLowerCase();
   const hasIrrigationWater =
     water.includes('borehole') ||
     water.includes('river') ||
     water.includes('dam') ||
-    water.includes('irrigation') ||
+    water.includes('drip') ||
+    water.includes('pivot') ||
+    water.includes('irrigat') ||
     water.includes('municipal');
+
   const effectiveHa =
+    selectedField?.areaHectares ??
     store.db.farmBoundaries.find((b) => b.farmId === farm.id)?.calculatedAreaHectares ??
     farm.farmSizeHectares;
   const rainfallText = prov?.annualRainfallMm || '500 - 800 mm';
-  const isArid = location.province === 'Northern Cape';
+  const isArid = location.province === 'Northern Cape' || rainfallText.includes('200');
+  const isWinterRain = (prov?.rainfallRegime || '').toLowerCase().includes('winter');
+
+  const hasLabVerification = Boolean(latestLabReport);
+  const confidenceLevel: SuitabilityOption['confidenceLevel'] =
+    hasLabVerification && selectedField && selectedField.soilTexture !== 'Unknown'
+      ? 'Moderate-High'
+      : selectedField && selectedField.soilTexture !== 'Unknown'
+        ? 'Moderate'
+        : 'Lower Confidence';
 
   const baseMissing: string[] = [];
   if (!latestLabReport) {
-    baseMissing.push('No farmer-uploaded laboratory soil report (P, K, N, Zn, and KCl pH remain unverified at field level).');
-  } else {
-    if (latestLabReport.phosphorusMgKg === null) baseMissing.push('Phosphorus (Bray-1) laboratory figure missing.');
-    if (latestLabReport.nitrogenMgKg === null) baseMissing.push('Mineral nitrogen measurement missing.');
+    baseMissing.push(
+      'Lower-confidence rating: no accredited laboratory soil report (pH KCl, P, K, OM%) is attached yet.'
+    );
   }
-  if (!store.db.farmBoundaries.some((b) => b.farmId === farm.id)) {
-    baseMissing.push('Drawn farm polygon boundary not saved yet (relying on registered farm size).');
+  if (!selectedField || selectedField.soilDrainage === 'Unknown') {
+    baseMissing.push('Field-level drainage class not verified.');
   }
-  const hasWaterVolume = store.db.mixedFarmingEntries.some(
-    (e) => e.farmId === farm.id && e.waterLiters > 0
-  );
-  if (!hasWaterVolume) {
-    baseMissing.push('Seasonal borehole yield (liters/hour) or irrigation flow log has not been recorded.');
+  if (!selectedField || !selectedField.previousSeasonCrop) {
+    baseMissing.push('Prior 1–2 season crop history not recorded for disease-break checks.');
   }
+
+  const gwetNote =
+    nasaGwetRoot !== null
+      ? `NASA model root-zone soil wetness (GWETROOT): ${nasaGwetRoot} (${
+          nasaGwetRoot < 0.35 ? 'dry profile' : nasaGwetRoot < 0.6 ? 'moderate profile' : 'moist profile'
+        })`
+      : 'NASA soil wetness check unavailable';
 
   const options: SuitabilityOption[] = [];
 
-  // Option 1: High-Value Irrigated Horticulture
+  // 1. Summer Cereal-Legume Climate-Resilient Rotation
   options.push({
-    id: 'suit-horticulture',
-    farmingOption: 'Irrigated Leafy & Fruiting Vegetables (Spinach, Cabbage, Tomatoes)',
-    category: 'Horticulture / Crops',
+    id: 'suit-cereal-legume-rotation',
+    farmingOption: 'Cereal – Legume – Oilseed Climate-Adaptive Rotation (Maize / Dry Beans or Soybeans / Sunflower)',
+    category: 'Summer Field Rotation',
     suitabilityLevel:
-      hasIrrigationWater && (ph === null || (ph >= 5.7 && ph <= 7.4))
-        ? 'Well Suited'
-        : hasIrrigationWater
-        ? 'Conditionally Suitable'
-        : 'Needs Remediation / Assessment',
-    whySuitable: hasIrrigationWater
-      ? `Farm reports ${farm.waterAvailability} across ${effectiveHa} ha in ${location.districtMunicipality}, enabling staggered drip-irrigated vegetable beds with short 45–90 day cash-flow cycles.`
-      : `Location climate (${prov?.climateZone || location.province}) supports warm-season vegetables, though current water supply (${farm.waterAvailability}) restricts reliable dry-season production.`,
-    supportingInformation: [
-      `Farm area: ${effectiveHa} ha (${fields.length} mapped field${fields.length === 1 ? '' : 's'})`,
-      `Registered water: ${farm.waterAvailability}`,
-      ...(phSource ? [phSource] : []),
-      ...(latestLabReport?.organicMatterPercent != null
-        ? [`Lab organic matter: ${latestLabReport.organicMatterPercent}%`]
-        : []),
-    ],
-    missingInformation: [
-      ...baseMissing,
-      'Irrigation water salinity (EC) and sodium adsorption ratio (SAR) test.',
-    ],
-    possibleLimitations: [
-      ...(ph !== null && ph < 5.7 ? [`Soil acidity (pH ${ph}) can limit calcium uptake and cause tipburn in cabbage.`] : []),
-      ...(!hasIrrigationWater ? ['Rain-fed-only supply causes high risk of harvest failure during mid-summer dry spells.'] : []),
-      'Frost window or summer heatwaves require shade-netting or frost protection planning.',
-    ],
-    additionalAssessmentsRequired: [
-      '0–20 cm composite soil fertility test per vegetable block before basal fertiliser.',
-      'Borehole/dam water EC & pH analysis before investing in drip fertigation.',
-    ],
-  });
-
-  // Option 2: Summer Grain & Legume Rotation
-  options.push({
-    id: 'suit-grain',
-    farmingOption: 'Maize & Legume Rotation (Dryland or Supplementary Irrigated)',
-    category: 'Field Crops',
-    suitabilityLevel:
-      !isArid && effectiveHa >= 3 && (ph === null || ph >= 5.5)
-        ? 'Well Suited'
+      !isArid && !isWinterRain && !poorDrainage && (ph === null || ph >= 5.5)
+        ? hasLabVerification
+          ? 'Well Suited'
+          : 'Conditionally Suitable'
         : !isArid
-        ? 'Conditionally Suitable'
-        : 'Needs Remediation / Assessment',
-    whySuitable: isArid
-      ? `Northern Cape arid rainfall (${rainfallText}) limits dryland grain unless flood/pivot irrigation from river/borehole is confirmed.`
-      : `${location.province} (${rainfallText}) aligns with summer grain production on ${effectiveHa} ha; rotating maize with soybeans or dry beans builds soil nitrogen and maize stover supports livestock.`,
+          ? 'Conditionally Suitable'
+          : 'Needs Remediation / Assessment',
+    confidenceLevel,
+    whySuitable: isWinterRain
+      ? `${location.province} experiences winter-dominant rainfall; dryland summer maize/beans face acute summer moisture deficit unless supplementary irrigation is confirmed.`
+      : isArid
+        ? `Arid conditions (${rainfallText}) limit dryland maize unless pivot/drip irrigation is confirmed; drought-tolerant sorghum + cowpeas are safer.`
+        : `${location.province} (${rainfallText}) supports a 3-family rotational sequence on ${effectiveHa} ha, breaking stalk-borer/soil disease cycles while fixing nitrogen.`,
     supportingInformation: [
-      `Province rainfall pattern: ${rainfallText} (${prov?.climateZone || 'Regional'})`,
-      `Available land: ${effectiveHa} ha`,
+      `Field / Farm scope: ${selectedField ? `${selectedField.fieldName} (${effectiveHa} ha, ${fieldTexture})` : `${effectiveHa} ha farm`}`,
+      `Water status: ${selectedField?.irrigationType || farm.waterAvailability}`,
+      gwetNote,
       ...(phSource ? [phSource] : []),
-      ...(latestLabReport?.phosphorusMgKg != null
-        ? [`Lab Phosphorus: ${latestLabReport.phosphorusMgKg} mg/kg`]
-        : []),
     ],
     missingInformation: baseMissing,
     possibleLimitations: [
-      ...(effectiveHa < 5 ? ['Smaller hectarage limits economies of scale for mechanised grain harvesting.'] : []),
-      ...(ph !== null && ph < 5.5 ? [`Low pH (${ph}) increases aluminium toxicity risk; agricultural lime required before planting.`] : []),
-      'Mid-season dry spells in January can reduce pollination if supplementary irrigation is absent.',
+      ...(poorDrainage ? ['Poor drainage heightens root-rot risk in dry beans and soybeans.'] : []),
+      ...(sandyRisk ? ['Sandy soil has low water retention; favour drought-hardy legumes (cowpeas) and mulch cover.'] : []),
+      ...(nasaRainfallDeltaMm !== null && nasaRainfallDeltaMm < -30
+        ? [`NASA 2020–2024 vs 2001–2015 rainfall shift (${nasaRainfallDeltaMm} mm/yr) raises dry-spell risk at maize flowering.`]
+        : []),
     ],
     additionalAssessmentsRequired: [
-      'Subsoil (20–40 cm) compaction and pH(KCl) check to calculate exact dolomitic lime requirement.',
-      'Local silo or feed-lot offtake verification prior to seed purchase.',
+      '0–20 cm composite soil test for pH(KCl), P, and Ca/Mg prior to inoculating legume seed.',
+      'Confirm field drainage and soil depth (>=75 cm for sunflower taproots).',
     ],
   });
 
-  // Option 3: Mixed Crop-Livestock Grazing Integration
+  // 2. Drought-Resilient Semi-Arid / Water-Conserving Rotation
   options.push({
-    id: 'suit-mixed-livestock',
-    farmingOption: 'Integrated Grazing Livestock (Beef Cattle / Boer Goats) + Fodder Crops',
-    category: 'Livestock & Mixed Farming',
+    id: 'suit-drought-resilient',
+    farmingOption: 'Water-Conserving Drought-Resilient Rotation (Grain Sorghum / Cowpeas / Sunflower)',
+    category: 'Water-Limited & Dry-Spell Adaptation',
     suitabilityLevel:
-      effectiveHa >= 5 && (hasIrrigationWater || !isArid)
+      !poorDrainage && (ph === null || ph >= 5.4)
         ? 'Well Suited'
         : 'Conditionally Suitable',
-    whySuitable: `Combining hardy South African breeds (Nguni/Bonsmara cattle or Boer goats) with crop residues, planted pastures, or lucerne spreads seasonal risk across ${effectiveHa} ha.`,
+    confidenceLevel,
+    whySuitable: `Combines drought-tolerant sorghum (Poaceae), deep-rooting sunflower (Asteraceae), and hardy nitrogen-fixing cowpeas (Fabaceae) suited to ${
+      nasaGwetRoot !== null && nasaGwetRoot < 0.35
+        ? 'low current root-zone moisture (GWETROOT)'
+        : `${rainfallText} rainfall variability`
+    }.`,
     supportingInformation: [
-      `Total farm land: ${effectiveHa} ha`,
-      `Water access: ${farm.waterAvailability}`,
-      `Farmer experience: ${farm.yearsOfExperience} years`,
-      `Regional livestock commodities: ${(prov?.keyCommodities || []).join(', ')}`,
+      `Low-to-moderate crop water demand across all 3 botanical families`,
+      gwetNote,
+      `Water source: ${selectedField?.irrigationType || farm.waterAvailability}`,
     ],
-    missingInformation: [
-      ...baseMissing,
-      'Veld carrying capacity (ha per Large Stock Unit / LSU) from provincial extension officer.',
-    ],
+    missingInformation: baseMissing,
     possibleLimitations: [
-      ...(effectiveHa < 10 ? ['Small land size requires planted fodder or hay supplementation rather than pure extensive veld grazing.'] : []),
-      'Overgrazing risk during dry winter months without fenced rotational paddocks.',
+      'Sorghum faces quelea/bird grain damage near wetlands if harvest is delayed.',
+      'Do not repeat sunflower and soybeans/beans in consecutive wet seasons (shared Sclerotinia host risk).',
     ],
     additionalAssessmentsRequired: [
-      'Grazing camp condition & botanical grass-cover inspection to set safe stocking rate.',
-      'Dipping, tick-borne disease, and winter feed-budget plan.',
+      'Verify minimum 75 cm effective rooting depth for sunflower and sorghum.',
+      'Confirm local grain sorghum / cowpea buyer specifications.',
     ],
   });
 
-  // Option 4: Perennial Orchard / Agro-forestry (conditional)
+  // 3. Winter-Rainfall / Cool-Season Wheat – Canola – Lupin Rotation
   options.push({
-    id: 'suit-orchard',
-    farmingOption: 'Perennial Fruit / Citrus / Nut Orchards (Site-Dependent)',
-    category: 'Orchards',
+    id: 'suit-winter-break-rotation',
+    farmingOption: 'Cool-Season Cereal & Break-Crop Rotation (Wheat / Canola / Sweet Lupin)',
+    category: 'Winter-Rainfall or Cool Irrigated Rotation',
     suitabilityLevel:
-      hasIrrigationWater &&
-      (latestLabReport?.drainageClass === 'Well Drained' || !latestLabReport) &&
-      !isArid
-        ? 'Conditionally Suitable'
+      (isWinterRain || hasIrrigationWater) && !poorDrainage
+        ? hasLabVerification
+          ? 'Well Suited'
+          : 'Conditionally Suitable'
         : 'Needs Remediation / Assessment',
-    whySuitable: `Permanent orchards offer high long-term returns where ${farm.waterAvailability} is reliable and soils drain cleanly without root-zone waterlogging.`,
+    confidenceLevel,
+    whySuitable:
+      isWinterRain || hasIrrigationWater
+        ? `Alternating wheat (Poaceae) with canola (Brassicaceae) and sweet lupin (Fabaceae) disrupts take-all root disease and suits ${isWinterRain ? 'Western Cape winter fronts' : 'cool irrigated blocks'}.`
+        : `Dryland winter wheat/canola/lupin in ${location.province} faces severe winter drought because rainfall falls mainly in summer (${rainfallText}) and irrigation is not confirmed.`,
     supportingInformation: [
-      `Water source: ${farm.waterAvailability}`,
-      ...(latestLabReport
-        ? [`Lab drainage class: ${latestLabReport.drainageClass} (${latestLabReport.soilTextureClass})`]
-        : ['Soil drainage not yet verified via profile pit']),
+      `Province rainfall pattern: ${prov?.rainfallRegime || location.province}`,
+      `Lupin tolerates slightly acidic sandy-loam soils (pH 5.0–6.5) better than dry beans`,
+      ...(phSource ? [phSource] : []),
     ],
     missingInformation: [
       ...baseMissing,
-      '1.2 m soil profile pit inspection for plinthic/clay hardpans and root-depth verification.',
-      'Registered Catchment Management Agency water-use entitlement for perennial irrigation.',
+      'Cool-season frost dates and winter irrigation flow rate (if outside Western Cape).',
     ],
     possibleLimitations: [
-      'Requires 3–5 years capital investment before commercial harvest.',
-      'Sensitive to winter frost pockets and poorly drained clay subsoils.',
+      ...(poorDrainage ? ['Lupin and canola are sensitive to winter waterlogging on poorly drained clay soils.'] : []),
+      ...(!isWinterRain && !hasIrrigationWater
+        ? ['Unsuitable for dryland winter grain in summer-rainfall provinces without winter moisture storage.']
+        : []),
     ],
     additionalAssessmentsRequired: [
-      'Dig 1.2 m soil profile pits across proposed orchard blocks (ARC-ISCW standard).',
-      'Minimum 10-year frost frequency review for your exact valley elevation.',
+      'Confirm Bradyrhizobium lupini inoculant availability and sulfur status for canola.',
+      'Check boron/manganese levels if field soil pH exceeds 6.8 (lupin chlorosis risk).',
+    ],
+  });
+
+  // 4. Soil-Health Cover & High-Value Vegetable Rotation (Irrigated Plots)
+  options.push({
+    id: 'suit-irrigated-soil-cover',
+    farmingOption: 'Irrigated Soil-Building Crop & Cover Rotation (Cabbage / Dry Beans / Spinach + Winter Oats)',
+    category: 'Intensive Irrigated Soil Resilience',
+    suitabilityLevel:
+      hasIrrigationWater && (ph === null || (ph >= 5.8 && ph <= 7.2))
+        ? 'Well Suited'
+        : hasIrrigationWater
+          ? 'Conditionally Suitable'
+          : 'Needs Remediation / Assessment',
+    confidenceLevel,
+    whySuitable: hasIrrigationWater
+      ? `Reliable irrigation (${selectedField?.irrigationType || farm.waterAvailability}) allows multi-family vegetable rotations punctuated by legume and cover-cereal soil restoration.`
+      : `High water requirement of brassicas and leafy greens conflicts with rain-fed-only water status (${selectedField?.irrigationType || farm.waterAvailability}).`,
+    supportingInformation: [
+      `Water access: ${selectedField?.irrigationType || farm.waterAvailability}`,
+      `Soil organic matter status: ${selectedField?.organicMatterLevel || 'Unknown'}`,
+    ],
+    missingInformation: [
+      ...baseMissing,
+      'Irrigation water salinity (EC) & sodium adsorption ratio (SAR) test.',
+    ],
+    possibleLimitations: [
+      ...(ph !== null && ph < 5.8
+        ? [`Topsoil pH (${ph}) is below the 6.0 threshold preferred by cabbage (raises clubroot risk).`]
+        : []),
+      'Repeating Brassicaceae (cabbage/canola) within 2–3 years sharply elevates clubroot pathogen pressure.',
+    ],
+    additionalAssessmentsRequired: [
+      'Borehole/dam water EC & pH analysis before drip fertigation.',
+      'Topsoil compost/mulch plan where organic matter is low.',
     ],
   });
 
@@ -493,7 +1014,8 @@ export function computeLandSuitability(params: {
 
 export async function getFarmSoilAndLandIntelligence(
   farmId: string,
-  selectedFarmingType?: string
+  selectedFarmingType?: string,
+  fieldId?: string | null
 ): Promise<SoilLandIntelligencePayload> {
   const farm = store.db.farms.find((f) => f.id === farmId);
   const location = store.db.farmLocations.find((l) => l.farmId === farmId);
@@ -509,12 +1031,32 @@ export async function getFarmSoilAndLandIntelligence(
       ...r,
       fieldName: r.fieldId ? fields.find((fl) => fl.id === r.fieldId)?.name || null : null,
     }));
-  const latestLabReport = reports[0] || null;
+
+  const targetFieldObj =
+    (fieldId ? fields.find((fl) => fl.id === fieldId) : undefined) || fields[0] || null;
+
+  const selectedFieldSummary = targetFieldObj
+    ? buildFieldSummary(targetFieldObj, reports)
+    : null;
+  const fieldsSummary = fields.map((fl) => buildFieldSummary(fl, reports));
+
+  const fieldSpecificReport = targetFieldObj
+    ? reports.find((r) => r.fieldId === targetFieldObj.id) || reports[0] || null
+    : reports[0] || null;
 
   const prov = SOUTH_AFRICA_PROVINCES.find((p) => p.name === location.province);
   const regionalProfile = getProvinceSoilTemperatureProfile(location.province);
 
-  const remote = await fetchRemoteElevationAndSoilGrids(location.latitude, location.longitude);
+  const [remote, nasaPower, nasaClimate] = await Promise.all([
+    fetchRemoteElevationAndSoilGrids(location.latitude, location.longitude),
+    fetchNasaPowerSummary(location.latitude, location.longitude).catch(() => null),
+    fetchNasaPowerClimateComparison(location.latitude, location.longitude, {
+      province: location.province,
+      locationLabel: farm.name,
+      waterAvailability: farm.waterAvailability,
+    }).catch(() => null),
+  ]);
+
   const elevationMeters =
     remote.elevationMeters ??
     (location.elevationMeters > 0
@@ -537,76 +1079,87 @@ export async function getFarmSoilAndLandIntelligence(
     {
       key: 'ph',
       label: 'Soil pH (H₂O)',
-      labValue: latestLabReport?.soilPhWater != null ? `${latestLabReport.soilPhWater}` : null,
+      labValue:
+        fieldSpecificReport?.soilPhWater != null
+          ? `${fieldSpecificReport.soilPhWater}`
+          : selectedFieldSummary?.soilPhMeasured != null
+            ? `${selectedFieldSummary.soilPhMeasured} (Farmer)`
+            : null,
       mappedEstimate: remote.soilGrids.phWater != null ? `~${remote.soilGrids.phWater}` : null,
       unit: 'pH',
       sourceType:
-        latestLabReport?.soilPhWater != null
+        fieldSpecificReport?.soilPhWater != null
           ? 'laboratory_measurement'
           : remote.soilGrids.phWater != null
-          ? 'mapped_estimate'
-          : 'not_measured',
+            ? 'mapped_estimate'
+            : 'not_measured',
       sourceNote:
-        latestLabReport?.soilPhWater != null
-          ? `Lab (${latestLabReport.laboratoryName}, ${latestLabReport.sampleDate})`
-          : remote.soilGrids.phWater != null
-          ? 'ISRIC SoilGrids 250m Mapped Estimate'
-          : 'Awaiting lab sample',
+        fieldSpecificReport?.soilPhWater != null
+          ? `Lab (${fieldSpecificReport.laboratoryName}, ${fieldSpecificReport.sampleDate})`
+          : selectedFieldSummary?.soilPhMeasured != null
+            ? 'Farmer-provided field measurement'
+            : remote.soilGrids.phWater != null
+              ? 'ISRIC SoilGrids 250m Mapped Estimate'
+              : 'Awaiting lab sample',
     },
     {
       key: 'texture',
       label: 'Soil Texture',
-      labValue: latestLabReport
-        ? `${latestLabReport.soilTextureClass}${
-            latestLabReport.clayPercent != null
-              ? ` (${latestLabReport.clayPercent}% clay / ${latestLabReport.sandPercent ?? '?'}% sand)`
+      labValue: fieldSpecificReport
+        ? `${fieldSpecificReport.soilTextureClass}${
+            fieldSpecificReport.clayPercent != null
+              ? ` (${fieldSpecificReport.clayPercent}% clay / ${fieldSpecificReport.sandPercent ?? '?'}% sand)`
               : ''
           }`
-        : null,
+        : selectedFieldSummary && selectedFieldSummary.soilTexture !== 'Unknown'
+          ? `${selectedFieldSummary.soilTexture} (Farmer)`
+          : null,
       mappedEstimate: mappedTexture
         ? `${mappedTexture} (${remote.soilGrids.clayPct}% clay / ${remote.soilGrids.sandPct}% sand)`
         : null,
       unit: 'Class & %',
-      sourceType: latestLabReport
+      sourceType: fieldSpecificReport
         ? 'laboratory_measurement'
         : mappedTexture
-        ? 'mapped_estimate'
-        : 'not_measured',
-      sourceNote: latestLabReport
-        ? `Lab (${latestLabReport.laboratoryName})`
+          ? 'mapped_estimate'
+          : 'not_measured',
+      sourceNote: fieldSpecificReport
+        ? `Lab (${fieldSpecificReport.laboratoryName})`
         : mappedTexture
-        ? 'ISRIC SoilGrids 250m Mapped Estimate'
-        : 'Not measured yet',
+          ? 'ISRIC SoilGrids 250m Mapped Estimate'
+          : 'Not measured yet',
     },
     {
       key: 'om',
       label: 'Soil Organic Matter',
       labValue:
-        latestLabReport?.organicMatterPercent != null
-          ? `${latestLabReport.organicMatterPercent}%`
-          : null,
+        fieldSpecificReport?.organicMatterPercent != null
+          ? `${fieldSpecificReport.organicMatterPercent}%`
+          : selectedFieldSummary && selectedFieldSummary.organicMatterLevel !== 'Unknown'
+            ? `${selectedFieldSummary.organicMatterLevel} (Farmer)`
+            : null,
       mappedEstimate:
         remote.soilGrids.organicMatterPct != null ? `~${remote.soilGrids.organicMatterPct}%` : null,
       unit: '% OM',
       sourceType:
-        latestLabReport?.organicMatterPercent != null
+        fieldSpecificReport?.organicMatterPercent != null
           ? 'laboratory_measurement'
           : remote.soilGrids.organicMatterPct != null
-          ? 'mapped_estimate'
-          : 'not_measured',
+            ? 'mapped_estimate'
+            : 'not_measured',
       sourceNote:
-        latestLabReport?.organicMatterPercent != null
-          ? `Lab sample (${latestLabReport.sampleDate})`
+        fieldSpecificReport?.organicMatterPercent != null
+          ? `Lab sample (${fieldSpecificReport.sampleDate})`
           : remote.soilGrids.organicMatterPct != null
-          ? 'Derived from SoilGrids Organic Carbon'
-          : 'Awaiting lab test',
+            ? 'Derived from SoilGrids Organic Carbon'
+            : 'Awaiting lab test',
     },
     {
       key: 'fertility',
       label: 'Fertility & CEC Indicator',
-      labValue: latestLabReport
-        ? `${latestLabReport.fertilityRating}${
-            latestLabReport.cecCmolKg != null ? ` (CEC ${latestLabReport.cecCmolKg} cmol/kg)` : ''
+      labValue: fieldSpecificReport
+        ? `${fieldSpecificReport.fertilityRating}${
+            fieldSpecificReport.cecCmolKg != null ? ` (CEC ${fieldSpecificReport.cecCmolKg} cmol/kg)` : ''
           }`
         : null,
       mappedEstimate:
@@ -614,26 +1167,26 @@ export async function getFarmSoilAndLandIntelligence(
           ? `CEC ~${remote.soilGrids.cecCmolKg} cmol/kg`
           : null,
       unit: 'cmol(+)/kg',
-      sourceType: latestLabReport
+      sourceType: fieldSpecificReport
         ? 'laboratory_measurement'
         : remote.soilGrids.cecCmolKg != null
-        ? 'mapped_estimate'
-        : 'not_measured',
-      sourceNote: latestLabReport
-        ? `Lab measurement`
+          ? 'mapped_estimate'
+          : 'not_measured',
+      sourceNote: fieldSpecificReport
+        ? 'Lab measurement'
         : remote.soilGrids.cecCmolKg != null
-        ? 'ISRIC SoilGrids CEC Estimate'
-        : 'Requires lab CEC test',
+          ? 'ISRIC SoilGrids CEC Estimate'
+          : 'Requires lab CEC test',
     },
     {
       key: 'nutrients',
       label: 'Primary Nutrients (N · P · K)',
       labValue:
-        latestLabReport &&
-        (latestLabReport.nitrogenMgKg != null ||
-          latestLabReport.phosphorusMgKg != null ||
-          latestLabReport.potassiumMgKg != null)
-          ? `N ${latestLabReport.nitrogenMgKg ?? '—'} · P ${latestLabReport.phosphorusMgKg ?? '—'} · K ${latestLabReport.potassiumMgKg ?? '—'} mg/kg`
+        fieldSpecificReport &&
+        (fieldSpecificReport.nitrogenMgKg != null ||
+          fieldSpecificReport.phosphorusMgKg != null ||
+          fieldSpecificReport.potassiumMgKg != null)
+          ? `N ${fieldSpecificReport.nitrogenMgKg ?? '—'} · P ${fieldSpecificReport.phosphorusMgKg ?? '—'} · K ${fieldSpecificReport.potassiumMgKg ?? '—'} mg/kg`
           : null,
       mappedEstimate:
         remote.soilGrids.nitrogenGKg != null
@@ -641,75 +1194,104 @@ export async function getFarmSoilAndLandIntelligence(
           : null,
       unit: 'mg/kg',
       sourceType:
-        latestLabReport &&
-        (latestLabReport.phosphorusMgKg != null || latestLabReport.potassiumMgKg != null)
+        fieldSpecificReport &&
+        (fieldSpecificReport.phosphorusMgKg != null || fieldSpecificReport.potassiumMgKg != null)
           ? 'laboratory_measurement'
           : remote.soilGrids.nitrogenGKg != null
-          ? 'mapped_estimate'
-          : 'not_measured',
-      sourceNote: latestLabReport
-        ? `Lab Extractable Nutrients`
+            ? 'mapped_estimate'
+            : 'not_measured',
+      sourceNote: fieldSpecificReport
+        ? 'Lab Extractable Nutrients'
         : 'P & K cannot be estimated by satellite; upload lab test',
     },
     {
       key: 'drainage',
       label: 'Soil Drainage',
-      labValue: latestLabReport ? latestLabReport.drainageClass : null,
+      labValue:
+        fieldSpecificReport?.drainageClass ||
+        (selectedFieldSummary && selectedFieldSummary.soilDrainage !== 'Unknown'
+          ? `${selectedFieldSummary.soilDrainage} Drainage (Farmer)`
+          : null),
       mappedEstimate: mappedDrainage,
       unit: 'Class',
-      sourceType: latestLabReport
+      sourceType: fieldSpecificReport
         ? 'laboratory_measurement'
         : mappedDrainage
-        ? 'mapped_estimate'
-        : 'not_measured',
-      sourceNote: latestLabReport ? 'Field & lab soil assessment' : 'Inferred from mapped clay %',
+          ? 'mapped_estimate'
+          : 'not_measured',
+      sourceNote: fieldSpecificReport ? 'Field & lab soil assessment' : 'Inferred from mapped clay %',
     },
     {
       key: 'awc',
       label: 'Water-Holding Capacity (AWC)',
       labValue:
-        latestLabReport?.waterHoldingCapacityMmPerM != null
-          ? `${latestLabReport.waterHoldingCapacityMmPerM} mm/m`
-          : null,
+        fieldSpecificReport?.waterHoldingCapacityMmPerM != null
+          ? `${fieldSpecificReport.waterHoldingCapacityMmPerM} mm/m`
+          : selectedFieldSummary && selectedFieldSummary.waterHoldingCharacteristic !== 'Unknown'
+            ? `${selectedFieldSummary.waterHoldingCharacteristic} (Farmer)`
+            : null,
       mappedEstimate: mappedAwc != null ? `~${mappedAwc} mm/m` : null,
       unit: 'mm/m',
       sourceType:
-        latestLabReport?.waterHoldingCapacityMmPerM != null
+        fieldSpecificReport?.waterHoldingCapacityMmPerM != null
           ? 'laboratory_measurement'
           : mappedAwc != null
-          ? 'mapped_estimate'
-          : 'not_measured',
+            ? 'mapped_estimate'
+            : 'not_measured',
       sourceNote:
-        latestLabReport?.waterHoldingCapacityMmPerM != null
+        fieldSpecificReport?.waterHoldingCapacityMmPerM != null
           ? 'Laboratory soil retention test'
           : mappedAwc != null
-          ? 'Estimated from mapped texture class'
-          : 'Not measured yet',
+            ? 'Estimated from mapped texture class'
+            : 'Not measured yet',
     },
   ];
+
+  const { matrix, missingGuidance, confidenceLevel } = buildSoilProvenanceAndGuidance({
+    selectedField: selectedFieldSummary,
+    latestLabReport: fieldSpecificReport,
+    soilGrids: remote.soilGrids,
+    mappedTexture,
+    mappedAwc,
+    mappedDrainage,
+    waterAvailability: selectedFieldSummary?.irrigationType || farm.waterAvailability,
+  });
 
   const loggedWaterLiters = store.db.mixedFarmingEntries
     .filter((e) => e.farmId === farmId)
     .reduce((s, e) => s + e.waterLiters, 0);
 
+  const nasaGwetRoot = nasaPower?.gwetRootRecent ?? null;
+  const nasaGwetTop = nasaPower?.gwetTopRecent ?? null;
+
   const suitabilityOptions = computeLandSuitability({
     farm,
     location,
     fields,
-    latestLabReport,
+    selectedField: selectedFieldSummary,
+    latestLabReport: fieldSpecificReport,
     soilGrids: remote.soilGrids,
+    nasaGwetRoot,
+    nasaRainfallDeltaMm: nasaClimate?.delta?.annualRainfallChangeMm ?? null,
     selectedFarmingType,
   });
 
   return {
     farmId: farm.id,
     farmName: farm.name,
+    selectedFieldId: selectedFieldSummary?.fieldId || null,
+    selectedFieldName: selectedFieldSummary?.fieldName || null,
     fetchedAt: new Date().toISOString(),
     coordinates: {
       latitude: location.latitude,
       longitude: location.longitude,
       locationSource: location.locationSource,
     },
+    fieldsSummary,
+    selectedFieldProfile: selectedFieldSummary,
+    soilProvenanceMatrix: matrix,
+    missingMeasurementsGuidance: missingGuidance,
+    dataConfidenceLevel: confidenceLevel,
     landIntelligence: {
       elevationMeters,
       elevationSource: remote.elevationSource,
@@ -723,17 +1305,23 @@ export async function getFarmSoilAndLandIntelligence(
           ? ` · ${loggedWaterLiters.toLocaleString()} L recorded in farm water logs`
           : ''
       }`,
+      nasaGwetRoot,
+      nasaGwetTop,
+      nasaSoilWetnessNote:
+        nasaGwetRoot !== null
+          ? `NASA POWER 14-day mean GWETROOT ${nasaGwetRoot} / GWETTOP ${nasaGwetTop ?? '—'} (0–1 model-derived soil wetness index; NOT an on-farm sensor reading).`
+          : 'NASA POWER model soil wetness unavailable right now.',
     },
     dataSources: [
       {
         id: 'src-lab',
         name: 'Farmer-Uploaded Laboratory Soil Reports',
         providerType: 'laboratory',
-        status: latestLabReport ? 'farmer_uploaded' : 'unavailable',
-        summary: latestLabReport
-          ? `${reports.length} lab report(s) uploaded. Latest: ${latestLabReport.laboratoryName} (${latestLabReport.sampleDate}).`
-          : 'No laboratory soil report uploaded yet for this farm. Upload a report to replace mapped estimates with actual field measurements.',
-        lastUpdated: latestLabReport ? latestLabReport.sampleDate : null,
+        status: fieldSpecificReport ? 'farmer_uploaded' : 'unavailable',
+        summary: fieldSpecificReport
+          ? `${reports.length} lab report(s) uploaded. Active: ${fieldSpecificReport.laboratoryName} (${fieldSpecificReport.sampleDate}).`
+          : 'No laboratory soil report uploaded yet for this farm/field. Upload a report to replace mapped/estimated values with verified measurements.',
+        lastUpdated: fieldSpecificReport ? fieldSpecificReport.sampleDate : null,
       },
       {
         id: 'src-soilgrids',
@@ -744,6 +1332,17 @@ export async function getFarmSoilAndLandIntelligence(
         lastUpdated: remote.soilGrids.available ? new Date().toISOString() : null,
       },
       {
+        id: 'src-nasa-soil',
+        name: 'NASA POWER Soil Wetness Estimates (GWETROOT & GWETTOP)',
+        providerType: 'satellite_grid',
+        status: nasaPower?.serviceAvailable ? 'connected' : 'unavailable',
+        summary:
+          nasaPower?.serviceAvailable
+            ? `Model-derived root-zone wetness (${nasaGwetRoot ?? '—'}) and surface wetness (${nasaGwetTop ?? '—'}) at ${location.latitude.toFixed(2)}°, ${location.longitude.toFixed(2)}°.`
+            : 'NASA POWER soil wetness feed unavailable.',
+        lastUpdated: nasaPower?.lastUpdated || null,
+      },
+      {
         id: 'src-arc',
         name: 'Agricultural Research Council (ARC-ISCW) Land Type Reference',
         providerType: 'national_dataset',
@@ -751,17 +1350,9 @@ export async function getFarmSoilAndLandIntelligence(
         summary: `${regionalProfile.arcLandTypeRef}. Broad land-type context; does not replace farm-level sampling.`,
         lastUpdated: null,
       },
-      {
-        id: 'src-dalrrd',
-        name: 'Department of Agriculture (DALRRD) Geospatial & Land Capability Adapter',
-        providerType: 'national_dataset',
-        status: 'reference_only',
-        summary: `Configured for ${location.province} / ${location.districtMunicipality}. Connect institutional WFS endpoint via DALRRD_SOIL_WFS_URL when licensed access is provisioned.`,
-        lastUpdated: null,
-      },
     ],
-    hasLabReport: Boolean(latestLabReport),
-    latestLabReport,
+    hasLabReport: Boolean(fieldSpecificReport),
+    latestLabReport: fieldSpecificReport,
     allLabReports: reports,
     soilMetrics,
     suitabilityOptions,
@@ -791,7 +1382,7 @@ export async function getSiteSoilAndLandIntelligence(params: {
       ? params.longitude
       : prov.centerLng;
   const siteId = `site-${prov.code}`;
-  const district = params.district || prov.districts[0] || prov.capital;
+  const district = params.district || prov.districts[0]?.name || prov.capital;
   const town = params.townOrArea || prov.capital;
   const waterAvailability =
     params.waterAvailability || 'Candidate Site Water Access Unverified';
@@ -835,7 +1426,15 @@ export async function getSiteSoilAndLandIntelligence(params: {
   };
 
   const regionalProfile = getProvinceSoilTemperatureProfile(prov.name);
-  const remote = await fetchRemoteElevationAndSoilGrids(lat, lng);
+  const [remote, nasaPower, nasaClimate] = await Promise.all([
+    fetchRemoteElevationAndSoilGrids(lat, lng),
+    fetchNasaPowerSummary(lat, lng).catch(() => null),
+    fetchNasaPowerClimateComparison(lat, lng, {
+      province: prov.name,
+      locationLabel: town,
+      waterAvailability,
+    }).catch(() => null),
+  ]);
   const elevationMeters =
     remote.elevationMeters ?? estimateSaElevationMeters(prov.name, lat, lng);
 
@@ -933,24 +1532,47 @@ export async function getSiteSoilAndLandIntelligence(params: {
     },
   ];
 
+  const { matrix, missingGuidance, confidenceLevel } = buildSoilProvenanceAndGuidance({
+    selectedField: null,
+    latestLabReport: null,
+    soilGrids: remote.soilGrids,
+    mappedTexture,
+    mappedAwc,
+    mappedDrainage,
+    waterAvailability,
+  });
+
+  const nasaGwetRoot = nasaPower?.gwetRootRecent ?? null;
+  const nasaGwetTop = nasaPower?.gwetTopRecent ?? null;
+
   const suitabilityOptions = computeLandSuitability({
     farm: syntheticFarm,
     location: syntheticLocation,
     fields: [],
+    selectedField: null,
     latestLabReport: null,
     soilGrids: remote.soilGrids,
+    nasaGwetRoot,
+    nasaRainfallDeltaMm: nasaClimate?.delta?.annualRainfallChangeMm ?? null,
     selectedFarmingType: params.selectedFarmingType,
   });
 
   return {
     farmId: syntheticFarm.id,
     farmName: syntheticFarm.name,
+    selectedFieldId: null,
+    selectedFieldName: null,
     fetchedAt: new Date().toISOString(),
     coordinates: {
       latitude: lat,
       longitude: lng,
       locationSource: 'municipal_center',
     },
+    fieldsSummary: [],
+    selectedFieldProfile: null,
+    soilProvenanceMatrix: matrix,
+    missingMeasurementsGuidance: missingGuidance,
+    dataConfidenceLevel: confidenceLevel,
     landIntelligence: {
       elevationMeters,
       elevationSource: remote.elevationSource,
@@ -960,6 +1582,12 @@ export async function getSiteSoilAndLandIntelligence(params: {
       temperaturePattern: regionalProfile.tempPattern,
       environmentalConditions: regionalProfile.envConditions,
       waterAvailabilitySummary: waterAvailability,
+      nasaGwetRoot,
+      nasaGwetTop,
+      nasaSoilWetnessNote:
+        nasaGwetRoot !== null
+          ? `NASA POWER 14-day mean GWETROOT ${nasaGwetRoot} / GWETTOP ${nasaGwetTop ?? '—'} (0–1 model-derived soil wetness index; NOT an on-farm sensor reading).`
+          : 'NASA POWER model soil wetness unavailable right now.',
     },
     dataSources: [
       {
@@ -979,19 +1607,22 @@ export async function getSiteSoilAndLandIntelligence(params: {
         lastUpdated: remote.soilGrids.available ? new Date().toISOString() : null,
       },
       {
+        id: 'src-nasa-soil',
+        name: 'NASA POWER Soil Wetness Estimates (GWETROOT & GWETTOP)',
+        providerType: 'satellite_grid',
+        status: nasaPower?.serviceAvailable ? 'connected' : 'unavailable',
+        summary:
+          nasaPower?.serviceAvailable
+            ? `Model-derived root-zone wetness (${nasaGwetRoot ?? '—'}) and surface wetness (${nasaGwetTop ?? '—'}).`
+            : 'NASA POWER soil wetness feed unavailable.',
+        lastUpdated: nasaPower?.lastUpdated || null,
+      },
+      {
         id: 'src-arc',
         name: 'Agricultural Research Council (ARC-ISCW) Land Type Reference',
         providerType: 'national_dataset',
         status: 'reference_only',
         summary: `${regionalProfile.arcLandTypeRef}. Broad land-type context; does not replace site inspection.`,
-        lastUpdated: null,
-      },
-      {
-        id: 'src-dalrrd',
-        name: 'Department of Agriculture (DALRRD) Geospatial & Land Capability Adapter',
-        providerType: 'national_dataset',
-        status: 'reference_only',
-        summary: `Configured for ${prov.name} / ${district}.`,
         lastUpdated: null,
       },
     ],

@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
+  AlertOctagon,
+  AlertTriangle,
   Bell,
   Check,
   CheckCheck,
   Globe,
+  Info,
   Lock,
   Mail,
   MessageSquare,
@@ -11,6 +14,7 @@ import {
   ShieldAlert,
   Sliders,
   Smartphone,
+  X,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import {
@@ -68,6 +72,38 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
   const [testCategory, setTestCategory] = useState<NotificationPreferenceKey>('upcoming_activity');
   const [feedbackBanner, setFeedbackBanner] = useState<string | null>(null);
   const [errorBanner, setErrorBanner] = useState<string | null>(null);
+  const [selectedNotice, setSelectedNotice] = useState<NotificationItem | null>(null);
+
+  const getSeverityMeta = (n: NotificationItem) => {
+    const isCritical =
+      n.priority === 'urgent' ||
+      n.category === 'agricultural_incident' ||
+      n.category === 'account_security';
+    const isWarning =
+      !isCritical && (n.priority === 'high' || n.category === 'weather_warning');
+    if (isCritical) {
+      return {
+        label: 'Critical Alert',
+        icon: <AlertOctagon className="w-4 h-4 text-[#B91C1C] shrink-0 mt-0.5" />,
+        textClass: 'text-[#B91C1C]',
+        cardClass: 'bg-[#FEF2F2]/60 border-[#FECACA]',
+      };
+    }
+    if (isWarning) {
+      return {
+        label: 'Warning',
+        icon: <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />,
+        textClass: 'text-[#B45309]',
+        cardClass: 'bg-[#FFFBEB]/60 border-[#FDE68A]',
+      };
+    }
+    return {
+      label: 'Informational',
+      icon: <Info className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />,
+      textClass: 'text-[#0B3D91]',
+      cardClass: 'bg-[#F8FAFC] border-[#E2E8F0]',
+    };
+  };
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -268,24 +304,24 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
       {/* KPI Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
-          <p className="text-xs text-[#475569]">Unread Alerts</p>
+          <p className="text-xs text-[#475569]">Unread Notifications</p>
           <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
-            {feed?.unreadCount ?? 0}
+            {feed?.unreadCount ?? 0} unread
           </p>
         </div>
         <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
-          <p className="text-xs text-[#475569]">Total History</p>
+          <p className="text-xs text-[#475569]">Total Notification History</p>
           <p className="font-mono text-2xl font-bold tabular-nums text-[#0B1F3A] mt-1">
-            {feed?.notifications.length ?? 0}
+            {feed?.notifications.length ?? 0} total
           </p>
         </div>
         <div className="bg-white border border-[#E2E8F0] rounded-xl p-4">
-          <p className="text-xs text-[#475569]">Enabled Categories</p>
+          <p className="text-xs text-[#475569]">Enabled Notification Categories</p>
           <p className="font-mono text-2xl font-bold tabular-nums text-[#174C3C] mt-1">
             {preferences
               ? Object.values(preferences.categories).filter(Boolean).length
               : 10}{' '}
-            / 10
+            / 10 categories
           </p>
         </div>
       </div>
@@ -355,7 +391,7 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
               </label>
             </div>
             <span className="text-xs text-[#475569] font-mono tabular-nums">
-              Showing {filteredNotifications.length} item(s)
+              Showing {filteredNotifications.length} notification(s)
             </span>
           </div>
 
@@ -367,57 +403,80 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
               </p>
             </div>
           ) : (
-            <div className="divide-y divide-[#E2E8F0]">
+            <div className="space-y-3">
               {filteredNotifications.map((n: NotificationItem) => {
                 const targetTab = resolveActionTab(n.actionUrl);
+                const sev = getSeverityMeta(n);
                 return (
                   <div
                     key={n.id}
-                    className={`py-4 flex flex-wrap items-start justify-between gap-4 ${
-                      n.isRead ? 'opacity-80' : ''
+                    className={`p-4 rounded-xl border flex flex-wrap items-start justify-between gap-4 ${sev.cardClass} ${
+                      n.isRead ? 'opacity-85' : ''
                     }`}
                   >
-                    <div className="space-y-1.5 max-w-2xl">
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-[#475569]">
-                        <span className="font-semibold text-[#0B3D91]">
-                          {CATEGORY_LABELS[n.category] || n.category}
-                        </span>
-                        <span aria-hidden="true">·</span>
-                        <span className="font-mono tabular-nums">
-                          {new Date(n.createdAt).toLocaleString()}
-                        </span>
-                        {n.languageCode && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="uppercase font-mono">{n.languageCode}</span>
-                          </>
-                        )}
-                        {n.isMandatorySecurity && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="text-[#B91C1C] font-semibold inline-flex items-center gap-1">
-                              <Lock className="w-3 h-3" />
-                              Mandatory Security
-                            </span>
-                          </>
-                        )}
-                        {!n.isRead && (
-                          <>
-                            <span aria-hidden="true">·</span>
-                            <span className="font-semibold text-[#92400E]">Unread</span>
-                          </>
-                        )}
+                    <div className="flex items-start gap-3 min-w-0 flex-1 max-w-3xl">
+                      {sev.icon}
+                      <div className="space-y-1.5 min-w-0 flex-1">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-[#475569]">
+                          <span className={`font-semibold ${sev.textClass}`}>{sev.label}</span>
+                          <span aria-hidden="true">·</span>
+                          <span className="font-semibold text-[#0B3D91]">
+                            {CATEGORY_LABELS[n.category] || n.category}
+                          </span>
+                          <span aria-hidden="true">·</span>
+                          <span className="font-mono tabular-nums">
+                            {new Date(n.createdAt).toLocaleString('en-ZA', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </span>
+                          {n.languageCode && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span className="uppercase font-mono">{n.languageCode}</span>
+                            </>
+                          )}
+                          {n.isMandatorySecurity && (
+                            <>
+                              <span aria-hidden="true">·</span>
+                              <span className="text-[#B91C1C] font-semibold inline-flex items-center gap-1">
+                                <Lock className="w-3 h-3" />
+                                Mandatory Security
+                              </span>
+                            </>
+                          )}
+                          <span aria-hidden="true">·</span>
+                          <span
+                            className={`font-semibold ${
+                              n.isRead ? 'text-[#475569]' : 'text-[#92400E]'
+                            }`}
+                          >
+                            {n.isRead ? 'Read' : 'Unread'}
+                          </span>
+                        </div>
+                        <p className="font-semibold text-sm text-[#0B1F3A] break-words">
+                          {n.title}
+                        </p>
+                        <p className="text-sm text-[#334155] break-words">{n.message}</p>
                       </div>
-                      <p className="font-semibold text-sm text-[#0B1F3A]">{n.title}</p>
-                      <p className="text-sm text-[#334155]">{n.message}</p>
                     </div>
 
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex flex-wrap items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSelectedNotice(n);
+                          if (!n.isRead) void handleMarkRead(n.id);
+                        }}
+                        className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#0B3D91] whitespace-nowrap cursor-pointer"
+                      >
+                        Read Full Notice
+                      </button>
                       {targetTab && (
                         <button
                           type="button"
                           onClick={() => onNavigateTab(targetTab)}
-                          className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] whitespace-nowrap cursor-pointer"
+                          className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F1F5F9] text-xs font-semibold text-[#0B1F3A] whitespace-nowrap cursor-pointer"
                         >
                           Open Module
                         </button>
@@ -596,6 +655,71 @@ export const NotificationCentreView: React.FC<NotificationCentreViewProps> = ({
           </div>
         </div>
       ) : null}
+
+      {/* Full Notification Inspection Modal */}
+      {selectedNotice && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/60 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white border border-slate-300 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="px-5 py-4 bg-[#0B1F3A] text-white flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-mono text-sky-300 uppercase">
+                  {CATEGORY_LABELS[selectedNotice.category] || selectedNotice.category} ·{' '}
+                  {getSeverityMeta(selectedNotice).label}
+                </p>
+                <h3 className="text-base font-bold mt-1 break-words">{selectedNotice.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNotice(null)}
+                aria-label="Close notification detail"
+                className="p-1 rounded text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+                {selectedNotice.message}
+              </p>
+              <div className="text-xs font-mono text-slate-500 border-t border-slate-200 pt-3 flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {new Date(selectedNotice.createdAt).toLocaleString('en-ZA', {
+                    dateStyle: 'full',
+                    timeStyle: 'short',
+                  })}
+                </span>
+                <span>{selectedNotice.isRead ? 'Read' : 'Unread'}</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-2">
+                {resolveActionTab(selectedNotice.actionUrl) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const tab = resolveActionTab(selectedNotice.actionUrl);
+                      setSelectedNotice(null);
+                      if (tab) onNavigateTab(tab);
+                    }}
+                    className="px-3.5 py-2 rounded-xl border border-slate-300 text-xs font-semibold text-[#0B1F3A] hover:bg-slate-50 cursor-pointer"
+                  >
+                    Open Related Module
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotice(null)}
+                  className="px-4 py-2 rounded-xl bg-[#0B3D91] text-white text-xs font-semibold hover:bg-[#082E70] cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

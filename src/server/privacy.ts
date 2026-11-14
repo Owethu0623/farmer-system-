@@ -169,6 +169,9 @@ export function exportUserPersonalData(userId: string) {
     savedProspectiveLocations: store.db.savedProspectiveLocations.filter(
       (sl) => sl.userId === userId
     ),
+    savedRotationPlans: (store.db.savedRotationPlans || []).filter(
+      (rp) => rp.userId === userId || ownedFarmIds.has(rp.farmId)
+    ),
     learningProgress: store.db.learningProgress.filter((lp) => lp.userId === userId),
     aiInsights: store.db.aiInsightRecords.filter((ai) => ai.userId === userId),
     sharingGrantsGiven: store.db.farmAccessGrants.filter((g) => g.farmerUserId === userId),
@@ -312,6 +315,9 @@ export function eraseUserAccountPopia(params: {
   store.db.businessPlans = store.db.businessPlans.filter((bp) => bp.ownerId !== user.id);
   store.db.savedProspectiveLocations = store.db.savedProspectiveLocations.filter(
     (sl) => sl.userId !== user.id
+  );
+  store.db.savedRotationPlans = (store.db.savedRotationPlans || []).filter(
+    (rp) => rp.userId !== user.id && !ownedFarmIds.has(rp.farmId)
   );
   store.db.learningProgress = store.db.learningProgress.filter((lp) => lp.userId !== user.id);
   store.db.aiInsightRecords = store.db.aiInsightRecords.filter((ai) => ai.userId !== user.id);

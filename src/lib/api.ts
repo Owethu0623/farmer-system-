@@ -258,20 +258,72 @@ export function fetchSiteSoilLand(params: {
   );
 }
 
+export function fetchFarmSoilLand(farmId: string, params?: { fieldId?: string | null; farmingType?: string }) {
+  const qs = new URLSearchParams();
+  if (params?.fieldId) qs.set('fieldId', params.fieldId);
+  if (params?.farmingType) qs.set('farmingType', params.farmingType);
+  const query = qs.toString();
+  return apiRequest<import('../types').SoilLandIntelligence>(
+    `/api/soil-land/farms/${encodeURIComponent(farmId)}${query ? `?${query}` : ''}`
+  );
+}
+
+export function updateFieldSoilProfile(
+  fieldId: string,
+  payload: {
+    soilType?: string;
+    soilTexture?: 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown';
+    organicMatterLevel?: 'Low' | 'Medium' | 'High' | 'Unknown';
+    soilDrainage?: 'Poor' | 'Moderate' | 'Good' | 'Unknown';
+    waterHoldingCharacteristic?: 'Low' | 'Moderate' | 'High' | 'Unknown';
+    soilPhMeasured?: number | null;
+    nitrogenMeasuredMgKg?: number | null;
+    phosphorusMeasuredMgKg?: number | null;
+    potassiumMeasuredMgKg?: number | null;
+    currentCrop?: string;
+    previousSeasonCrop?: string;
+    twoSeasonsAgoCrop?: string;
+    farmingSystem?: string;
+    irrigationType?: string;
+  }
+) {
+  return apiRequest<import('../types').FieldItem>(
+    `/api/fields/${encodeURIComponent(fieldId)}/soil-profile`,
+    {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
 export function fetchCropRotationCatalog() {
   return apiRequest<import('../types').CropRotationCatalogOption[]>(
     '/api/crops/rotation-catalog'
   );
 }
 
+export function fetchRotationPriorities() {
+  return apiRequest<import('../types').FarmerPriorityOption[]>(
+    '/api/crops/rotation-priorities'
+  );
+}
+
 export function analyzeCropRotation(payload: {
   farmId?: string | null;
+  fieldId?: string | null;
   province?: string;
   waterAvailability?: string;
   soilType?: string;
+  soilTexture?: string;
+  organicMatterLevel?: string;
+  soilDrainage?: string;
+  waterHoldingCharacteristic?: string;
   soilPh?: number;
   farmSizeHectares?: number;
+  previousSeasonCrop?: string;
+  twoSeasonsAgoCrop?: string;
   farmerPriority?: string;
+  farmerPriorities?: string[];
   selectedCrops?: string[];
 }) {
   return apiRequest<import('../types').CropRotationAnalysisPayload>(
@@ -279,6 +331,83 @@ export function analyzeCropRotation(payload: {
     {
       method: 'POST',
       body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function simulateCropRotation(payload: {
+  farmId?: string | null;
+  fieldId?: string | null;
+  province?: string;
+  waterAvailability?: string;
+  soilType?: string;
+  soilTexture?: string;
+  organicMatterLevel?: string;
+  soilDrainage?: string;
+  waterHoldingCharacteristic?: string;
+  soilPh?: number;
+  farmSizeHectares?: number;
+  previousSeasonCrop?: string;
+  twoSeasonsAgoCrop?: string;
+  farmerPriorities?: string[];
+  season1CropId: string;
+  season2CropId: string;
+  season3CropId: string;
+  strategyName?: string;
+}) {
+  return apiRequest<import('../types').RotationSimulationResponse>(
+    '/api/crops/rotation-simulate',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function fetchSavedRotationPlans(farmId?: string | null) {
+  const qs = farmId ? `?farmId=${encodeURIComponent(farmId)}` : '';
+  return apiRequest<import('../types').SavedRotationPlanItem[]>(
+    `/api/crops/rotation-plans${qs}`
+  );
+}
+
+export function saveRotationPlan(payload: {
+  farmId: string;
+  fieldId?: string | null;
+  planName: string;
+  planSource?: 'recommended_strategy' | 'custom_simulation';
+  selectedPriorities?: string[];
+  seasons: {
+    seasonNumber: number;
+    seasonLabel: string;
+    plantingWindow: string;
+    cropId: string;
+    cropName: string;
+    botanicalFamily: string;
+    nitrogenRole: string;
+  }[];
+  decisionSupportScore: number;
+  summary: string;
+  warnings?: string[];
+  tradeOffs?: string[];
+  missingInformation?: string[];
+  environmentalSnapshotLabel?: string;
+  soilSnapshotLabel?: string;
+}) {
+  return apiRequest<import('../types').SavedRotationPlanItem>(
+    '/api/crops/rotation-plans',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    }
+  );
+}
+
+export function deleteSavedRotationPlan(planId: string) {
+  return apiRequest<{ ok: boolean }>(
+    `/api/crops/rotation-plans/${encodeURIComponent(planId)}`,
+    {
+      method: 'DELETE',
     }
   );
 }
@@ -337,6 +466,47 @@ export function revertFarmerToProspective(reason?: string) {
       body: JSON.stringify({ reason }),
     }
   );
+}
+
+export function fetchNasaRegistry() {
+  return apiRequest<{
+    provider: string;
+    baseUrl: string;
+    documentationUrl: string;
+    parameterDictionaryUrl: string;
+    lastCatalogVerificationDate: string;
+    parameters: {
+      code: string;
+      name: string;
+      unit: string;
+      domain: string;
+      supportedTemporalResolutions: string[];
+      valueKind: string;
+      sourceProduct: string;
+      latencyNote: string;
+      agronomicLimitation: string;
+      verifiedLive: boolean;
+    }[];
+  }>('/api/nasa/registry');
+}
+
+export function fetchNasaRetrievals() {
+  return apiRequest<{
+    retrievals: {
+      id: string;
+      requestId: string | null;
+      coordinatesLabel: string;
+      temporalResolution: string;
+      dateWindowLabel: string;
+      parametersRequested: string[];
+      httpStatus: number | null;
+      cacheHit: boolean;
+      validObservationCount: number;
+      fillValueCount: number;
+      errorMessage: string | null;
+      retrievedAt: string;
+    }[];
+  }>('/api/nasa/retrievals');
 }
 
 export type { AuthUser };

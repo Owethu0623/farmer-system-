@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from 'react';
-import { Bell, CheckCircle2, Download, Globe, Lock, Shield, Trash2, UserCheck } from 'lucide-react';
+import {
+  AlertOctagon,
+  AlertTriangle,
+  ArrowRight,
+  Bell,
+  CheckCircle2,
+  Download,
+  Globe,
+  History,
+  Info,
+  Lock,
+  RotateCcw,
+  Shield,
+  Sprout,
+  Tractor,
+  Trash2,
+  UserCheck,
+  X,
+} from 'lucide-react';
 import { LANGUAGE_LIST } from '../i18n/translations';
-import { apiRequest } from '../lib/api';
+import { apiRequest, revertFarmerToProspective } from '../lib/api';
 import { wipeUserOfflineVault } from '../lib/offlineSync';
 import { getSastDateString } from '../lib/saTime';
 import { AuthUser, LanguageCode, NotificationItem, PopiaPrivacySummaryPayload } from '../types';
@@ -18,6 +36,7 @@ interface ProfileSettingsViewProps {
   onUserUpdated: (user: AuthUser) => void;
   onNotificationsRefresh: () => Promise<void>;
   onOpenNotifications?: () => void;
+  onOpenFarmTransition?: () => void;
   onAccountErased?: () => void;
 }
 
@@ -32,6 +51,7 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   onUserUpdated,
   onNotificationsRefresh,
   onOpenNotifications,
+  onOpenFarmTransition,
   onAccountErased,
 }) => {
   const [fullName, setFullName] = useState(user.profile?.fullName || '');
@@ -47,6 +67,13 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Journey transition / revert state
+  const [revertReason, setRevertReason] = useState('');
+  const [revertingJourney, setRevertingJourney] = useState(false);
+
+  // Full notification detail modal
+  const [selectedNotice, setSelectedNotice] = useState<NotificationItem | null>(null);
 
   // POPIA privacy summary & erasure controls
   const [privacySummary, setPrivacySummary] = useState<PopiaPrivacySummaryPayload | null>(null);
@@ -111,6 +138,59 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   const markRead = async (id: string) => {
     await apiRequest(`/api/notifications/${id}/read`, { method: 'POST' });
     await onNotificationsRefresh();
+  };
+
+  const handleRevertToProspective = async () => {
+    setRevertingJourney(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await revertFarmerToProspective(revertReason.trim() || undefined);
+      onUserUpdated(res.user);
+      setRevertReason('');
+      setMessage(
+        `Workspace switched to Prospective Farmer mode. All ${res.preservedFarmsCount} farm record(s), business plans, saved locations, and learning history remain safely preserved.`
+      );
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : 'Unable to switch farmer journey mode.'
+      );
+    } finally {
+      setRevertingJourney(false);
+    }
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  const getSeverityMeta = (n: NotificationItem) => {
+    const isCritical =
+      n.priority === 'urgent' ||
+      n.category === 'agricultural_incident' ||
+      n.category === 'account_security';
+    const isWarning =
+      !isCritical && (n.priority === 'high' || n.category === 'weather_warning');
+    if (isCritical) {
+      return {
+        label: 'Critical Alert',
+        icon: <AlertOctagon className="w-4 h-4 text-[#B91C1C] shrink-0 mt-0.5" />,
+        textClass: 'text-[#B91C1C]',
+        boxClass: 'bg-[#FEF2F2]/60 border-[#FECACA]',
+      };
+    }
+    if (isWarning) {
+      return {
+        label: 'Warning',
+        icon: <AlertTriangle className="w-4 h-4 text-[#B45309] shrink-0 mt-0.5" />,
+        textClass: 'text-[#B45309]',
+        boxClass: 'bg-[#FFFBEB]/60 border-[#FDE68A]',
+      };
+    }
+    return {
+      label: 'Informational',
+      icon: <Info className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />,
+      textClass: 'text-[#0B3D91]',
+      boxClass: 'bg-[#F8FAFC] border-[#E2E8F0]',
+    };
   };
 
   const handleDownloadPopiaExport = async () => {
@@ -284,14 +364,123 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             </button>
           </form>
 
+          {/* Farmer Journey & Farm Transition Management */}
+          {(user.roleCode === 'prospective_farmer' || user.roleCode === 'existing_farmer') && (
+            <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-1 min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    {user.roleCode === 'prospective_farmer' ? (
+                      <Sprout className="w-5 h-5 text-[#174C3C]" />
+                    ) : (
+                      <Tractor className="w-5 h-5 text-[#0B3D91]" />
+                    )}
+                    <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                      Farmer Journey & Farm Transition
+                    </h2>
+                  </div>
+                  <p className="text-xs sm:text-sm text-[#475569] leading-relaxed">
+                    Current stage:{' '}
+                    <strong className="text-[#0B1F3A]">
+                      {user.roleCode === 'prospective_farmer'
+                        ? 'Prospective Farmer (Planning & Land Exploration)'
+                        : 'Existing Farmer (Active Farm Operations)'}
+                    </strong>
+                    . Both journeys share this single Field Shift account, preserving your login, saved locations, business plans, learning completions, and preferences.
+                  </p>
+                </div>
+
+                {user.roleCode === 'prospective_farmer' && onOpenFarmTransition && (
+                  <button
+                    type="button"
+                    onClick={onOpenFarmTransition}
+                    className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[42px] rounded-xl bg-[#174C3C] hover:bg-[#113A2E] text-white text-xs sm:text-sm font-semibold cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <span>I Now Have a Farm — Register My Farm</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
+
+              {user.roleCode === 'existing_farmer' && (
+                <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-4 space-y-3">
+                  <div className="flex items-start gap-2">
+                    <RotateCcw className="w-4 h-4 text-[#0B3D91] shrink-0 mt-0.5" />
+                    <div className="space-y-1 min-w-0">
+                      <p className="text-xs sm:text-sm font-semibold text-[#0B1F3A]">
+                        Correct or Reverse Farm Transition (Non-Destructive)
+                      </p>
+                      <p className="text-xs text-[#475569] leading-relaxed">
+                        If you transitioned prematurely or wish to return to Prospective Planning Mode, you can switch back here without deleting any registered farms, business plans, saved locations, or historical records.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-2.5">
+                    <input
+                      type="text"
+                      value={revertReason}
+                      onChange={(e) => setRevertReason(e.target.value)}
+                      placeholder="Optional note (e.g. Still finalising lease or site check)"
+                      className="flex-1 min-w-0 px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white text-xs text-[#0F172A]"
+                    />
+                    <button
+                      type="button"
+                      disabled={revertingJourney}
+                      onClick={handleRevertToProspective}
+                      className="inline-flex items-center justify-center gap-1.5 px-4 py-2 min-h-[40px] rounded-xl border border-[#0B3D91] text-[#0B3D91] hover:bg-[#EFF6FF] disabled:opacity-60 text-xs font-semibold cursor-pointer whitespace-nowrap shrink-0"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>
+                        {revertingJourney
+                          ? 'Switching...'
+                          : 'Switch to Prospective Planning Mode'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {user.profile?.journeyHistory && user.profile.journeyHistory.length > 0 && (
+                <div className="pt-3 border-t border-[#E2E8F0] space-y-2">
+                  <div className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-[#475569]">
+                    <History className="w-3.5 h-3.5" />
+                    <span>Recorded Journey History ({user.profile.journeyHistory.length} events)</span>
+                  </div>
+                  <div className="divide-y divide-[#E2E8F0] border border-[#E2E8F0] rounded-xl px-4">
+                    {user.profile.journeyHistory.map((entry) => (
+                      <div key={entry.id} className="py-2.5 text-xs space-y-0.5">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span className="font-semibold text-[#0B1F3A]">
+                            {entry.fromRole.replace(/_/g, ' ')} → {entry.toRole.replace(/_/g, ' ')}
+                            {entry.farmName ? ` · ${entry.farmName}` : ''}
+                          </span>
+                          <span className="font-mono text-[#475569] tabular-nums">
+                            {new Date(entry.occurredAt).toLocaleString('en-ZA', {
+                              dateStyle: 'medium',
+                              timeStyle: 'short',
+                            })}
+                          </span>
+                        </div>
+                        <p className="text-[#475569]">{entry.note}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Notifications */}
           <div className="bg-white border border-[#E2E8F0] rounded-2xl p-6 space-y-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Bell className="w-5 h-5 text-[#0B3D91]" />
                 <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
-                  Notifications ({notifications.length})
+                  Notifications
                 </h2>
+                <span className="text-xs font-mono text-[#475569]">
+                  · {notifications.length} total notifications · {unreadCount} unread
+                </span>
               </div>
               {onOpenNotifications && (
                 <button
@@ -306,24 +495,65 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             {notifications.length === 0 ? (
               <p className="text-sm text-[#475569]">No notifications yet.</p>
             ) : (
-              <div className="divide-y divide-[#E2E8F0]">
-                {notifications.map((n) => (
-                  <div key={n.id} className="py-3 flex items-start justify-between gap-4">
-                    <div>
-                      <p className="font-semibold text-sm text-[#0B1F3A]">{n.title}</p>
-                      <p className="text-xs text-[#334155] mt-0.5">{n.message}</p>
+              <div className="space-y-2.5">
+                {notifications.map((n) => {
+                  const sev = getSeverityMeta(n);
+                  return (
+                    <div
+                      key={n.id}
+                      className={`p-3.5 rounded-xl border flex flex-wrap items-start justify-between gap-3 ${sev.boxClass}`}
+                    >
+                      <div className="flex items-start gap-2.5 min-w-0 flex-1">
+                        {sev.icon}
+                        <div className="min-w-0 flex-1 space-y-1">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className={`font-semibold ${sev.textClass}`}>{sev.label}</span>
+                            <span aria-hidden="true">·</span>
+                            <span className="font-mono text-[#475569] tabular-nums">
+                              {new Date(n.createdAt).toLocaleString('en-ZA', {
+                                dateStyle: 'medium',
+                                timeStyle: 'short',
+                              })}
+                            </span>
+                            <span aria-hidden="true">·</span>
+                            <span
+                              className={`font-semibold ${
+                                n.isRead ? 'text-[#475569]' : 'text-[#92400E]'
+                              }`}
+                            >
+                              {n.isRead ? 'Read' : 'Unread'}
+                            </span>
+                          </div>
+                          <p className="font-semibold text-sm text-[#0B1F3A] break-words">
+                            {n.title}
+                          </p>
+                          <p className="text-xs text-[#334155] line-clamp-2">{n.message}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedNotice(n);
+                            if (!n.isRead) void markRead(n.id);
+                          }}
+                          className="px-3 py-1.5 rounded-lg border border-[#CBD5E1] bg-white hover:bg-[#F8FAFC] text-xs font-semibold text-[#0B3D91] whitespace-nowrap cursor-pointer"
+                        >
+                          Read Full Notice
+                        </button>
+                        {!n.isRead && (
+                          <button
+                            type="button"
+                            onClick={() => markRead(n.id)}
+                            className="px-3 py-1.5 rounded-lg bg-[#ECF5F2] border border-[#A7D7C5] text-xs font-semibold text-[#174C3C] whitespace-nowrap cursor-pointer"
+                          >
+                            Mark read
+                          </button>
+                        )}
+                      </div>
                     </div>
-                    {!n.isRead && (
-                      <button
-                        type="button"
-                        onClick={() => markRead(n.id)}
-                        className="text-xs font-semibold text-[#0B3D91] hover:underline shrink-0 cursor-pointer"
-                      >
-                        Mark read
-                      </button>
-                    )}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
           </div>
@@ -524,6 +754,58 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
             {saving ? 'Saving Preferences...' : 'Save Application Settings'}
           </button>
         </form>
+      )}
+
+      {/* Full Notification Inspection Modal */}
+      {selectedNotice && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-950/60 flex items-center justify-center p-4"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div className="bg-white border border-slate-300 rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
+            <div className="px-5 py-4 bg-[#0B1F3A] text-white flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-xs font-mono text-sky-300 uppercase">
+                  {selectedNotice.category.replace(/_/g, ' ')} ·{' '}
+                  {getSeverityMeta(selectedNotice).label}
+                </p>
+                <h3 className="text-base font-bold mt-1 break-words">{selectedNotice.title}</h3>
+              </div>
+              <button
+                type="button"
+                onClick={() => setSelectedNotice(null)}
+                aria-label="Close notification detail"
+                className="p-1 rounded text-slate-300 hover:text-white cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <div className="p-5 space-y-4">
+              <p className="text-sm text-slate-800 leading-relaxed whitespace-pre-wrap">
+                {selectedNotice.message}
+              </p>
+              <div className="text-xs font-mono text-slate-500 border-t border-slate-200 pt-3 flex flex-wrap items-center justify-between gap-2">
+                <span>
+                  {new Date(selectedNotice.createdAt).toLocaleString('en-ZA', {
+                    dateStyle: 'full',
+                    timeStyle: 'short',
+                  })}
+                </span>
+                <span>{selectedNotice.isRead ? 'Read' : 'Unread'}</span>
+              </div>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setSelectedNotice(null)}
+                  className="px-4 py-2 rounded-xl bg-[#0B3D91] text-white text-xs font-semibold hover:bg-[#082E70] cursor-pointer"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

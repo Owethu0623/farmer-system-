@@ -5,16 +5,21 @@ import {
   Award,
   Beef,
   Bell,
+  BookmarkCheck,
   BookOpen,
   Briefcase,
   Building2,
   Camera,
   Check,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
   CloudOff,
   CloudRain,
+  Compass,
   FileSpreadsheet,
+  GitCompare,
   Info,
   Layers,
   LayoutDashboard,
@@ -24,6 +29,7 @@ import {
   Package,
   Settings,
   Shield,
+  SlidersHorizontal,
   Sparkles,
   Sprout,
   Tractor,
@@ -42,6 +48,7 @@ import { AdminPortalView } from './components/AdminPortalView';
 import { AuthViews } from './components/AuthViews';
 import { BusinessPlannerView } from './components/BusinessPlannerView';
 import { CropManagementView } from './components/CropManagementView';
+import { CropRotationPlannerPanel } from './components/CropRotationPlannerPanel';
 import { ExpertPortalView } from './components/ExpertPortalView';
 import { FarmManagement } from './components/FarmManagement';
 import { FarmTransitionModal } from './components/FarmTransitionModal';
@@ -91,6 +98,11 @@ type WorkspaceTab =
   | 'livestock'
   | 'mixed'
   | 'soil'
+  | 'suitability'
+  | 'rotation_recommendations'
+  | 'rotation_simulator'
+  | 'rotation_comparisons'
+  | 'rotation_plans'
   | 'weather'
   | 'visual'
   | 'stock'
@@ -119,6 +131,7 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('dashboard');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [opsNavExpanded, setOpsNavExpanded] = useState(false);
 
   const [provinces, setProvinces] = useState<ProvinceInfo[]>([]);
   const [farms, setFarms] = useState<FarmItem[]>([]);
@@ -191,10 +204,10 @@ export default function App() {
     try {
       const [prospDash, plannerOverview] = await Promise.all([
         apiRequest<{ savedLocations?: SavedProspectiveLocationItem[] }>(
-          '/api/dashboard/prospective'
+          '/api/dashboard/overview'
         ).catch(() => ({ savedLocations: [] })),
         apiRequest<{ savedPlans?: BusinessPlanScenarioItem[] }>(
-          '/api/business-planner/overview'
+          '/api/business-planner'
         ).catch(() => ({ savedPlans: [] })),
       ]);
       setTransitionSavedLocations(prospDash.savedLocations || []);
@@ -451,7 +464,17 @@ export default function App() {
 
   const unreadCount = notifications.filter((n) => !n.isRead).length;
 
-  const navItems: { id: WorkspaceTab; label: string; icon: React.ReactNode; show: boolean }[] = [
+  type NavItemEntry = {
+    id: WorkspaceTab;
+    label: string;
+    icon: React.ReactNode;
+    show: boolean;
+    group: 'portal' | 'rotation' | 'operations';
+  };
+
+  const canUseRotationTools = showFarmOps || user.roleCode === 'prospective_farmer';
+
+  const navItems: NavItemEntry[] = [
     {
       id: 'dashboard',
       label: t(languageCode, 'navDashboard'),
@@ -460,120 +483,176 @@ export default function App() {
         user.roleCode !== 'system_administrator' &&
         user.roleCode !== 'agricultural_expert' &&
         user.roleCode !== 'organisation_manager',
+      group: 'rotation',
     },
     {
       id: 'admin',
       label: t(languageCode, 'navAdminPortal'),
       icon: <Shield className="w-5 h-5 shrink-0" />,
       show: user.roleCode === 'system_administrator',
+      group: 'portal',
     },
     {
       id: 'expert_portal',
       label: t(languageCode, 'navExpertPortal'),
       icon: <Award className="w-5 h-5 shrink-0" />,
       show: user.roleCode === 'agricultural_expert',
+      group: 'portal',
     },
     {
       id: 'organisation_portal',
       label: t(languageCode, 'navOrganisationPortal'),
       icon: <Building2 className="w-5 h-5 shrink-0" />,
       show: user.roleCode === 'organisation_manager',
+      group: 'portal',
     },
+    // 7 Prioritized Climate-Adaptive Rotation & Resilience Tabs
+    {
+      id: 'weather',
+      label: t(languageCode, 'navWeather'),
+      icon: <CloudRain className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    {
+      id: 'soil',
+      label: t(languageCode, 'navSoilLand'),
+      icon: <Mountain className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    {
+      id: 'suitability',
+      label: t(languageCode, 'navLandSuitability'),
+      icon: <Compass className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    {
+      id: 'rotation_recommendations',
+      label: t(languageCode, 'navRotationRecs'),
+      icon: <Sprout className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    {
+      id: 'rotation_simulator',
+      label: t(languageCode, 'navRotationSim'),
+      icon: <SlidersHorizontal className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    {
+      id: 'rotation_comparisons',
+      label: t(languageCode, 'navRotationCompare'),
+      icon: <GitCompare className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    {
+      id: 'rotation_plans',
+      label: t(languageCode, 'navRotationPlans'),
+      icon: <BookmarkCheck className="w-5 h-5 shrink-0" />,
+      show: canUseRotationTools,
+      group: 'rotation',
+    },
+    // Secondary Collapsible Farm Operations & Tools
     {
       id: 'farms',
       label: t(languageCode, 'navFarms'),
       icon: <Tractor className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
+      group: 'operations',
     },
     {
       id: 'crops',
       label: t(languageCode, 'navCrops'),
       icon: <Sprout className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
+      group: 'operations',
     },
     {
       id: 'livestock',
       label: t(languageCode, 'navLivestock'),
       icon: <Beef className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
+      group: 'operations',
     },
     {
       id: 'mixed',
       label: t(languageCode, 'navMixed'),
       icon: <Layers className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
-    },
-    {
-      id: 'soil',
-      label: t(languageCode, 'navSoilLand'),
-      icon: <Mountain className="w-5 h-5 shrink-0" />,
-      show: showFarmOps || user.roleCode === 'prospective_farmer',
-    },
-    {
-      id: 'weather',
-      label: t(languageCode, 'navWeather'),
-      icon: <CloudRain className="w-5 h-5 shrink-0" />,
-      show: showFarmOps || user.roleCode === 'prospective_farmer',
+      group: 'operations',
     },
     {
       id: 'visual',
       label: t(languageCode, 'navVisualAnalysis'),
       icon: <Camera className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
+      group: 'operations',
     },
     {
       id: 'stock',
       label: t(languageCode, 'navStock'),
       icon: <Package className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
+      group: 'operations',
     },
     {
       id: 'incidents',
       label: t(languageCode, 'navIncidents'),
       icon: <AlertOctagon className="w-5 h-5 shrink-0" />,
       show: showFarmOps,
+      group: 'operations',
     },
     {
       id: 'planner',
       label: t(languageCode, 'navBusinessPlanner'),
       icon: <Briefcase className="w-5 h-5 shrink-0" />,
       show: user.roleCode !== 'system_administrator',
+      group: 'operations',
     },
     {
       id: 'learning',
       label: t(languageCode, 'navLearningCentre'),
       icon: <BookOpen className="w-5 h-5 shrink-0" />,
       show: true,
+      group: 'operations',
     },
     {
       id: 'reports',
       label: t(languageCode, 'navReports'),
       icon: <FileSpreadsheet className="w-5 h-5 shrink-0" />,
       show: user.roleCode !== 'prospective_farmer',
+      group: 'operations',
     },
     {
       id: 'advisor',
       label: t(languageCode, 'navAdvisor'),
       icon: <Sparkles className="w-5 h-5 shrink-0" />,
       show: user.roleCode !== 'system_administrator',
+      group: 'operations',
     },
     {
       id: 'notifications',
       label:
         unreadCount > 0
-          ? `${t(languageCode, 'navNotifications')} (${unreadCount})`
+          ? `${t(languageCode, 'navNotifications')} (${unreadCount} unread)`
           : t(languageCode, 'navNotifications'),
       icon: <Bell className="w-5 h-5 shrink-0" />,
       show: true,
+      group: 'operations',
     },
     {
       id: 'offline',
       label:
         pendingSyncCount > 0
-          ? `${t(languageCode, 'navOfflineSync')} (${pendingSyncCount})`
+          ? `${t(languageCode, 'navOfflineSync')} (${pendingSyncCount} queued)`
           : t(languageCode, 'navOfflineSync'),
       icon: <CloudOff className="w-5 h-5 shrink-0" />,
       show: user.roleCode !== 'organisation_manager' && user.roleCode !== 'system_administrator',
+      group: 'operations',
     },
   ];
 
@@ -583,6 +662,11 @@ export default function App() {
       ((itemId === 'expert_portal' && user.roleCode === 'agricultural_expert') ||
         (itemId === 'organisation_portal' && user.roleCode === 'organisation_manager') ||
         (itemId === 'admin' && user.roleCode === 'system_administrator')));
+
+  const visiblePortalNav = navItems.filter((i) => i.show && i.group === 'portal');
+  const visibleRotationNav = navItems.filter((i) => i.show && i.group === 'rotation');
+  const visibleOperationsNav = navItems.filter((i) => i.show && i.group === 'operations');
+  const isOpsTabActive = visibleOperationsNav.some((i) => isNavItemActive(i.id));
 
   return (
     <div className="h-screen overflow-hidden bg-[#F1F5F9] flex flex-col lg:flex-row">
@@ -600,7 +684,7 @@ export default function App() {
                 Field Shift
               </span>
               <span className="text-[11px] font-mono text-[#93C5FD] uppercase tracking-wider block truncate">
-                {user.roleCode === 'system_administrator' ? 'System Admin' : 'SA Agri Platform'}
+                {user.roleCode === 'system_administrator' ? 'System Admin' : 'NASA Crop Rotation'}
               </span>
             </div>
           )}
@@ -624,29 +708,100 @@ export default function App() {
           aria-label="Primary Workspace Navigation"
           className="flex-1 min-h-0 overflow-y-auto px-3 py-4 space-y-1"
         >
-          {navItems
-            .filter((i) => i.show)
-            .map((item) => {
-              const active = isNavItemActive(item.id);
-              return (
+          {visiblePortalNav.map((item) => {
+            const active = isNavItemActive(item.id);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                title={sidebarCollapsed ? item.label : undefined}
+                onClick={() => setActiveTab(item.id)}
+                className={`w-full flex items-center ${
+                  sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+                } py-2.5 min-h-[42px] rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
+                  active
+                    ? 'bg-[#0B3D91] text-white'
+                    : 'text-[#CBD5E1] hover:bg-[#163055] hover:text-white'
+                }`}
+              >
+                {item.icon}
+                {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+              </button>
+            );
+          })}
+
+          {visibleRotationNav.length > 0 && (
+            <div className="space-y-1">
+              {!sidebarCollapsed && (
+                <div className="px-3.5 pt-1 pb-1 text-[10px] font-mono font-bold uppercase tracking-wider text-[#93C5FD]">
+                  Climate-Adaptive Rotation
+                </div>
+              )}
+              {visibleRotationNav.map((item) => {
+                const active = isNavItemActive(item.id);
+                return (
+                  <button
+                    key={item.id}
+                    type="button"
+                    title={sidebarCollapsed ? item.label : undefined}
+                    onClick={() => setActiveTab(item.id)}
+                    className={`w-full flex items-center ${
+                      sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+                    } py-2 min-h-[40px] rounded-xl text-[13px] font-semibold transition-colors cursor-pointer ${
+                      active
+                        ? 'bg-[#0B3D91] text-white'
+                        : 'text-[#CBD5E1] hover:bg-[#163055] hover:text-white'
+                    }`}
+                  >
+                    {item.icon}
+                    {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {visibleOperationsNav.length > 0 && (
+            <div className="pt-3 mt-2 border-t border-[#163055] space-y-1">
+              {!sidebarCollapsed ? (
                 <button
-                  key={item.id}
                   type="button"
-                  title={sidebarCollapsed ? item.label : undefined}
-                  onClick={() => setActiveTab(item.id)}
-                  className={`w-full flex items-center ${
-                    sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
-                  } py-2.5 min-h-[44px] rounded-xl text-sm font-semibold transition-colors cursor-pointer ${
-                    active
-                      ? 'bg-[#0B3D91] text-white'
-                      : 'text-[#CBD5E1] hover:bg-[#163055] hover:text-white'
-                  }`}
+                  onClick={() => setOpsNavExpanded((v) => !v)}
+                  className="w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-[11px] font-mono font-bold uppercase tracking-wider text-[#93C5FD] hover:bg-[#163055] cursor-pointer"
                 >
-                  {item.icon}
-                  {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                  <span>Farm Operations & Tools</span>
+                  {opsNavExpanded || isOpsTabActive ? (
+                    <ChevronUp className="w-3.5 h-3.5" />
+                  ) : (
+                    <ChevronDown className="w-3.5 h-3.5" />
+                  )}
                 </button>
-              );
-            })}
+              ) : null}
+
+              {(sidebarCollapsed || opsNavExpanded || isOpsTabActive) &&
+                visibleOperationsNav.map((item) => {
+                  const active = isNavItemActive(item.id);
+                  return (
+                    <button
+                      key={item.id}
+                      type="button"
+                      title={sidebarCollapsed ? item.label : undefined}
+                      onClick={() => setActiveTab(item.id)}
+                      className={`w-full flex items-center ${
+                        sidebarCollapsed ? 'justify-center px-2' : 'gap-3 px-3.5'
+                      } py-2 min-h-[38px] rounded-xl text-[13px] font-semibold transition-colors cursor-pointer ${
+                        active
+                          ? 'bg-[#0B3D91] text-white'
+                          : 'text-[#CBD5E1] hover:bg-[#163055] hover:text-white'
+                      }`}
+                    >
+                      {item.icon}
+                      {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
+                    </button>
+                  );
+                })}
+            </div>
+          )}
         </nav>
 
         {/* Pinned Bottom Utility Footer (Profile, Settings, Sign Out) */}
@@ -709,7 +864,7 @@ export default function App() {
       {/* Main Column */}
       <div className="flex-1 flex flex-col min-w-0 min-h-0">
         {/* Top Workspace Utility Bar */}
-        <header className="shrink-0 z-20 bg-white border-b border-[#CBD5E1] px-4 sm:px-8 h-16 flex items-center justify-between gap-4">
+        <header className="shrink-0 z-20 bg-white border-b border-[#CBD5E1] px-4 sm:px-8 min-h-16 py-2 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -725,7 +880,7 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-2.5 flex-wrap justify-end">
+          <div className="flex items-center gap-2 flex-wrap justify-end">
             <button
               type="button"
               onClick={() => setActiveTab('offline')}
@@ -746,7 +901,7 @@ export default function App() {
               <span>
                 {isOnline
                   ? pendingSyncCount > 0
-                    ? `Sync (${pendingSyncCount})`
+                    ? `Sync (${pendingSyncCount} queued)`
                     : 'Online'
                   : `Offline${pendingSyncCount > 0 ? ` · ${pendingSyncCount} Queued` : ' · Cached'}`}
               </span>
@@ -779,7 +934,7 @@ export default function App() {
               </button>
 
               {notifPopoverOpen && (
-                <div className="absolute right-0 mt-2 w-[340px] sm:w-[400px] bg-white border border-slate-300 rounded-md shadow-xl z-40 overflow-hidden">
+                <div className="absolute right-0 mt-2 w-[min(92vw,390px)] bg-white border border-slate-300 rounded-md shadow-xl z-40 overflow-hidden">
                   <div className="flex items-center justify-between px-4 py-3 bg-[#0B1F3A] text-white">
                     <div className="flex items-center gap-2 text-xs font-bold">
                       <Bell className="w-4 h-4 text-sky-300" />
@@ -1091,10 +1246,10 @@ export default function App() {
             <CropManagementView
               userId={user.id}
               farms={farms}
+              provinces={provinces}
               selectedFarmId={selectedFarmId}
               onSelectFarmFilter={setSelectedFarmId}
               onDataChanged={handleOperationalDataChanged}
-              provinces={provinces}
             />
           )}
 
@@ -1108,19 +1263,49 @@ export default function App() {
             />
           )}
 
-          {activeTab === 'soil' && (
+          {(activeTab === 'soil' || activeTab === 'suitability') && (
             <SoilLandView
+              viewMode={activeTab === 'suitability' ? 'suitability' : 'soil'}
               farms={farms}
+              provinces={provinces}
+              userProvince={user.profile?.province}
               selectedFarmId={selectedFarmId}
               onSelectFarm={setSelectedFarmId}
+              onFarmsRefresh={loadWorkspaceData}
+              onNavigateTab={(tab) => setActiveTab(tab as WorkspaceTab)}
               languageCode={languageCode}
-              userRoleCode={user.roleCode}
-              userProvince={user.profile?.province}
-              provinces={provinces}
               isSpeaking={isSpeaking}
               speechSupported={speechSupported}
               onSpeak={speak}
               onStopSpeaking={stopSpeaking}
+              onOpenFarmTransition={
+                user.roleCode === 'prospective_farmer'
+                  ? handleOpenFarmTransitionModal
+                  : undefined
+              }
+            />
+          )}
+
+          {(activeTab === 'rotation_recommendations' ||
+            activeTab === 'rotation_simulator' ||
+            activeTab === 'rotation_comparisons' ||
+            activeTab === 'rotation_plans') && (
+            <CropRotationPlannerPanel
+              mode={
+                activeTab === 'rotation_simulator'
+                  ? 'simulator'
+                  : activeTab === 'rotation_comparisons'
+                    ? 'comparisons'
+                    : activeTab === 'rotation_plans'
+                      ? 'plans'
+                      : 'recommendations'
+              }
+              farms={farms}
+              selectedFarmId={selectedFarmId}
+              onSelectFarm={setSelectedFarmId}
+              provinces={provinces}
+              province={user.profile?.province}
+              onNavigateTab={(tab) => setActiveTab(tab as WorkspaceTab)}
             />
           )}
 
@@ -1128,16 +1313,21 @@ export default function App() {
             <WeatherIntelligenceView
               userId={user.id}
               farms={farms}
+              provinces={provinces}
+              userProvince={user.profile?.province}
               selectedFarmId={selectedFarmId}
               onSelectFarm={setSelectedFarmId}
               languageCode={languageCode}
               userRoleCode={user.roleCode}
-              userProvince={user.profile?.province}
-              provinces={provinces}
               isSpeaking={isSpeaking}
               speechSupported={speechSupported}
               onSpeak={speak}
               onStopSpeaking={stopSpeaking}
+              onOpenFarmTransition={
+                user.roleCode === 'prospective_farmer'
+                  ? handleOpenFarmTransitionModal
+                  : undefined
+              }
             />
           )}
 
@@ -1201,8 +1391,11 @@ export default function App() {
               speechSupported={speechSupported}
               onSpeak={speak}
               onStopSpeaking={stopSpeaking}
-              onOpenFarmTransition={() => void handleOpenFarmTransitionModal()}
-              onProgressUpdated={() => setRefreshKey((k) => k + 1)}
+              onOpenFarmTransition={
+                user.roleCode === 'prospective_farmer'
+                  ? handleOpenFarmTransitionModal
+                  : undefined
+              }
             />
           )}
 
@@ -1263,7 +1456,11 @@ export default function App() {
               }}
               onNotificationsRefresh={loadWorkspaceData}
               onOpenNotifications={() => setActiveTab('notifications')}
-              onOpenFarmTransition={() => void handleOpenFarmTransitionModal()}
+              onOpenFarmTransition={
+                user.roleCode === 'prospective_farmer'
+                  ? handleOpenFarmTransitionModal
+                  : undefined
+              }
               onAccountErased={() => {
                 setStoredToken(null);
                 setUser(null);
@@ -1359,6 +1556,7 @@ export default function App() {
           onTransitionSuccess={(updatedUser, newFarm) => {
             setFarmTransitionOpen(false);
             setUser(updatedUser);
+            setFarms((prev) => [newFarm, ...prev.filter((f) => f.id !== newFarm.id)]);
             setSelectedFarmId(newFarm.id);
             setActiveTab('dashboard');
             void loadWorkspaceData();

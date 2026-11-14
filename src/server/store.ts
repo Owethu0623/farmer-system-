@@ -1749,6 +1749,7 @@ function createInitialSeed(): DatabaseSchema {
     sessions: [],
     passwordResetTokens: [],
     processedSyncIds: [],
+    savedRotationPlans: [],
   };
   applyDemoSeedFoundation(baseSeed, ROLE_PERMISSION_MAP, (pw) => hashPassword(pw));
   return baseSeed;
@@ -2324,6 +2325,18 @@ class FieldShiftStore {
 
           if (!Array.isArray(parsed.processedSyncIds)) {
             parsed.processedSyncIds = [];
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.savedRotationPlans)) {
+            parsed.savedRotationPlans = [];
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.nasaRetrievals)) {
+            parsed.nasaRetrievals = [];
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.nasaCache)) {
+            parsed.nasaCache = [];
             migrated = true;
           }
           // Tag seeded demonstration users & farms clearly without altering real users/farms

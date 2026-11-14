@@ -697,7 +697,10 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
                           </div>
                         )}
                         {inc.mediaFileName && (
-                          <p className="text-[11px] font-mono text-[#475569] truncate">
+                          <p
+                            title={inc.mediaFileName}
+                            className="text-xs font-mono text-[#475569] break-all"
+                          >
                             {inc.mediaType === 'video' ? 'Video: ' : 'Photo: '}
                             {inc.mediaFileName}
                           </p>

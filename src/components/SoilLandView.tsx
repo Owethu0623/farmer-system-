@@ -1,6 +1,8 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
+  Camera,
+  CheckCircle2,
   Compass,
   Database,
   Droplets,
@@ -9,18 +11,36 @@ import {
   Mountain,
   Plus,
   RefreshCw,
+  Save,
   Trash2,
   Upload,
   X,
 } from 'lucide-react';
-import { apiRequest, fetchPublicDatasets } from '../lib/api';
+import {
+  apiRequest,
+  fetchFarmSoilLand,
+  fetchPublicDatasets,
+  fetchSiteSoilLand,
+  updateFieldSoilProfile,
+} from '../lib/api';
 import { isLikelyOfflineError } from '../lib/offlineSync';
 import { getSastDateString } from '../lib/saTime';
-import { FarmItem, LanguageCode, PublicDatasetRecord, SoilLandIntelligence } from '../types';
+import {
+  FarmItem,
+  LanguageCode,
+  ProvinceInfo,
+  PublicDatasetRecord,
+  SoilLandIntelligence,
+  SoilProvenanceType,
+  VisualAnalysisItem,
+} from '../types';
 import { SpeakButton } from './AccessibilityControls';
+import { CropRotationPlannerPanel } from './CropRotationPlannerPanel';
 
 interface SoilLandViewProps {
   farms: FarmItem[];
+  provinces?: ProvinceInfo[];
+  userProvince?: string;
   selectedFarmId: string | null;
   onSelectFarm: (farmId: string) => void;
   languageCode: LanguageCode;
@@ -28,6 +48,10 @@ interface SoilLandViewProps {
   speechSupported: boolean;
   onSpeak: (txt: string) => void;
   onStopSpeaking: () => void;
+  onOpenFarmTransition?: () => void;
+  viewMode?: 'soil' | 'suitability';
+  onFarmsRefresh?: () => void;
+  onNavigateTab?: (tab: string) => void;
 }
 
 const FARMING_TYPE_FILTERS = [
@@ -38,8 +62,18 @@ const FARMING_TYPE_FILTERS = [
   { value: 'Orchards', label: 'Perennial Orchards' },
 ];
 
+const PROVENANCE_BADGE_STYLES: Record<SoilProvenanceType, string> = {
+  laboratory_measured: 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]',
+  farmer_provided: 'bg-[#EFF6FF] text-[#1E3A8A] border-[#BFDBFE]',
+  external_dataset: 'bg-[#F8FAFC] text-[#334155] border-[#CBD5E1]',
+  estimated: 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]',
+  unknown: 'bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]',
+};
+
 export const SoilLandView: React.FC<SoilLandViewProps> = ({
   farms,
+  provinces = [],
+  userProvince,
   selectedFarmId,
   onSelectFarm,
   languageCode,
@@ -47,9 +81,40 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
   speechSupported,
   onSpeak,
   onStopSpeaking,
+  onOpenFarmTransition,
+  viewMode = 'soil',
+  onFarmsRefresh,
+  onNavigateTab,
 }) => {
+  const isSiteMode = farms.length === 0;
   const activeFarmId = selectedFarmId || farms[0]?.id || '';
   const activeFarm = farms.find((f) => f.id === activeFarmId) || farms[0] || null;
+
+  const [selectedFieldId, setSelectedFieldId] = useState<string>('');
+
+  useEffect(() => {
+    if (!activeFarm || activeFarm.fields.length === 0) {
+      setSelectedFieldId('');
+      return;
+    }
+    if (!selectedFieldId || !activeFarm.fields.some((fl) => fl.id === selectedFieldId)) {
+      setSelectedFieldId(activeFarm.fields[0].id);
+    }
+  }, [activeFarm, selectedFieldId]);
+
+  const [siteProvince, setSiteProvince] = useState(
+    userProvince || provinces[0]?.name || 'Free State'
+  );
+  const selectedSiteProvObj = useMemo(
+    () => provinces.find((p) => p.name === siteProvince) || provinces[0],
+    [provinces, siteProvince]
+  );
+  const [siteDistrict, setSiteDistrict] = useState(
+    selectedSiteProvObj?.districts[0]?.name || ''
+  );
+  const [siteTown, setSiteTown] = useState('');
+  const [siteWater, setSiteWater] = useState('Borehole & Drip Irrigation');
+  const [siteHa, setSiteHa] = useState(3);
 
   const [farmingTypeFilter, setFarmingTypeFilter] = useState('');
   const [data, setData] = useState<SoilLandIntelligence | null>(null);
@@ -87,15 +152,48 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
   const [notes, setNotes] = useState('');
   const [savingReport, setSavingReport] = useState(false);
 
+  // Field Soil & 2-Season Crop History Inline Editor
+  const [editTexture, setEditTexture] = useState<'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown'>('Unknown');
+  const [editOm, setEditOm] = useState<'Low' | 'Medium' | 'High' | 'Unknown'>('Unknown');
+  const [editDrainage, setEditDrainage] = useState<'Poor' | 'Moderate' | 'Good' | 'Unknown'>('Unknown');
+  const [editWhc, setEditWhc] = useState<'Low' | 'Medium' | 'Moderate' | 'High' | 'Unknown'>('Unknown');
+  const [editPh, setEditPh] = useState('');
+  const [editCurrentCrop, setEditCurrentCrop] = useState('');
+  const [editPrevCrop, setEditPrevCrop] = useState('');
+  const [editTwoAgoCrop, setEditTwoAgoCrop] = useState('');
+  const [editSystem, setEditSystem] = useState('');
+  const [savingFieldProfile, setSavingFieldProfile] = useState(false);
+  const [fieldProfileSavedNote, setFieldProfileSavedNote] = useState<string | null>(null);
+
+  // Optional Visual Soil & Surface Inspection State
+  const [surfacePreviewUrl, setSurfacePreviewUrl] = useState<string | null>(null);
+  const [surfaceFileName, setSurfaceFileName] = useState<string>('');
+  const [surfaceMime, setSurfaceMime] = useState<string>('image/jpeg');
+  const [surfaceQuestion, setSurfaceQuestion] = useState(
+    'Check topsoil crusting, organic crop residue cover, erosion rills, rocks, or drainage pooling.'
+  );
+  const [surfaceAnalyzing, setSurfaceAnalyzing] = useState(false);
+  const [surfaceResult, setSurfaceResult] = useState<VisualAnalysisItem | null>(null);
+  const [surfaceHistory, setSurfaceHistory] = useState<VisualAnalysisItem[]>([]);
+
   const loadSoilIntelligence = useCallback(async () => {
-    if (!activeFarmId) return;
+    if (!activeFarmId && !isSiteMode) return;
     setLoading(true);
     setError(null);
     try {
-      const qs = farmingTypeFilter ? `?farmingType=${encodeURIComponent(farmingTypeFilter)}` : '';
-      const res = await apiRequest<SoilLandIntelligence>(
-        `/api/soil-land/farms/${encodeURIComponent(activeFarmId)}${qs}`
-      );
+      const res = isSiteMode
+        ? await fetchSiteSoilLand({
+            province: siteProvince,
+            district: siteDistrict || undefined,
+            townOrArea: siteTown.trim() || undefined,
+            waterAvailability: siteWater,
+            farmingType: farmingTypeFilter || undefined,
+            farmSizeHectares: siteHa > 0 ? siteHa : 2,
+          })
+        : await fetchFarmSoilLand(activeFarmId, {
+            fieldId: selectedFieldId || null,
+            farmingType: farmingTypeFilter || undefined,
+          });
       setData(res);
     } catch (err: unknown) {
       if (isLikelyOfflineError(err)) {
@@ -108,11 +206,45 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [activeFarmId, farmingTypeFilter]);
+  }, [
+    activeFarmId,
+    selectedFieldId,
+    isSiteMode,
+    siteProvince,
+    siteDistrict,
+    siteTown,
+    siteWater,
+    siteHa,
+    farmingTypeFilter,
+  ]);
 
   useEffect(() => {
     loadSoilIntelligence();
   }, [loadSoilIntelligence]);
+
+  useEffect(() => {
+    if (data?.selectedFieldProfile) {
+      const fp = data.selectedFieldProfile;
+      setEditTexture(fp.soilTexture || 'Unknown');
+      setEditOm(fp.organicMatterLevel || 'Unknown');
+      setEditDrainage(fp.soilDrainage || 'Unknown');
+      setEditWhc(fp.waterHoldingCharacteristic || 'Unknown');
+      setEditPh(fp.soilPhMeasured != null ? String(fp.soilPhMeasured) : '');
+      setEditCurrentCrop(fp.currentCrop || '');
+      setEditPrevCrop(fp.previousSeasonCrop || '');
+      setEditTwoAgoCrop(fp.twoSeasonsAgoCrop || '');
+      setEditSystem(fp.farmingSystem || '');
+    }
+  }, [data?.selectedFieldProfile]);
+
+  useEffect(() => {
+    if (isSiteMode || !activeFarmId) return;
+    apiRequest<VisualAnalysisItem[]>(`/api/visual-analysis?farmId=${encodeURIComponent(activeFarmId)}`)
+      .then((rows) =>
+        setSurfaceHistory(rows.filter((r) => r.category === 'soil_field_condition').slice(0, 4))
+      )
+      .catch(() => {});
+  }, [activeFarmId, isSiteMode]);
 
   useEffect(() => {
     fetchPublicDatasets()
@@ -211,65 +343,259 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
     }
   };
 
-  if (farms.length === 0) {
-    return (
-      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center space-y-2">
-        <Mountain className="w-8 h-8 text-[#0B3D91] mx-auto" />
-        <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
-          No Registered Farm Locations Found
-        </h2>
-        <p className="text-sm text-[#475569]">
-          Register a farm in Farms & GPS Map to inspect coordinate-specific soil datasets, elevation, and land suitability.
-        </p>
-      </div>
-    );
-  }
+  const handleSaveFieldProfile = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedFieldId) return;
+    setSavingFieldProfile(true);
+    setError(null);
+    setFieldProfileSavedNote(null);
+    try {
+      const parsedPh = editPh.trim() === '' ? null : Number(editPh);
+      await updateFieldSoilProfile(selectedFieldId, {
+        soilTexture: editTexture,
+        organicMatterLevel: editOm,
+        soilDrainage: editDrainage,
+        waterHoldingCharacteristic: editWhc === 'Medium' ? 'Moderate' : editWhc,
+        soilPhMeasured: parsedPh !== null && Number.isFinite(parsedPh) ? parsedPh : null,
+        currentCrop: editCurrentCrop.trim(),
+        previousSeasonCrop: editPrevCrop.trim(),
+        twoSeasonsAgoCrop: editTwoAgoCrop.trim(),
+        farmingSystem: editSystem.trim(),
+      });
+      setFieldProfileSavedNote('Field soil profile and 2-season crop history saved.');
+      await loadSoilIntelligence();
+      onFarmsRefresh?.();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to save field soil profile.');
+    } finally {
+      setSavingFieldProfile(false);
+    }
+  };
+
+  const handleSurfacePhotoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setSurfaceFileName(file.name);
+    setSurfaceMime(file.type || 'image/jpeg');
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === 'string') {
+        setSurfacePreviewUrl(reader.result);
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleAnalyzeSoilSurface = async () => {
+    if (!activeFarmId || !surfacePreviewUrl) return;
+    setSurfaceAnalyzing(true);
+    setError(null);
+    try {
+      const base64Part = surfacePreviewUrl.includes(',')
+        ? surfacePreviewUrl.split(',')[1]
+        : surfacePreviewUrl;
+      const res = await apiRequest<VisualAnalysisItem>('/api/visual-analysis', {
+        method: 'POST',
+        body: JSON.stringify({
+          farmId: activeFarmId,
+          fieldId: selectedFieldId || null,
+          category: 'soil_field_condition',
+          mediaType: 'image',
+          mediaFileName: surfaceFileName || 'soil-surface.jpg',
+          mediaMimeType: surfaceMime,
+          frames: [{ mimeType: surfaceMime, dataBase64: base64Part }],
+          mediaPreviewDataUrl: surfacePreviewUrl,
+          userQuestion: surfaceQuestion,
+          languageCode,
+        }),
+      });
+      setSurfaceResult(res);
+      setSurfaceHistory((prev) => [res, ...prev.slice(0, 3)]);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Visual soil inspection failed.');
+    } finally {
+      setSurfaceAnalyzing(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
       {/* Header & Controls */}
-      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
-            Soil & Land Intelligence
-          </h1>
-          <p className="text-sm text-[#475569]">
-            Distinguishes verified laboratory soil measurements from satellite/provincial mapped estimates.
-          </p>
+      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1 min-w-0">
+            <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
+              {viewMode === 'suitability'
+                ? 'Land Suitability & Rotation Fit Assessment'
+                : 'Soil & Field Intelligence'}
+            </h1>
+            <p className="text-sm text-[#475569]">
+              {viewMode === 'suitability'
+                ? 'Evaluate cropping systems against coordinate NASA climate trends, SoilGrids estimates, soil pH/drainage, water access, and site area.'
+                : isSiteMode
+                  ? 'Explore candidate provincial sites using SoilGrids mapped estimates, elevation, and rainfall regimes.'
+                  : 'Track per-field soil texture, drainage, 2-season crop history, and lab reports with explicit data provenance.'}
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            {!isSiteMode ? (
+              <>
+                <select
+                  value={activeFarmId}
+                  onChange={(e) => onSelectFarm(e.target.value)}
+                  className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[42px]"
+                >
+                  {farms.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      Farm: {f.name}
+                    </option>
+                  ))}
+                </select>
+
+                {activeFarm && activeFarm.fields.length > 0 && (
+                  <select
+                    value={selectedFieldId}
+                    onChange={(e) => setSelectedFieldId(e.target.value)}
+                    className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[42px]"
+                  >
+                    {activeFarm.fields.map((fl) => (
+                      <option key={fl.id} value={fl.id}>
+                        Field: {fl.name} ({fl.areaHectares} ha)
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(true)}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+                >
+                  <Upload className="w-4 h-4" />
+                  <span>Upload Lab Soil Report</span>
+                </button>
+              </>
+            ) : (
+              onOpenFarmTransition && (
+                <button
+                  type="button"
+                  onClick={onOpenFarmTransition}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#174C3C] hover:bg-[#113A2E] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+                >
+                  <span>I Now Have a Farm — Register My Farm</span>
+                </button>
+              )
+            )}
+
+            <button
+              type="button"
+              onClick={loadSoilIntelligence}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#EFF6FF] text-sm font-semibold text-[#0B1F3A] min-h-[42px] cursor-pointer whitespace-nowrap"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>{isSiteMode ? 'Analyse Candidate Site' : 'Refresh'}</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={activeFarmId}
-            onChange={(e) => onSelectFarm(e.target.value)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[42px]"
-          >
-            {farms.map((f) => (
-              <option key={f.id} value={f.id}>
-                Farm: {f.name}
-              </option>
-            ))}
-          </select>
-
-          <button
-            type="button"
-            onClick={() => setShowUploadModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
-          >
-            <Upload className="w-4 h-4" />
-            <span>Upload Lab Soil Report</span>
-          </button>
-
-          <button
-            type="button"
-            onClick={loadSoilIntelligence}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-[#F8FAFC] hover:bg-[#EFF6FF] text-sm font-semibold text-[#0B1F3A] min-h-[42px] cursor-pointer"
-          >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Refresh</span>
-          </button>
-        </div>
+        {/* Prospective Site Explorer Inputs */}
+        {isSiteMode && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 pt-3 border-t border-[#E2E8F0]">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Candidate Province
+              </label>
+              <select
+                value={siteProvince}
+                onChange={(e) => {
+                  const nextProv = e.target.value;
+                  setSiteProvince(nextProv);
+                  const found = provinces.find((p) => p.name === nextProv);
+                  setSiteDistrict(found?.districts[0]?.name || '');
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              >
+                {(provinces.length > 0
+                  ? provinces.map((p) => p.name)
+                  : [
+                      'Eastern Cape',
+                      'Free State',
+                      'Gauteng',
+                      'KwaZulu-Natal',
+                      'Limpopo',
+                      'Mpumalanga',
+                      'North West',
+                      'Northern Cape',
+                      'Western Cape',
+                    ]
+                ).map((pName) => (
+                  <option key={pName} value={pName}>
+                    {pName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                District Municipality
+              </label>
+              <select
+                value={siteDistrict}
+                onChange={(e) => setSiteDistrict(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              >
+                {selectedSiteProvObj?.districts.map((d) => (
+                  <option key={d.name} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Town / Area
+              </label>
+              <input
+                type="text"
+                value={siteTown}
+                onChange={(e) => setSiteTown(e.target.value)}
+                placeholder="e.g. Harrismith"
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              />
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Planned Water Source
+              </label>
+              <select
+                value={siteWater}
+                onChange={(e) => setSiteWater(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              >
+                <option value="Seasonal Rainfall Only (Dryland)">Rain-fed / Dryland Only</option>
+                <option value="Borehole & Drip Irrigation">Borehole & Drip Irrigation</option>
+                <option value="Farm Dam & Gravity Irrigation">Farm Dam & Gravity Irrigation</option>
+                <option value="River / Canal Abstraction">River / Canal Abstraction</option>
+                <option value="Municipal / Tanker Buffer">Municipal / Tanker Buffer</option>
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Intended Size (ha)
+              </label>
+              <input
+                type="number"
+                min="0.1"
+                step="0.5"
+                value={siteHa}
+                onChange={(e) => setSiteHa(Math.max(0.1, Number(e.target.value) || 1))}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm font-mono text-[#0F172A]"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {error && (
@@ -286,32 +612,164 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
 
       {data && (
         <>
-          {/* Honest Scientific Distinction Banner */}
+          {/* Honest Scientific Distinction & Confidence Banner */}
           <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-4">
             <div className="space-y-1 max-w-3xl">
-              <p className="text-sm font-semibold text-[#0B1F3A]">
-                {data.hasLabReport
-                  ? `Laboratory Soil Report Active (${data.latestLabReport?.laboratoryName}, sampled ${data.latestLabReport?.sampleDate})`
-                  : 'No Laboratory Soil Report Uploaded — Showing Mapped Geospatial Estimates Only'}
-              </p>
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-semibold text-[#0B1F3A]">
+                  {data.hasLabReport
+                    ? `Laboratory Soil Report Active (${data.latestLabReport?.laboratoryName}, sampled ${data.latestLabReport?.sampleDate})`
+                    : 'No Laboratory Soil Report Uploaded — Showing Field Entries & Mapped Estimates'}
+                </p>
+                {data.dataConfidenceLevel && (
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
+                      data.dataConfidenceLevel === 'Moderate-High'
+                        ? 'bg-[#ECFDF5] text-[#065F46] border-[#A7F3D0]'
+                        : data.dataConfidenceLevel === 'Moderate'
+                          ? 'bg-[#FFFBEB] text-[#92400E] border-[#FDE68A]'
+                          : 'bg-[#FEF2F2] text-[#991B1B] border-[#FECACA]'
+                    }`}
+                  >
+                    Confidence: {data.dataConfidenceLevel}
+                  </span>
+                )}
+              </div>
               <p className="text-xs text-[#334155]">
-                Mapped estimates from ISRIC SoilGrids (250 m grid) and ARC-ISCW references provide broad regional guidance only. They never substitute for a composite 0–20 cm laboratory soil analysis, and Field Shift never guarantees crop yields.
+                Every soil property below explicitly marks whether it is farmer-provided, laboratory-measured, from external datasets (ISRIC SoilGrids / NASA MERRA-2 wetness), estimated, or unknown. Field Shift never fabricates soil tests or guarantees yields.
               </p>
             </div>
-            <SpeakButton
-              text={`Soil and land summary for ${data.farmName}. Elevation ${data.landIntelligence.elevationMeters ?? 'unknown'} meters. ${
-                data.hasLabReport
-                  ? `Latest lab soil report from ${data.latestLabReport?.laboratoryName} shows pH ${data.latestLabReport?.soilPhWater} and texture ${data.latestLabReport?.soilTextureClass}.`
-                  : 'No laboratory soil report has been uploaded yet; only mapped geospatial estimates are shown.'
-              }`}
-              languageCode={languageCode}
-              isSpeaking={isSpeaking}
-              onSpeak={onSpeak}
-              onStop={onStopSpeaking}
-              supported={speechSupported}
-              label="Read Soil Brief"
-            />
+            <div className="flex flex-wrap items-center gap-2">
+              {onNavigateTab && (
+                <button
+                  type="button"
+                  onClick={() => onNavigateTab('rotation_recommendations')}
+                  className="px-3.5 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                >
+                  Open Rotation Recommendations →
+                </button>
+              )}
+              <SpeakButton
+                text={`Soil and land summary for ${data.farmName}${
+                  data.selectedFieldName ? `, field ${data.selectedFieldName}` : ''
+                }. Elevation ${data.landIntelligence.elevationMeters ?? 'unknown'} meters. Data confidence ${
+                  data.dataConfidenceLevel || 'Moderate'
+                }.`}
+                languageCode={languageCode}
+                isSpeaking={isSpeaking}
+                onSpeak={onSpeak}
+                onStop={onStopSpeaking}
+                supported={speechSupported}
+                label="Read Soil Brief"
+              />
+            </div>
           </div>
+
+          {viewMode === 'suitability' && (
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-[#0B3D91]" />
+                    <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
+                      Land Suitability & Enterprise Assessment
+                    </h2>
+                  </div>
+                  <p className="text-xs text-[#475569]">
+                    Cross-analyses coordinate climate, soil metrics, drainage, elevation, water availability, and site size (
+                    {isSiteMode ? siteHa : activeFarm?.farmSizeHectares} ha). Suitability never guarantees yield or profit.
+                  </p>
+                </div>
+
+                <select
+                  value={farmingTypeFilter}
+                  onChange={(e) => setFarmingTypeFilter(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[40px]"
+                >
+                  {FARMING_TYPE_FILTERS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      Focus: {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {data.suitabilityOptions.map((opt) => (
+                  <article
+                    key={opt.id}
+                    className="border border-[#E2E8F0] rounded-2xl p-5 bg-[#F8FAFC] space-y-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-medium text-[#475569]">{opt.category}</span>
+                        <div className="flex items-center gap-2">
+                          {opt.confidenceLevel && (
+                            <span className="text-[11px] font-mono text-[#475569]">
+                              {opt.confidenceLevel}
+                            </span>
+                          )}
+                          <span
+                            className={`font-semibold ${
+                              opt.suitabilityLevel === 'Well Suited'
+                                ? 'text-[#174C3C]'
+                                : opt.suitabilityLevel === 'Conditionally Suitable'
+                                ? 'text-[#B45309]'
+                                : 'text-[#B91C1C]'
+                            }`}
+                          >
+                            {opt.suitabilityLevel}
+                          </span>
+                        </div>
+                      </div>
+                      <h3 className="font-display text-base font-bold text-[#0B1F3A]">
+                        {opt.farmingOption}
+                      </h3>
+                    </div>
+
+                    <div className="space-y-3 text-xs text-[#334155] leading-relaxed">
+                      <div>
+                        <p className="font-semibold text-[#0B1F3A]">1. Why this option may be suitable</p>
+                        <p className="mt-0.5">{opt.whySuitable}</p>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#0B1F3A]">2. Supporting information</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.supportingInformation.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#B45309]">3. Missing information</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.missingInformation.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#B91C1C]">4. Possible limitations</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.possibleLimitations.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div>
+                        <p className="font-semibold text-[#0B1F3A]">5. Additional assessments required</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.additionalAssessmentsRequired.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* Land Intelligence Section */}
           <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
@@ -372,8 +830,216 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                   {data.landIntelligence.environmentalConditions}
                 </p>
               </div>
+              {data.landIntelligence.nasaSoilWetnessNote && (
+                <div className="md:col-span-2 lg:col-span-3 bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3.5 text-xs space-y-1">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className="font-bold text-[#174C3C]">
+                      NASA MERRA-2 Soil Wetness Model Estimates (0–1 Fraction)
+                    </span>
+                    <span className="font-mono font-semibold text-[#0B1F3A]">
+                      GWETROOT: {data.landIntelligence.nasaGwetRoot ?? '—'} · GWETTOP:{' '}
+                      {data.landIntelligence.nasaGwetTop ?? '—'}
+                    </span>
+                  </div>
+                  <p className="text-[#334155]">{data.landIntelligence.nasaSoilWetnessNote}</p>
+                </div>
+              )}
             </div>
           </section>
+
+          {/* Field Soil & 2-Season Crop History Profile Editor (Registered Farms) */}
+          {!isSiteMode && data.selectedFieldProfile && (
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                    Field Soil & 2-Season Crop History ({data.selectedFieldProfile.fieldName})
+                  </h2>
+                  <p className="text-xs text-[#475569]">
+                    Inputs entered here are stored as <strong className="text-[#0B3D91]">Farmer-Provided</strong> (or <strong className="text-[#065F46]">Laboratory-Measured</strong> when lab-verified) and feed directly into the Crop Rotation Engine.
+                  </p>
+                </div>
+                {fieldProfileSavedNote && (
+                  <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-[#174C3C]">
+                    <CheckCircle2 className="w-4 h-4" />
+                    <span>{fieldProfileSavedNote}</span>
+                  </span>
+                )}
+              </div>
+
+              <form onSubmit={handleSaveFieldProfile} className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3 text-xs">
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Soil Texture</label>
+                    <select
+                      value={editTexture}
+                      onChange={(e) => setEditTexture(e.target.value as typeof editTexture)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                    >
+                      <option value="Unknown">Unknown</option>
+                      <option value="Sandy">Sandy</option>
+                      <option value="Loam">Loam</option>
+                      <option value="Clay Loam">Clay Loam</option>
+                      <option value="Clay">Clay</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Organic Matter</label>
+                    <select
+                      value={editOm}
+                      onChange={(e) => setEditOm(e.target.value as typeof editOm)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                    >
+                      <option value="Unknown">Unknown</option>
+                      <option value="Low">Low (&lt;1.5%)</option>
+                      <option value="Medium">Medium (1.5–3%)</option>
+                      <option value="High">High (&gt;3%)</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Soil Drainage</label>
+                    <select
+                      value={editDrainage}
+                      onChange={(e) => setEditDrainage(e.target.value as typeof editDrainage)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                    >
+                      <option value="Unknown">Unknown</option>
+                      <option value="Good">Good</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="Poor">Poor / Waterlogs</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Water Holding</label>
+                    <select
+                      value={editWhc === 'Medium' ? 'Moderate' : editWhc}
+                      onChange={(e) => setEditWhc(e.target.value as typeof editWhc)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                    >
+                      <option value="Unknown">Unknown</option>
+                      <option value="Low">Low</option>
+                      <option value="Moderate">Moderate</option>
+                      <option value="High">High</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Soil pH (if tested)</label>
+                    <input
+                      type="number"
+                      step="0.1"
+                      min="3.5"
+                      max="9.5"
+                      placeholder="Leave blank if untested"
+                      value={editPh}
+                      onChange={(e) => setEditPh(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Current Crop</label>
+                    <input
+                      type="text"
+                      value={editCurrentCrop}
+                      onChange={(e) => setEditCurrentCrop(e.target.value)}
+                      placeholder="e.g. Yellow Maize or Fallow"
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Previous Season Crop</label>
+                    <input
+                      type="text"
+                      value={editPrevCrop}
+                      onChange={(e) => setEditPrevCrop(e.target.value)}
+                      placeholder="e.g. Maize"
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">2 Seasons Ago Crop</label>
+                    <input
+                      type="text"
+                      value={editTwoAgoCrop}
+                      onChange={(e) => setEditTwoAgoCrop(e.target.value)}
+                      placeholder="e.g. Soybeans"
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                    />
+                  </div>
+                  <div>
+                    <label className="block font-semibold text-[#334155] mb-1">Farming System</label>
+                    <input
+                      type="text"
+                      value={editSystem}
+                      onChange={(e) => setEditSystem(e.target.value)}
+                      placeholder="e.g. Conservation No-Till"
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex justify-end">
+                  <button
+                    type="submit"
+                    disabled={savingFieldProfile}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#174C3C] hover:bg-[#113A2E] text-white text-xs font-semibold cursor-pointer"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{savingFieldProfile ? 'Saving...' : 'Save Field Soil & Crop History'}</span>
+                  </button>
+                </div>
+              </form>
+            </section>
+          )}
+
+          {/* 5-Category Soil Provenance Matrix & Missing Measurement Guidance */}
+          {data.soilProvenanceMatrix && data.soilProvenanceMatrix.length > 0 && (
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                  Data Provenance & Confidence Audit
+                </h2>
+                <span className="text-xs text-[#475569]">
+                  Distinguishes Farmer-Provided, Lab-Measured, External Dataset, Estimated & Unknown values
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 text-xs">
+                {data.soilProvenanceMatrix.map((entry) => (
+                  <div
+                    key={entry.key}
+                    className="border border-[#E2E8F0] rounded-xl p-3.5 bg-[#F8FAFC] space-y-1.5"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="font-semibold text-[#0B1F3A]">{entry.label}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-semibold border shrink-0 ${
+                          PROVENANCE_BADGE_STYLES[entry.provenance]
+                        }`}
+                      >
+                        {entry.provenanceLabel}
+                      </span>
+                    </div>
+                    <p className="font-mono font-bold text-sm text-[#0B1F3A]">{entry.displayValue}</p>
+                    <p className="text-[#475569] leading-snug">{entry.detailNote}</p>
+                  </div>
+                ))}
+              </div>
+
+              {data.missingMeasurementsGuidance && data.missingMeasurementsGuidance.length > 0 && (
+                <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-4 text-xs text-[#92400E] space-y-1.5">
+                  <p className="font-bold">Missing Measurements & Field Verification Guidance:</p>
+                  <ul className="list-disc pl-4 space-y-0.5">
+                    {data.missingMeasurementsGuidance.map((g, idx) => (
+                      <li key={idx}>{g}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </section>
+          )}
 
           {/* Soil Metrics Table (Measured vs Mapped Comparison) */}
           <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
@@ -384,13 +1050,15 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
                   Soil Profile: Laboratory Measurements vs. Mapped Estimates
                 </h2>
               </div>
-              <button
-                type="button"
-                onClick={() => setShowUploadModal(true)}
-                className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
-              >
-                + Add Laboratory Test Result
-              </button>
+              {!isSiteMode && (
+                <button
+                  type="button"
+                  onClick={() => setShowUploadModal(true)}
+                  className="text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
+                >
+                  + Add Laboratory Test Result
+                </button>
+              )}
             </div>
 
             <div className="overflow-x-auto">
@@ -445,35 +1113,41 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
           {/* Uploaded Soil Lab Reports List & Data Source Integrations */}
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
             <section className="lg:col-span-6 bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2">
                   <FileText className="w-5 h-5 text-[#0B3D91]" />
                   <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
-                    Laboratory Soil Reports ({data.allLabReports.length})
+                    Laboratory Soil Reports ({data.allLabReports.length} uploaded)
                   </h2>
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowUploadModal(true)}
-                  className="inline-flex items-center gap-1 text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Record New Report</span>
-                </button>
+                {!isSiteMode && (
+                  <button
+                    type="button"
+                    onClick={() => setShowUploadModal(true)}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#0B3D91] hover:underline cursor-pointer whitespace-nowrap"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                    <span>Record New Report</span>
+                  </button>
+                )}
               </div>
 
               {data.allLabReports.length === 0 ? (
                 <div className="py-6 text-center space-y-2 border-t border-[#E2E8F0]">
                   <p className="text-sm text-[#475569]">
-                    No laboratory soil reports uploaded for {data.farmName} yet.
+                    {isSiteMode
+                      ? 'Laboratory soil reports attach once a farm is registered. Take composite 0–20 cm samples before buying inputs.'
+                      : `No laboratory soil reports uploaded for ${data.farmName} yet.`}
                   </p>
-                  <button
-                    type="button"
-                    onClick={() => setShowUploadModal(true)}
-                    className="px-4 py-2 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#0B3D91] text-xs font-semibold cursor-pointer min-h-[40px]"
-                  >
-                    Upload Soil Test Now
-                  </button>
+                  {!isSiteMode && (
+                    <button
+                      type="button"
+                      onClick={() => setShowUploadModal(true)}
+                      className="px-4 py-2 rounded-xl bg-[#EFF6FF] border border-[#BFDBFE] text-[#0B3D91] text-xs font-semibold cursor-pointer min-h-[40px]"
+                    >
+                      Upload Soil Test Now
+                    </button>
+                  )}
                 </div>
               ) : (
                 <div className="divide-y divide-[#E2E8F0]">
@@ -574,106 +1248,220 @@ export const SoilLandView: React.FC<SoilLandViewProps> = ({
             </section>
           </div>
 
-          {/* Land Suitability Analysis */}
-          <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="space-y-1">
-                <div className="flex items-center gap-2">
-                  <Compass className="w-5 h-5 text-[#0B3D91]" />
-                  <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
-                    Land Suitability & Enterprise Assessment
-                  </h2>
+          {/* Optional Visual Soil & Field Surface Inspection */}
+          {!isSiteMode && (
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <Camera className="w-5 h-5 text-[#0B3D91]" />
+                    <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
+                      Optional Visual Soil & Field Surface Inspection
+                    </h2>
+                  </div>
+                  <p className="text-xs text-[#475569] mt-0.5">
+                    Inspects visible topsoil surface condition (crusting, crop residue cover, erosion rills, exposed rocks, or pooling water). Visual photos cannot measure soil pH or NPK — upload a laboratory test for nutrient values.
+                  </p>
                 </div>
-                <p className="text-xs text-[#475569]">
-                  Cross-analyses soil metrics, rainfall, elevation, water availability, farm size ({activeFarm?.farmSizeHectares} ha), and farmer experience. Suitability never guarantees yield or profit.
-                </p>
               </div>
 
-              <select
-                value={farmingTypeFilter}
-                onChange={(e) => setFarmingTypeFilter(e.target.value)}
-                className="px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[40px]"
-              >
-                {FARMING_TYPE_FILTERS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    Focus: {opt.label}
-                  </option>
-                ))}
-              </select>
-            </div>
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
+                <div className="md:col-span-5 space-y-3">
+                  <label className="block border-2 border-dashed border-[#CBD5E1] rounded-xl p-4 text-center cursor-pointer hover:bg-[#F8FAFC]">
+                    <span className="text-xs font-semibold text-[#0B3D91] block">
+                      {surfaceFileName || 'Select Topsoil / Field Surface Photo (JPEG, PNG, WebP)'}
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      onChange={handleSurfacePhotoSelect}
+                      className="hidden"
+                    />
+                  </label>
+                  {surfacePreviewUrl && (
+                    <img
+                      src={surfacePreviewUrl}
+                      alt="Field topsoil surface preview"
+                      className="w-full h-40 object-cover rounded-xl border border-[#CBD5E1]"
+                    />
+                  )}
+                </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-              {data.suitabilityOptions.map((opt) => (
-                <article
-                  key={opt.id}
-                  className="border border-[#E2E8F0] rounded-2xl p-5 bg-[#F8FAFC] space-y-4"
+                <div className="md:col-span-7 space-y-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-[#334155] mb-1">
+                      Surface Observation Focus
+                    </label>
+                    <input
+                      type="text"
+                      value={surfaceQuestion}
+                      onChange={(e) => setSurfaceQuestion(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!surfacePreviewUrl || surfaceAnalyzing}
+                    onClick={handleAnalyzeSoilSurface}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer"
+                  >
+                    <Camera className="w-4 h-4" />
+                    <span>{surfaceAnalyzing ? 'Inspecting Surface...' : 'Inspect Soil Surface Photo'}</span>
+                  </button>
+
+                  {surfaceResult && (
+                    <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-4 text-xs space-y-2">
+                      <div className="flex items-center justify-between gap-2">
+                        <span className="font-bold text-[#0B1F3A]">
+                          Surface Findings ({surfaceResult.confidenceLevel} Confidence)
+                        </span>
+                        <span className="font-mono text-[11px] text-[#475569]">
+                          {surfaceResult.poweredBy === 'gemini' ? 'AI Vision' : 'Grounded Visual Guidance'}
+                        </span>
+                      </div>
+                      <p className="text-[#334155] leading-relaxed">{surfaceResult.explanation}</p>
+                      <ul className="list-disc pl-4 space-y-0.5 text-[#0F172A]">
+                        {surfaceResult.possibleFindings.map((f, i) => (
+                          <li key={i}>{f}</li>
+                        ))}
+                      </ul>
+                      <p className="text-[11px] text-[#92400E] font-medium">
+                        {surfaceResult.uncertaintyNote}
+                      </p>
+                    </div>
+                  )}
+
+                  {surfaceHistory.length > 0 && !surfaceResult && (
+                    <div className="text-xs text-[#475569] space-y-1">
+                      <p className="font-semibold text-[#0B1F3A]">Recent Surface Inspections:</p>
+                      {surfaceHistory.map((h) => (
+                        <div key={h.id} className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-lg p-2">
+                          <span className="font-mono text-[11px]">{h.analyzedAt.slice(0, 10)}</span> ·{' '}
+                          {h.possibleFindings[0] || h.explanation}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </section>
+          )}
+
+          {/* Land Suitability Analysis (shown below Soil Intelligence when in 'soil' mode) */}
+          {viewMode === 'soil' && (
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
+              <div className="flex flex-wrap items-center justify-between gap-4">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <Compass className="w-5 h-5 text-[#0B3D91]" />
+                    <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
+                      Land Suitability & Enterprise Assessment
+                    </h2>
+                  </div>
+                  <p className="text-xs text-[#475569]">
+                    Cross-analyses soil metrics, rainfall, elevation, water availability, site size (
+                    {isSiteMode ? siteHa : activeFarm?.farmSizeHectares} ha), and farmer experience. Suitability never guarantees yield or profit.
+                  </p>
+                </div>
+
+                <select
+                  value={farmingTypeFilter}
+                  onChange={(e) => setFarmingTypeFilter(e.target.value)}
+                  className="px-3.5 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0B1F3A] min-h-[40px]"
                 >
-                  <div className="space-y-1">
-                    <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
-                      <span className="font-medium text-[#475569]">{opt.category}</span>
-                      <span
-                        className={`font-semibold ${
-                          opt.suitabilityLevel === 'Well Suited'
-                            ? 'text-[#174C3C]'
-                            : opt.suitabilityLevel === 'Conditionally Suitable'
-                            ? 'text-[#B45309]'
-                            : 'text-[#B91C1C]'
-                        }`}
-                      >
-                        {opt.suitabilityLevel}
-                      </span>
-                    </div>
-                    <h3 className="font-display text-base font-bold text-[#0B1F3A]">
-                      {opt.farmingOption}
-                    </h3>
-                  </div>
+                  {FARMING_TYPE_FILTERS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      Focus: {opt.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-                  <div className="space-y-3 text-xs text-[#334155] leading-relaxed">
-                    <div>
-                      <p className="font-semibold text-[#0B1F3A]">1. Why this option may be suitable</p>
-                      <p className="mt-0.5">{opt.whySuitable}</p>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-[#0B1F3A]">2. Supporting information</p>
-                      <ul className="mt-0.5 space-y-0.5">
-                        {opt.supportingInformation.map((item) => (
-                          <li key={item}>· {item}</li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <div>
-                      <p className="font-semibold text-[#B45309]">3. Missing information</p>
-                      <ul className="mt-0.5 space-y-0.5">
-                        {opt.missingInformation.map((item) => (
-                          <li key={item}>· {item}</li>
-                        ))}
-                      </ul>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {data.suitabilityOptions.map((opt) => (
+                  <article
+                    key={opt.id}
+                    className="border border-[#E2E8F0] rounded-2xl p-5 bg-[#F8FAFC] space-y-4"
+                  >
+                    <div className="space-y-1">
+                      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                        <span className="font-medium text-[#475569]">{opt.category}</span>
+                        <span
+                          className={`font-semibold ${
+                            opt.suitabilityLevel === 'Well Suited'
+                              ? 'text-[#174C3C]'
+                              : opt.suitabilityLevel === 'Conditionally Suitable'
+                              ? 'text-[#B45309]'
+                              : 'text-[#B91C1C]'
+                          }`}
+                        >
+                          {opt.suitabilityLevel}
+                        </span>
+                      </div>
+                      <h3 className="font-display text-base font-bold text-[#0B1F3A]">
+                        {opt.farmingOption}
+                      </h3>
                     </div>
 
-                    <div>
-                      <p className="font-semibold text-[#B91C1C]">4. Possible limitations</p>
-                      <ul className="mt-0.5 space-y-0.5">
-                        {opt.possibleLimitations.map((item) => (
-                          <li key={item}>· {item}</li>
-                        ))}
-                      </ul>
-                    </div>
+                    <div className="space-y-3 text-xs text-[#334155] leading-relaxed">
+                      <div>
+                        <p className="font-semibold text-[#0B1F3A]">1. Why this option may be suitable</p>
+                        <p className="mt-0.5">{opt.whySuitable}</p>
+                      </div>
 
-                    <div>
-                      <p className="font-semibold text-[#0B1F3A]">5. Additional assessments required</p>
-                      <ul className="mt-0.5 space-y-0.5">
-                        {opt.additionalAssessmentsRequired.map((item) => (
-                          <li key={item}>· {item}</li>
-                        ))}
-                      </ul>
+                      <div>
+                        <p className="font-semibold text-[#0B1F3A]">2. Supporting information</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.supportingInformation.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-[#B45309]">3. Missing information</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.missingInformation.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-[#B91C1C]">4. Possible limitations</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.possibleLimitations.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
+
+                      <div>
+                        <p className="font-semibold text-[#0B1F3A]">5. Additional assessments required</p>
+                        <ul className="mt-0.5 space-y-0.5">
+                          {opt.additionalAssessmentsRequired.map((item) => (
+                            <li key={item}>· {item}</li>
+                          ))}
+                        </ul>
+                      </div>
                     </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-          </section>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* Contextual 3-Season Crop Rotation Preview */}
+          <CropRotationPlannerPanel
+            mode="recommendations"
+            farmId={isSiteMode ? null : activeFarm?.id || null}
+            fieldId={isSiteMode ? null : selectedFieldId || null}
+            province={isSiteMode ? siteProvince : activeFarm?.location?.province}
+            waterAvailability={isSiteMode ? siteWater : activeFarm?.waterAvailability}
+            soilPh={data.latestLabReport?.soilPhWater ?? data.selectedFieldProfile?.soilPhMeasured ?? null}
+            farmSizeHectares={isSiteMode ? siteHa : activeFarm?.farmSizeHectares}
+            provinces={provinces}
+          />
         </>
       )}
 

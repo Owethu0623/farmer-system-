@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   AlertTriangle,
   BarChart3,
@@ -7,6 +7,7 @@ import {
   Droplets,
   Plus,
   RefreshCw,
+  Satellite,
   ShieldAlert,
   Sparkles,
   Sun,
@@ -14,7 +15,7 @@ import {
   Wind,
   WifiOff,
 } from 'lucide-react';
-import { apiRequest } from '../lib/api';
+import { apiRequest, fetchSiteWeather } from '../lib/api';
 import { getSastDateString } from '../lib/saTime';
 import {
   enqueueOfflineMutation,
@@ -26,6 +27,7 @@ import {
   FarmItem,
   LanguageCode,
   LocalWeatherFeedbackOverview,
+  ProvinceInfo,
   RainfallIntensity,
   RoleCode,
   WeatherIntelligence,
@@ -36,6 +38,8 @@ import { SpeakButton } from './AccessibilityControls';
 interface WeatherIntelligenceViewProps {
   userId?: string;
   farms: FarmItem[];
+  provinces?: ProvinceInfo[];
+  userProvince?: string;
   selectedFarmId: string | null;
   onSelectFarm: (farmId: string) => void;
   languageCode: LanguageCode;
@@ -44,11 +48,14 @@ interface WeatherIntelligenceViewProps {
   speechSupported: boolean;
   onSpeak: (txt: string) => void;
   onStopSpeaking: () => void;
+  onOpenFarmTransition?: () => void;
 }
 
 export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = ({
   userId,
   farms,
+  provinces = [],
+  userProvince,
   selectedFarmId,
   onSelectFarm,
   languageCode,
@@ -57,9 +64,23 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
   speechSupported,
   onSpeak,
   onStopSpeaking,
+  onOpenFarmTransition,
 }) => {
+  const isSiteMode = farms.length === 0;
   const activeFarmId = selectedFarmId || farms[0]?.id || '';
   const activeFarm = farms.find((f) => f.id === activeFarmId) || farms[0] || null;
+
+  const initialProvName = userProvince || provinces[0]?.name || 'Free State';
+  const [siteProvince, setSiteProvince] = useState(initialProvName);
+  const selectedSiteProvObj = useMemo(
+    () => provinces.find((p) => p.name === siteProvince) || provinces[0],
+    [provinces, siteProvince]
+  );
+  const [siteDistrict, setSiteDistrict] = useState(
+    selectedSiteProvObj?.districts[0]?.name || ''
+  );
+  const [siteTown, setSiteTown] = useState('');
+  const [siteWater, setSiteWater] = useState('Borehole & Drip Irrigation');
 
   const [activeSection, setActiveSection] = useState<'forecast' | 'feedback'>('forecast');
   const [weather, setWeather] = useState<WeatherIntelligence | null>(null);
@@ -83,16 +104,23 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
   const [obsNotes, setObsNotes] = useState('');
 
   const loadWeather = useCallback(async () => {
-    if (!activeFarmId) return;
+    if (!activeFarmId && !isSiteMode) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await apiRequest<WeatherIntelligence>(
-        `/api/weather/farms/${encodeURIComponent(activeFarmId)}`
-      );
+      const res = isSiteMode
+        ? await fetchSiteWeather({
+            province: siteProvince,
+            district: siteDistrict || undefined,
+            townOrArea: siteTown.trim() || undefined,
+            waterAvailability: siteWater,
+          })
+        : await apiRequest<WeatherIntelligence>(
+            `/api/weather/farms/${encodeURIComponent(activeFarmId)}`
+          );
       setWeather(res);
     } catch (err: unknown) {
-      if (isLikelyOfflineError(err) && userId) {
+      if (isLikelyOfflineError(err) && userId && !isSiteMode) {
         const bundle = await loadOfflineBundle(userId);
         const snap = bundle?.weatherSnapshots?.find((s) => s.farmId === activeFarmId) || null;
         if (bundle && activeFarm) {
@@ -150,7 +178,7 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
       }
       setError(
         isLikelyOfflineError(err)
-          ? 'Fresh weather forecasts require internet connectivity, and no offline weather snapshot is saved for this farm yet.'
+          ? 'Fresh weather forecasts and NASA POWER climate comparisons require internet connectivity.'
           : err instanceof Error
           ? err.message
           : 'Unable to load agricultural weather.'
@@ -158,10 +186,10 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
     } finally {
       setLoading(false);
     }
-  }, [activeFarmId, activeFarm, userId]);
+  }, [activeFarmId, activeFarm, userId, isSiteMode, siteProvince, siteDistrict, siteTown, siteWater]);
 
   const loadFeedback = useCallback(async () => {
-    if (!activeFarmId) return;
+    if (!activeFarmId || isSiteMode) return;
     setFeedbackLoading(true);
     try {
       const fb = await apiRequest<LocalWeatherFeedbackOverview>(
@@ -358,20 +386,6 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
     }
   };
 
-  if (farms.length === 0) {
-    return (
-      <div className="bg-white border border-[#CBD5E1] rounded-2xl p-8 text-center space-y-2">
-        <CloudRain className="w-8 h-8 text-[#0B3D91] mx-auto" />
-        <h2 className="font-display text-xl font-bold text-[#0B1F3A]">
-          Register a Farm Location for Weather Intelligence
-        </h2>
-        <p className="text-sm text-[#475569]">
-          Agricultural weather warnings, coordinate forecasts, and local farmer rainfall feedback connect directly to each registered farm’s GPS or map coordinates.
-        </p>
-      </div>
-    );
-  }
-
   const maxHistRain = Math.max(
     10,
     ...(weather?.historicalRainfall.historicalDays.map((d) => d.precipitationMm) || [10])
@@ -393,58 +407,166 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
   const canReviewQc =
     userRoleCode === 'agricultural_expert' || userRoleCode === 'system_administrator';
 
+  const formatDelta = (val: number | null | undefined, unit: string) => {
+    if (val === null || val === undefined || !Number.isFinite(val)) return '—';
+    const sign = val > 0 ? '+' : '';
+    return `${sign}${val} ${unit}`;
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header & Farm Switcher */}
+      {/* Header & Farm or Candidate Site Switcher */}
       <div className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
+          <div className="space-y-1 min-w-0">
             <h1 className="font-display text-2xl font-bold text-[#0B1F3A]">
-              Agricultural Weather & Local Feedback Loop
+              Agricultural Weather, NASA Climate & Local Feedback
             </h1>
             <p className="text-sm text-[#475569]">
-              Coordinate-linked forecasts, agricultural warnings, and farmer-reported weather comparison.
+              {isSiteMode
+                ? 'Prospective site weather forecasts, NASA POWER historical climate comparisons (2001–2015 vs 2020–2024), and SA seasonal calendars.'
+                : 'Coordinate-linked forecasts, NASA POWER historical climate trends, agricultural warnings, and farmer-reported weather comparison.'}
             </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2.5">
-            <select
-              value={activeFarmId}
-              onChange={(e) => onSelectFarm(e.target.value)}
-              className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0F172A] min-h-[42px]"
-            >
-              {farms.map((f) => (
-                <option key={f.id} value={f.id}>
-                  Farm: {f.name}
-                </option>
-              ))}
-            </select>
+            {!isSiteMode ? (
+              <>
+                <select
+                  value={activeFarmId}
+                  onChange={(e) => onSelectFarm(e.target.value)}
+                  className="px-3.5 py-2.5 rounded-xl border border-[#CBD5E1] bg-white text-sm font-semibold text-[#0F172A] min-h-[42px]"
+                >
+                  {farms.map((f) => (
+                    <option key={f.id} value={f.id}>
+                      Farm: {f.name}
+                    </option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveSection('feedback');
+                    setObsFormOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#0B3D91] text-[#0B3D91] hover:bg-[#EFF6FF] text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>Report Farm Weather</span>
+                </button>
+              </>
+            ) : (
+              onOpenFarmTransition && (
+                <button
+                  type="button"
+                  onClick={onOpenFarmTransition}
+                  className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#174C3C] hover:bg-[#113A2E] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+                >
+                  <span>I Now Have a Farm — Register My Farm</span>
+                </button>
+              )
+            )}
 
             <button
               type="button"
               onClick={() => {
-                setActiveSection('feedback');
-                setObsFormOpen(true);
-              }}
-              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#0B3D91] text-[#0B3D91] hover:bg-[#EFF6FF] text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Report Farm Weather</span>
-            </button>
-
-            <button
-              type="button"
-              onClick={() => {
-                loadWeather().then(() => loadFeedback());
+                loadWeather().then(() => {
+                  if (!isSiteMode) loadFeedback();
+                });
               }}
               disabled={loading}
               className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#0B3D91] hover:bg-[#082E70] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-              <span>Update Weather</span>
+              <span>{isSiteMode ? 'Analyse Site Climate' : 'Update Weather'}</span>
             </button>
           </div>
         </div>
+
+        {/* Prospective Site Location Controls */}
+        {isSiteMode && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-3 border-t border-[#E2E8F0]">
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Target Province
+              </label>
+              <select
+                value={siteProvince}
+                onChange={(e) => {
+                  const nextProv = e.target.value;
+                  setSiteProvince(nextProv);
+                  const found = provinces.find((p) => p.name === nextProv);
+                  setSiteDistrict(found?.districts[0]?.name || '');
+                }}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              >
+                {(provinces.length > 0
+                  ? provinces.map((p) => p.name)
+                  : [
+                      'Eastern Cape',
+                      'Free State',
+                      'Gauteng',
+                      'KwaZulu-Natal',
+                      'Limpopo',
+                      'Mpumalanga',
+                      'North West',
+                      'Northern Cape',
+                      'Western Cape',
+                    ]
+                ).map((pName) => (
+                  <option key={pName} value={pName}>
+                    {pName}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                District Municipality
+              </label>
+              <select
+                value={siteDistrict}
+                onChange={(e) => setSiteDistrict(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              >
+                {selectedSiteProvObj?.districts.map((d) => (
+                  <option key={d.name} value={d.name}>
+                    {d.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Town / Target Area (Optional)
+              </label>
+              <input
+                type="text"
+                value={siteTown}
+                onChange={(e) => setSiteTown(e.target.value)}
+                placeholder="e.g. Bethlehem / Ficksburg"
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              />
+            </div>
+            <div className="min-w-0">
+              <label className="block text-xs font-semibold text-[#334155] mb-1">
+                Expected Water Source
+              </label>
+              <select
+                value={siteWater}
+                onChange={(e) => setSiteWater(e.target.value)}
+                className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm text-[#0F172A]"
+              >
+                <option value="Seasonal Rainfall Only (Dryland)">Rain-fed / Dryland Only</option>
+                <option value="Borehole & Drip Irrigation">Borehole & Drip Irrigation</option>
+                <option value="Farm Dam & Gravity Irrigation">Farm Dam & Gravity Irrigation</option>
+                <option value="River / Canal Abstraction">River / Canal Abstraction</option>
+                <option value="Municipal / Tanker Buffer">Municipal / Tanker Buffer</option>
+              </select>
+            </div>
+          </div>
+        )}
 
         {/* Segmented Tabs */}
         <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#E2E8F0]">
@@ -457,19 +579,21 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                 : 'bg-[#F8FAFC] text-[#334155] border border-[#CBD5E1] hover:bg-[#EFF6FF]'
             }`}
           >
-            Live Forecast & Warnings
+            Live Forecast, Warnings & NASA Climate
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveSection('feedback')}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
-              activeSection === 'feedback'
-                ? 'bg-[#0B3D91] text-white'
-                : 'bg-[#F8FAFC] text-[#334155] border border-[#CBD5E1] hover:bg-[#EFF6FF]'
-            }`}
-          >
-            Local Weather Feedback & Comparison ({feedback?.observations.length ?? 0})
-          </button>
+          {!isSiteMode && (
+            <button
+              type="button"
+              onClick={() => setActiveSection('feedback')}
+              className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+                activeSection === 'feedback'
+                  ? 'bg-[#0B3D91] text-white'
+                  : 'bg-[#F8FAFC] text-[#334155] border border-[#CBD5E1] hover:bg-[#EFF6FF]'
+              }`}
+            >
+              Local Weather Feedback & Comparison ({feedback?.observations.length ?? 0} logs)
+            </button>
+          )}
         </div>
       </div>
 
@@ -535,12 +659,27 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
           </div>
 
           {/* Graceful Unavailable / Cached Fallback Notice */}
-          {(!weather.serviceAvailable || weather.isCachedFallback) && weather.unavailableReason && (
+          {(!weather.serviceAvailable ||
+            weather.isCachedFallback ||
+            weather.nasaPower?.isCachedFallback ||
+            weather.nasaClimateComparison?.isCachedFallback) && (
             <div className="bg-[#FFFBEB] border border-[#FDE68A] text-[#92400E] rounded-2xl p-4 flex items-start gap-3 text-sm">
               <WifiOff className="w-5 h-5 shrink-0 mt-0.5" />
               <div className="space-y-1">
-                <p className="font-semibold">Weather Service Notice</p>
-                <p className="text-xs leading-relaxed">{weather.unavailableReason}</p>
+                <p className="font-semibold">
+                  {!weather.serviceAvailable
+                    ? 'Weather Service Notice'
+                    : 'Cached Environmental Data Active'}
+                </p>
+                <p className="text-xs leading-relaxed">
+                  {weather.unavailableReason ||
+                    `Displaying cached NASA/forecast telemetry retrieved at ${
+                      weather.nasaClimateComparison?.retrievedAt ||
+                      weather.nasaPower?.lastUpdated ||
+                      weather.lastUpdated ||
+                      'earlier'
+                    }.`}
+                </p>
               </div>
             </div>
           )}
@@ -839,12 +978,54 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                       : 'Unavailable'}
                   </strong>
                 </span>
+                <span>
+                  Past 60 Days:{' '}
+                  <strong className="text-[#0B1F3A]">
+                    {weather.historicalRainfall.past60DaysMm != null
+                      ? `${weather.historicalRainfall.past60DaysMm} mm`
+                      : 'Unavailable'}
+                  </strong>
+                </span>
               </div>
             </div>
 
-            <p className="text-xs text-[#475569]">
-              Seasonal Baseline: {weather.historicalRainfall.seasonalClimateNote}
-            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[#475569]">Longest Dry Spell (60d)</p>
+                <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
+                  {weather.historicalRainfall.longestDrySpellDays60d != null
+                    ? `${weather.historicalRainfall.longestDrySpellDays60d} days`
+                    : '—'}
+                </p>
+                <p className="text-[11px] text-[#64748B]">
+                  Current dry run: {weather.historicalRainfall.currentDrySpellDays ?? '—'}d
+                </p>
+              </div>
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[#475569]">Hot Days &ge;32°C (60d)</p>
+                <p className="font-mono text-base font-bold tabular-nums text-[#B45309] mt-0.5">
+                  {weather.historicalRainfall.hotDays32cCount60d ?? '—'} days
+                </p>
+                <p className="text-[11px] text-[#64748B]">
+                  &ge;35°C extreme: {weather.historicalRainfall.hotDays35cCount60d ?? '—'}d
+                </p>
+              </div>
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[#475569]">Frost-Risk Days &le;2°C (60d)</p>
+                <p className="font-mono text-base font-bold tabular-nums text-[#0B3D91] mt-0.5">
+                  {weather.historicalRainfall.frostRiskDays2cCount60d ?? '—'} days
+                </p>
+                <p className="text-[11px] text-[#64748B]">
+                  &le;0°C freeze: {weather.historicalRainfall.frostDays0cCount60d ?? '—'}d
+                </p>
+              </div>
+              <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                <p className="text-[#475569]">Baseline Note</p>
+                <p className="text-[#334155] mt-0.5 leading-snug">
+                  {weather.historicalRainfall.seasonalClimateNote}
+                </p>
+              </div>
+            </div>
 
             {weather.historicalRainfall.historicalDays.length > 0 && (
               <div className="pt-2">
@@ -872,7 +1053,7 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                 </div>
                 <div className="flex justify-between text-[11px] font-mono tabular-nums text-[#475569] mt-1">
                   <span>{weather.historicalRainfall.historicalDays[0]?.date}</span>
-                  <span>30-Day Observed Coordinate Rainfall (mm/day)</span>
+                  <span>Recent Observed Coordinate Rainfall (mm/day)</span>
                   <span>
                     {
                       weather.historicalRainfall.historicalDays[
@@ -893,7 +1074,7 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div>
                       <p className="text-[11px] font-mono uppercase tracking-wider text-[#0B3D91]">
-                        Satellite Agro-Meteorology
+                        Satellite & Reanalysis Agro-Meteorology
                       </p>
                       <h2 className="font-display text-lg font-bold text-[#0B1F3A]">
                         NASA POWER Coordinate Summary
@@ -905,44 +1086,67 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                   </div>
 
                   {weather.nasaPower.serviceAvailable ? (
-                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
-                        <p className="text-[#475569]">Solar Irradiance</p>
-                        <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
-                          {weather.nasaPower.avgSolarIrradiance ?? '—'} {weather.nasaPower.solarUnit}
-                        </p>
+                    <>
+                      <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 text-xs">
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Solar Irradiance</p>
+                          <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
+                            {weather.nasaPower.avgSolarIrradiance ?? '—'} {weather.nasaPower.solarUnit}
+                          </p>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">NASA 60d / 30d Precip</p>
+                          <p className="font-mono text-base font-bold tabular-nums text-[#0B3D91] mt-0.5">
+                            {weather.nasaPower.past60DaysNasaMm ?? weather.nasaPower.totalPrecipitationMm ?? '—'} mm
+                          </p>
+                          <p className="text-[11px] text-[#64748B] font-mono">
+                            30d: {weather.nasaPower.past30DaysNasaMm ?? '—'} mm
+                          </p>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Mean Humidity</p>
+                          <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
+                            {weather.nasaPower.avgRelativeHumidityPercent ?? '—'}%
+                          </p>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Mean High / Low</p>
+                          <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
+                            {weather.nasaPower.avgMaxTempC ?? '—'}° / {weather.nasaPower.avgMinTempC ?? '—'}°C
+                          </p>
+                        </div>
+                        <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3">
+                          <p className="text-[#174C3C] font-semibold">Root-Zone Wetness (GWETROOT)</p>
+                          <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
+                            {weather.nasaPower.gwetRootRecent != null
+                              ? weather.nasaPower.gwetRootRecent.toFixed(2)
+                              : '—'}{' '}
+                            <span className="text-[11px] font-normal text-[#475569]">(0–1 scale)</span>
+                          </p>
+                          <p className="text-[11px] text-[#174C3C]">
+                            {weather.nasaPower.gwetRootLabel || 'Model wetness fraction'}
+                          </p>
+                        </div>
+                        <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-3">
+                          <p className="text-[#174C3C] font-semibold">Surface Wetness (GWETTOP)</p>
+                          <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
+                            {weather.nasaPower.gwetTopRecent != null
+                              ? weather.nasaPower.gwetTopRecent.toFixed(2)
+                              : '—'}{' '}
+                            <span className="text-[11px] font-normal text-[#475569]">(0–1 scale)</span>
+                          </p>
+                          <p className="text-[11px] text-[#174C3C]">
+                            {weather.nasaPower.gwetTopLabel || 'Model surface fraction'}
+                          </p>
+                        </div>
                       </div>
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
-                        <p className="text-[#475569]">NASA Precip Total</p>
-                        <p className="font-mono text-base font-bold tabular-nums text-[#0B3D91] mt-0.5">
-                          {weather.nasaPower.totalPrecipitationMm ?? '—'} mm
-                        </p>
-                      </div>
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
-                        <p className="text-[#475569]">Mean Humidity</p>
-                        <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
-                          {weather.nasaPower.avgRelativeHumidityPercent ?? '—'}%
-                        </p>
-                      </div>
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
-                        <p className="text-[#475569]">Mean Daily High</p>
-                        <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
-                          {weather.nasaPower.avgMaxTempC ?? '—'}°C
-                        </p>
-                      </div>
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
-                        <p className="text-[#475569]">Mean Daily Low</p>
-                        <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
-                          {weather.nasaPower.avgMinTempC ?? '—'}°C
-                        </p>
-                      </div>
-                      <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
-                        <p className="text-[#475569]">Valid Days</p>
-                        <p className="font-mono text-base font-bold tabular-nums text-[#0B1F3A] mt-0.5">
-                          {weather.nasaPower.daysCount} days
-                        </p>
-                      </div>
-                    </div>
+
+                      {weather.nasaPower.gwetDisclaimer && (
+                        <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-3 text-xs text-[#0B1F3A] leading-relaxed">
+                          <strong>Model Moisture Notice:</strong> {weather.nasaPower.gwetDisclaimer}
+                        </div>
+                      )}
+                    </>
                   ) : (
                     <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-3.5 text-xs text-[#92400E]">
                       {weather.nasaPower.unavailableReason ||
@@ -950,7 +1154,7 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                     </div>
                   )}
                   <p className="text-[11px] text-[#475569] leading-relaxed">
-                    Source: {weather.nasaPower.source}. Used for solar-drying, irrigation ET estimation, and multi-week rainfall cross-checking.
+                    Source: {weather.nasaPower.source}. Used for moisture-trend context, dry-spell tracking, and rotation feasibility checks.
                   </p>
                 </section>
               )}
@@ -986,6 +1190,494 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
                 </section>
               )}
             </div>
+          )}
+
+          {/* NASA POWER Historical Climate Comparison (Baseline 2001–2015 vs Recent 2020–2024) */}
+          {weather.nasaClimateComparison && (
+            <section className="bg-white border border-[#CBD5E1] rounded-2xl p-6 space-y-5">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1 min-w-0">
+                  <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-[#0B3D91]">
+                    <Satellite className="w-4 h-4 shrink-0" />
+                    <span>NASA Earth Observation Historical Climate Analysis</span>
+                  </div>
+                  <h2 className="font-display text-lg sm:text-xl font-bold text-[#0B1F3A]">
+                    {weather.nasaClimateComparison.datasetName}
+                  </h2>
+                  <p className="text-xs text-[#475569]">
+                    Coordinates:{' '}
+                    <span className="font-mono font-semibold text-[#0B1F3A]">
+                      {weather.nasaClimateComparison.coordinatesLabel}
+                    </span>{' '}
+                    · {weather.nasaClimateComparison.spatialResolutionNote}
+                  </p>
+                </div>
+
+                <div className="text-xs text-[#475569] font-mono text-right">
+                  <p>
+                    {weather.nasaClimateComparison.baselinePeriodLabel} vs{' '}
+                    {weather.nasaClimateComparison.recentPeriodLabel}
+                  </p>
+                  {weather.nasaClimateComparison.retrievedAt && (
+                    <p className="text-[11px]">
+                      Retrieved{' '}
+                      {new Date(weather.nasaClimateComparison.retrievedAt).toLocaleString('en-ZA', {
+                        dateStyle: 'medium',
+                        timeStyle: 'short',
+                      })}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {weather.nasaClimateComparison.serviceAvailable &&
+              weather.nasaClimateComparison.baselineMetrics &&
+              weather.nasaClimateComparison.recentMetrics &&
+              weather.nasaClimateComparison.delta ? (
+                <>
+                  <div className="overflow-x-auto border border-[#E2E8F0] rounded-xl">
+                    <table className="w-full text-left text-xs sm:text-sm">
+                      <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-xs text-[#475569]">
+                        <tr>
+                          <th className="py-3 px-4 font-semibold">Climate Indicator</th>
+                          <th className="py-3 px-4 font-semibold text-right">
+                            Baseline ({weather.nasaClimateComparison.baselinePeriodLabel})
+                          </th>
+                          <th className="py-3 px-4 font-semibold text-right">
+                            Recent ({weather.nasaClimateComparison.recentPeriodLabel})
+                          </th>
+                          <th className="py-3 px-4 font-semibold text-right">
+                            Observed Shift (Delta)
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#E2E8F0] font-mono tabular-nums">
+                        <tr>
+                          <td className="py-3 px-4 font-sans font-semibold text-[#0B1F3A]">
+                            Mean Annual Rainfall (mm/yr)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.meanAnnualRainfallMm ?? '—'} mm
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold text-[#0B3D91]">
+                            {weather.nasaClimateComparison.recentMetrics.meanAnnualRainfallMm ?? '—'} mm
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold">
+                            {formatDelta(
+                              weather.nasaClimateComparison.delta.annualRainfallChangeMm,
+                              'mm/yr'
+                            )}
+                            {weather.nasaClimateComparison.delta.annualRainfallChangePercent !== null
+                              ? ` (${
+                                  weather.nasaClimateComparison.delta.annualRainfallChangePercent > 0
+                                    ? '+'
+                                    : ''
+                                }${weather.nasaClimateComparison.delta.annualRainfallChangePercent}%)`
+                              : ''}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-sans text-[#334155]">
+                            Summer Seasonal Rainfall (DJF, mm)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.summerDjRainfallMm ?? '—'} mm
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.recentMetrics.summerDjRainfallMm ?? '—'} mm
+                          </td>
+                          <td className="py-3 px-4 text-right text-[#475569]">
+                            {weather.nasaClimateComparison.baselineMetrics.summerDjRainfallMm !== null &&
+                            weather.nasaClimateComparison.recentMetrics.summerDjRainfallMm !== null
+                              ? formatDelta(
+                                  Number(
+                                    (
+                                      weather.nasaClimateComparison.recentMetrics.summerDjRainfallMm -
+                                      weather.nasaClimateComparison.baselineMetrics.summerDjRainfallMm
+                                    ).toFixed(1)
+                                  ),
+                                  'mm'
+                                )
+                              : '—'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-sans text-[#334155]">
+                            Winter Seasonal Rainfall (JJA, mm)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.winterJjaRainfallMm ?? '—'} mm
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.recentMetrics.winterJjaRainfallMm ?? '—'} mm
+                          </td>
+                          <td className="py-3 px-4 text-right text-[#475569]">
+                            {weather.nasaClimateComparison.baselineMetrics.winterJjaRainfallMm !== null &&
+                            weather.nasaClimateComparison.recentMetrics.winterJjaRainfallMm !== null
+                              ? formatDelta(
+                                  Number(
+                                    (
+                                      weather.nasaClimateComparison.recentMetrics.winterJjaRainfallMm -
+                                      weather.nasaClimateComparison.baselineMetrics.winterJjaRainfallMm
+                                    ).toFixed(1)
+                                  ),
+                                  'mm'
+                                )
+                              : '—'}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-sans font-semibold text-[#0B1F3A]">
+                            Mean Daily Max Temperature (°C)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.avgMaxTempC ?? '—'}°C
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold">
+                            {weather.nasaClimateComparison.recentMetrics.avgMaxTempC ?? '—'}°C
+                          </td>
+                          <td className="py-3 px-4 text-right font-semibold text-[#B45309]">
+                            {formatDelta(weather.nasaClimateComparison.delta.avgMaxTempChangeC, '°C')}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-sans text-[#334155]">
+                            Mean Daily Min Temperature (°C)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.avgMinTempC ?? '—'}°C
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.recentMetrics.avgMinTempC ?? '—'}°C
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {formatDelta(weather.nasaClimateComparison.delta.avgMinTempChangeC, '°C')}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-sans text-[#334155]">
+                            Solar Irradiance (MJ/m²/day)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.avgSolarIrradiance ?? '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.recentMetrics.avgSolarIrradiance ?? '—'}
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {formatDelta(
+                              weather.nasaClimateComparison.delta.solarIrradianceChange,
+                              'MJ/m²/d'
+                            )}
+                          </td>
+                        </tr>
+                        <tr>
+                          <td className="py-3 px-4 font-sans text-[#334155]">
+                            Mean Relative Humidity (%)
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.baselineMetrics.avgRelativeHumidityPercent ??
+                              '—'}
+                            %
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {weather.nasaClimateComparison.recentMetrics.avgRelativeHumidityPercent ??
+                              '—'}
+                            %
+                          </td>
+                          <td className="py-3 px-4 text-right">
+                            {formatDelta(
+                              weather.nasaClimateComparison.delta.humidityChangePercent,
+                              '%'
+                            )}
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
+                    <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-xl p-4 space-y-1">
+                      <p className="font-bold text-[#0B1F3A]">Observed Climate Summary</p>
+                      <p className="text-[#334155] leading-relaxed">
+                        {weather.nasaClimateComparison.localInterpretation.summary}
+                      </p>
+                    </div>
+                    <div className="bg-[#ECF5F2] border border-[#A7D7C5] rounded-xl p-4 space-y-1">
+                      <p className="font-bold text-[#174C3C]">Soil & Moisture Implications</p>
+                      <p className="text-[#334155] leading-relaxed">
+                        {weather.nasaClimateComparison.localInterpretation.soilAndMoistureNote}
+                      </p>
+                    </div>
+                    <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-4 space-y-1">
+                      <p className="font-bold text-[#0B1F3A]">Crop & Rotation Relevance</p>
+                      <p className="text-[#334155] leading-relaxed">
+                        {weather.nasaClimateComparison.localInterpretation.rotationDecisionRelevance ||
+                          weather.nasaClimateComparison.localInterpretation.cropPlanningNote}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Regime, Seasonal Distribution & Dry Years Strip */}
+                  <div className="grid grid-cols-1 md:grid-cols-5 gap-3 text-xs pt-2">
+                    <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-3">
+                      <p className="text-[#475569]">Classified Regime</p>
+                      <p className="font-display font-bold text-sm text-[#0B1F3A] mt-0.5">
+                        {weather.nasaClimateComparison.rainfallRegimeClassification || 'Classified'}
+                      </p>
+                    </div>
+                    {weather.nasaClimateComparison.seasonalDistribution && (
+                      <>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Summer (DJF)</p>
+                          <p className="font-mono font-bold text-[#0B1F3A] mt-0.5">
+                            {weather.nasaClimateComparison.seasonalDistribution.summerDjfRecentMm ?? '—'} mm
+                          </p>
+                          <p className="text-[11px] text-[#64748B] font-mono">
+                            Base: {weather.nasaClimateComparison.seasonalDistribution.summerDjfBaselineMm ?? '—'} mm
+                          </p>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Autumn (MAM)</p>
+                          <p className="font-mono font-bold text-[#0B1F3A] mt-0.5">
+                            {weather.nasaClimateComparison.seasonalDistribution.autumnMamRecentMm ?? '—'} mm
+                          </p>
+                          <p className="text-[11px] text-[#64748B] font-mono">
+                            Base: {weather.nasaClimateComparison.seasonalDistribution.autumnMamBaselineMm ?? '—'} mm
+                          </p>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Winter (JJA)</p>
+                          <p className="font-mono font-bold text-[#0B1F3A] mt-0.5">
+                            {weather.nasaClimateComparison.seasonalDistribution.winterJjaRecentMm ?? '—'} mm
+                          </p>
+                          <p className="text-[11px] text-[#64748B] font-mono">
+                            Base: {weather.nasaClimateComparison.seasonalDistribution.winterJjaBaselineMm ?? '—'} mm
+                          </p>
+                        </div>
+                        <div className="bg-[#F8FAFC] border border-[#E2E8F0] rounded-xl p-3">
+                          <p className="text-[#475569]">Spring (SON)</p>
+                          <p className="font-mono font-bold text-[#0B1F3A] mt-0.5">
+                            {weather.nasaClimateComparison.seasonalDistribution.springSonRecentMm ?? '—'} mm
+                          </p>
+                          <p className="text-[11px] text-[#64748B] font-mono">
+                            Base: {weather.nasaClimateComparison.seasonalDistribution.springSonBaselineMm ?? '—'} mm
+                          </p>
+                        </div>
+                      </>
+                    )}
+                  </div>
+
+                  {/* Monthly Rainfall Distribution Chart (Baseline vs Recent) */}
+                  {weather.nasaClimateComparison.monthlyDistribution &&
+                    weather.nasaClimateComparison.monthlyDistribution.length > 0 && (() => {
+                      const months = weather.nasaClimateComparison.monthlyDistribution!;
+                      const maxMonthRain = Math.max(
+                        20,
+                        ...months.flatMap((m) => [m.baselineRainfallMm ?? 0, m.recentRainfallMm ?? 0])
+                      );
+                      return (
+                        <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-3 bg-[#F8FAFC]">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F3A]">
+                              Monthly Rainfall Distribution (mm) — Baseline vs Recent
+                            </h3>
+                            <div className="flex items-center gap-4 text-[11px] text-[#334155]">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="w-3 h-3 rounded-sm bg-[#93C5FD] inline-block" />
+                                <span>Baseline (2001–2015)</span>
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="w-3 h-3 rounded-sm bg-[#0B3D91] inline-block" />
+                                <span>Recent (2020–2024)</span>
+                              </span>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-6 sm:grid-cols-12 gap-2 pt-2">
+                            {months.map((m) => {
+                              const bVal = m.baselineRainfallMm ?? 0;
+                              const rVal = m.recentRainfallMm ?? 0;
+                              const bH = Math.max(4, Math.round((bVal / maxMonthRain) * 100));
+                              const rH = Math.max(4, Math.round((rVal / maxMonthRain) * 100));
+                              return (
+                                <div key={m.monthIndex} className="flex flex-col items-center space-y-1">
+                                  <div className="h-24 w-full flex items-end justify-center gap-1 border-b border-[#CBD5E1] pb-1">
+                                    <div
+                                      className="w-2.5 bg-[#93C5FD] rounded-t"
+                                      style={{ height: `${bH}%` }}
+                                      title={`${m.monthLabel} Baseline: ${bVal} mm`}
+                                    />
+                                    <div
+                                      className="w-2.5 bg-[#0B3D91] rounded-t"
+                                      style={{ height: `${rH}%` }}
+                                      title={`${m.monthLabel} Recent: ${rVal} mm`}
+                                    />
+                                  </div>
+                                  <span className="text-[11px] font-semibold text-[#0B1F3A]">
+                                    {m.monthLabel}
+                                  </span>
+                                  <span className="text-[10px] font-mono tabular-nums text-[#475569]">
+                                    {rVal.toFixed(0)}mm
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                  {/* Annual Rainfall Trend (2001–2024) with Recurring Dry Years Flagged */}
+                  {weather.nasaClimateComparison.annualSeries &&
+                    weather.nasaClimateComparison.annualSeries.length > 0 && (() => {
+                      const series = weather.nasaClimateComparison.annualSeries!;
+                      const maxAnnual = Math.max(
+                        100,
+                        ...series.map((y) => y.annualRainfallMm ?? 0)
+                      );
+                      const dryInfo = weather.nasaClimateComparison.recurringDryYears;
+                      return (
+                        <div className="border border-[#E2E8F0] rounded-xl p-4 space-y-3 bg-[#F8FAFC]">
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div>
+                              <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F3A]">
+                                2001–2024 Annual Rainfall & Recurring Dry-Year Variability
+                              </h3>
+                              {dryInfo && (
+                                <p className="text-[11px] text-[#475569] mt-0.5">{dryInfo.note}</p>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-4 text-[11px] text-[#334155]">
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="w-3 h-3 rounded-sm bg-[#0B3D91] inline-block" />
+                                <span>Normal / Above Threshold</span>
+                              </span>
+                              <span className="inline-flex items-center gap-1.5">
+                                <span className="w-3 h-3 rounded-sm bg-[#D97706] inline-block" />
+                                <span>Dry Year (&lt;80% of 2001–2015 Mean)</span>
+                              </span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-end gap-1 h-28 border-b border-[#CBD5E1] pb-1 pt-2 overflow-x-auto">
+                            {series.map((yr) => {
+                              const val = yr.annualRainfallMm ?? 0;
+                              const hPct = Math.max(5, Math.round((val / maxAnnual) * 100));
+                              return (
+                                <div
+                                  key={yr.year}
+                                  className="flex-1 min-w-[14px] flex flex-col items-center justify-end h-full group"
+                                  title={`${yr.year}: ${yr.annualRainfallMm ?? '—'} mm · Mean Tmax ${yr.avgMaxTempC ?? '—'}°C${
+                                    yr.isDryYear ? ' (Dry Year)' : ''
+                                  }`}
+                                >
+                                  <div
+                                    className={`w-full rounded-t ${
+                                      yr.isDryYear ? 'bg-[#D97706]' : 'bg-[#0B3D91]'
+                                    }`}
+                                    style={{ height: `${hPct}%` }}
+                                  />
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <div className="flex justify-between text-[10px] font-mono tabular-nums text-[#475569]">
+                            <span>{series[0]?.year}</span>
+                            <span>
+                              Dry years flagged: {dryInfo?.totalDryYearsCount ?? 0} total (
+                              {dryInfo?.recent5YearDryCount ?? 0} in recent 2020–2024)
+                            </span>
+                            <span>{series[series.length - 1]?.year}</span>
+                          </div>
+                        </div>
+                      );
+                    })()}
+
+                  {weather.nasaClimateComparison.localInterpretation.scientificFramingNote && (
+                    <div className="bg-[#F8FAFC] border border-[#CBD5E1] rounded-xl p-3 text-xs text-[#334155]">
+                      <strong>Scientific Framing Note:</strong>{' '}
+                      {weather.nasaClimateComparison.localInterpretation.scientificFramingNote}
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-xl p-4 text-xs text-[#92400E] space-y-1">
+                  <p className="font-semibold">
+                    NASA POWER Historical Comparison Temporarily Unavailable
+                  </p>
+                  <p>
+                    {weather.nasaClimateComparison.unavailableReason ||
+                      'Live NASA POWER climatology endpoints could not be reached for this coordinate.'}
+                  </p>
+                </div>
+              )}
+
+              {/* NASA Parameter Transparency Metadata Table */}
+              {weather.nasaPower?.parameterMetadata &&
+                weather.nasaPower.parameterMetadata.length > 0 && (
+                  <div className="space-y-2 pt-2 border-t border-[#E2E8F0]">
+                    <h3 className="text-xs font-bold uppercase tracking-wider text-[#0B1F3A]">
+                      NASA POWER Parameter Transparency & Source Metadata
+                    </h3>
+                    <div className="overflow-x-auto border border-[#E2E8F0] rounded-xl">
+                      <table className="w-full text-left text-xs">
+                        <thead className="bg-[#F8FAFC] border-b border-[#E2E8F0] text-[#475569]">
+                          <tr>
+                            <th className="py-2 px-3 font-semibold">Parameter</th>
+                            <th className="py-2 px-3 font-semibold">Unit</th>
+                            <th className="py-2 px-3 font-semibold">Value Kind</th>
+                            <th className="py-2 px-3 font-semibold">Status</th>
+                            <th className="py-2 px-3 font-semibold">Period & Note</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E2E8F0]">
+                          {weather.nasaPower.parameterMetadata.map((pm) => (
+                            <tr key={pm.parameterCode}>
+                              <td className="py-2 px-3 font-mono font-semibold text-[#0B1F3A] whitespace-nowrap">
+                                {pm.parameterCode}
+                                <div className="font-sans font-normal text-[11px] text-[#475569]">
+                                  {pm.parameterName}
+                                </div>
+                              </td>
+                              <td className="py-2 px-3 font-mono text-[#334155] whitespace-nowrap">
+                                {pm.unit}
+                              </td>
+                              <td className="py-2 px-3 text-[#334155]">
+                                {pm.valueKind === 'model_derived_soil_wetness_estimate'
+                                  ? 'Model-Derived Estimate'
+                                  : pm.valueKind === 'historical_climatology'
+                                  ? 'Historical Climatology'
+                                  : 'Satellite / Reanalysis'}
+                              </td>
+                              <td className="py-2 px-3 font-semibold whitespace-nowrap">
+                                <span
+                                  className={
+                                    pm.status === 'live'
+                                      ? 'text-[#174C3C]'
+                                      : pm.status === 'cached'
+                                      ? 'text-[#B45309]'
+                                      : 'text-[#B91C1C]'
+                                  }
+                                >
+                                  {pm.status.toUpperCase()}
+                                </span>
+                              </td>
+                              <td className="py-2 px-3 text-[#475569]">
+                                {pm.observationPeriod} · {pm.note}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+              <p className="text-[11px] text-[#475569] leading-relaxed border-t border-[#E2E8F0] pt-3">
+                <strong>Source & Limitations ({weather.nasaClimateComparison.source}):</strong>{' '}
+                {weather.nasaClimateComparison.localInterpretation.dataLimitations}
+              </p>
+            </section>
           )}
         </>
       )}

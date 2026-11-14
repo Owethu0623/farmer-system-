@@ -91,6 +91,13 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
   const [fieldSoil, setFieldSoil] = useState('Red Sandy Loam');
   const [fieldIrrigation, setFieldIrrigation] = useState('Drip Irrigation');
   const [fieldStatus, setFieldStatus] = useState<'active' | 'fallow' | 'preparing'>('active');
+  const [fieldSoilTexture, setFieldSoilTexture] = useState<'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown'>('Unknown');
+  const [fieldOrganicMatter, setFieldOrganicMatter] = useState<'Low' | 'Medium' | 'High' | 'Unknown'>('Unknown');
+  const [fieldDrainage, setFieldDrainage] = useState<'Poor' | 'Moderate' | 'Good' | 'Unknown'>('Unknown');
+  const [fieldWaterHolding, setFieldWaterHolding] = useState<'Low' | 'Moderate' | 'High' | 'Unknown'>('Unknown');
+  const [fieldPrevCrop, setFieldPrevCrop] = useState('');
+  const [fieldTwoAgoCrop, setFieldTwoAgoCrop] = useState('');
+  const [fieldFarmingSystem, setFieldFarmingSystem] = useState('');
   const [fieldNotes, setFieldNotes] = useState('');
   const [fieldBoundary, setFieldBoundary] = useState<GeoJsonPolygon | null>(null);
   const [savingField, setSavingField] = useState(false);
@@ -265,6 +272,13 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
     setFieldSoil('Red Loam');
     setFieldIrrigation('Drip Irrigation');
     setFieldStatus('active');
+    setFieldSoilTexture('Loam');
+    setFieldOrganicMatter('Unknown');
+    setFieldDrainage('Good');
+    setFieldWaterHolding('Moderate');
+    setFieldPrevCrop('');
+    setFieldTwoAgoCrop('');
+    setFieldFarmingSystem('Conservation Tillage');
     setFieldNotes('');
     setFieldBoundary(null);
   };
@@ -278,6 +292,13 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
     setFieldSoil(field.soilType);
     setFieldIrrigation(field.irrigationType);
     setFieldStatus(field.status);
+    setFieldSoilTexture(field.soilTexture || 'Unknown');
+    setFieldOrganicMatter(field.organicMatterLevel || 'Unknown');
+    setFieldDrainage(field.soilDrainage || 'Unknown');
+    setFieldWaterHolding(field.waterHoldingCharacteristic || 'Unknown');
+    setFieldPrevCrop(field.previousSeasonCrop || '');
+    setFieldTwoAgoCrop(field.twoSeasonsAgoCrop || '');
+    setFieldFarmingSystem(field.farmingSystem || '');
     setFieldNotes(field.notes);
     setFieldBoundary(field.geojson || null);
   };
@@ -291,33 +312,33 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
     }
     setSavingField(true);
     try {
+      const fieldPayload = {
+        name: fieldName,
+        cropOrLivestock: fieldCrop,
+        currentCrop: fieldCrop,
+        areaHectares: fieldArea,
+        soilType: fieldSoil,
+        irrigationType: fieldIrrigation,
+        status: fieldStatus,
+        soilTexture: fieldSoilTexture,
+        organicMatterLevel: fieldOrganicMatter,
+        soilDrainage: fieldDrainage,
+        waterHoldingCharacteristic: fieldWaterHolding,
+        previousSeasonCrop: fieldPrevCrop.trim(),
+        twoSeasonsAgoCrop: fieldTwoAgoCrop.trim(),
+        farmingSystem: fieldFarmingSystem.trim(),
+        notes: fieldNotes,
+        geojson: fieldBoundary,
+      };
       if (fieldModalMode === 'create') {
         await apiRequest(`/api/farms/${activeFarm.id}/fields`, {
           method: 'POST',
-          body: JSON.stringify({
-            name: fieldName,
-            cropOrLivestock: fieldCrop,
-            areaHectares: fieldArea,
-            soilType: fieldSoil,
-            irrigationType: fieldIrrigation,
-            status: fieldStatus,
-            notes: fieldNotes,
-            geojson: fieldBoundary,
-          }),
+          body: JSON.stringify(fieldPayload),
         });
       } else if (fieldModalMode === 'edit' && editingFieldId) {
         await apiRequest(`/api/fields/${editingFieldId}`, {
           method: 'PUT',
-          body: JSON.stringify({
-            name: fieldName,
-            cropOrLivestock: fieldCrop,
-            areaHectares: fieldArea,
-            soilType: fieldSoil,
-            irrigationType: fieldIrrigation,
-            status: fieldStatus,
-            notes: fieldNotes,
-            geojson: fieldBoundary,
-          }),
+          body: JSON.stringify(fieldPayload),
         });
       }
       setFieldModalMode(null);
@@ -1050,6 +1071,95 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   />
                 </div>
               </div>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">Texture Class</label>
+                  <select
+                    value={fieldSoilTexture}
+                    onChange={(e) => setFieldSoilTexture(e.target.value as typeof fieldSoilTexture)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                  >
+                    <option value="Unknown">Unknown</option>
+                    <option value="Sandy">Sandy</option>
+                    <option value="Loam">Loam</option>
+                    <option value="Clay Loam">Clay Loam</option>
+                    <option value="Clay">Clay</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">Organic Matter</label>
+                  <select
+                    value={fieldOrganicMatter}
+                    onChange={(e) => setFieldOrganicMatter(e.target.value as typeof fieldOrganicMatter)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                  >
+                    <option value="Unknown">Unknown</option>
+                    <option value="Low">Low</option>
+                    <option value="Medium">Medium</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">Drainage</label>
+                  <select
+                    value={fieldDrainage}
+                    onChange={(e) => setFieldDrainage(e.target.value as typeof fieldDrainage)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                  >
+                    <option value="Unknown">Unknown</option>
+                    <option value="Good">Good</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Poor">Poor</option>
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">Water Holding</label>
+                  <select
+                    value={fieldWaterHolding}
+                    onChange={(e) => setFieldWaterHolding(e.target.value as typeof fieldWaterHolding)}
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] bg-white text-sm"
+                  >
+                    <option value="Unknown">Unknown</option>
+                    <option value="Low">Low</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="High">High</option>
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">Previous Season Crop</label>
+                  <input
+                    type="text"
+                    value={fieldPrevCrop}
+                    onChange={(e) => setFieldPrevCrop(e.target.value)}
+                    placeholder="e.g. Maize"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">2 Seasons Ago Crop</label>
+                  <input
+                    type="text"
+                    value={fieldTwoAgoCrop}
+                    onChange={(e) => setFieldTwoAgoCrop(e.target.value)}
+                    placeholder="e.g. Dry Beans"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="block font-semibold text-[#0B1F3A]">Farming System</label>
+                  <input
+                    type="text"
+                    value={fieldFarmingSystem}
+                    onChange={(e) => setFieldFarmingSystem(e.target.value)}
+                    placeholder="e.g. Conservation Tillage"
+                    className="w-full px-3 py-2 rounded-xl border border-[#CBD5E1] text-sm"
+                  />
+                </div>
+              </div>
+
               <div className="space-y-1">
                 <label className="block text-sm font-semibold text-[#0B1F3A]">Notes</label>
                 <textarea

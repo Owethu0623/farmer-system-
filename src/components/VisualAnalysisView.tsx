@@ -897,7 +897,10 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                       {activeResult.mediaFileName}
                     </div>
                   )}
-                  <p className="text-[11px] font-mono text-[#475569] mt-1.5 truncate">
+                  <p
+                    title={activeResult.mediaFileName}
+                    className="text-xs font-mono text-[#475569] mt-1.5 break-all"
+                  >
                     File: {activeResult.mediaFileName}
                   </p>
                 </div>

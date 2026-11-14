@@ -187,6 +187,13 @@ export interface FarmBoundary {
   updatedAt: string;
 }
 
+export type SoilProvenanceType =
+  | 'farmer_provided'
+  | 'laboratory_measured'
+  | 'external_dataset'
+  | 'estimated'
+  | 'unknown';
+
 export interface Field {
   id: string;
   farmId: string;
@@ -196,10 +203,55 @@ export interface Field {
   areaHectares: number;
   soilType: string;
   irrigationType: string;
+  soilTexture?: 'Sandy' | 'Loam' | 'Clay Loam' | 'Clay' | 'Unknown';
+  organicMatterLevel?: 'Low' | 'Medium' | 'High' | 'Unknown';
+  soilDrainage?: 'Poor' | 'Moderate' | 'Good' | 'Unknown';
+  waterHoldingCharacteristic?: 'Low' | 'Moderate' | 'High' | 'Unknown';
+  soilPhMeasured?: number | null;
+  nitrogenMeasuredMgKg?: number | null;
+  phosphorusMeasuredMgKg?: number | null;
+  potassiumMeasuredMgKg?: number | null;
+  currentCrop?: string;
+  previousSeasonCrop?: string;
+  twoSeasonsAgoCrop?: string;
+  farmingSystem?: string;
+  soilValueProvenance?: Record<string, SoilProvenanceType>;
   fieldWkt: string | null;
   geojson: GeoJsonPolygon | null;
   status: 'active' | 'fallow' | 'preparing';
   notes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SavedRotationPlan {
+  id: string;
+  userId: string;
+  farmId: string;
+  farmName: string;
+  fieldId: string | null;
+  fieldName: string | null;
+  planName: string;
+  planSource: 'recommended_strategy' | 'custom_simulation';
+  planStatus: 'proposed_plan';
+  selectedPriorities: string[];
+  seasons: {
+    seasonNumber: number;
+    seasonLabel: string;
+    plantingWindow: string;
+    cropId: string;
+    cropName: string;
+    botanicalFamily: string;
+    nitrogenRole: string;
+  }[];
+  decisionSupportScore: number;
+  summary: string;
+  warnings: string[];
+  tradeOffs: string[];
+  missingInformation: string[];
+  environmentalSnapshotLabel: string;
+  soilSnapshotLabel: string;
+  disclaimer: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -1110,6 +1162,31 @@ export interface SystemConfig {
   updatedAt: string;
 }
 
+export interface NasaRetrievalProvenance {
+  id: string;
+  requestId?: string;
+  coordinatesLabel: string;
+  latitude: number;
+  longitude: number;
+  temporalResolution: 'daily' | 'monthly' | 'climatology';
+  dateWindowLabel: string;
+  endpointUrl: string;
+  parametersRequested: string[];
+  httpStatus: number | null;
+  cacheHit: boolean;
+  validObservationCount: number;
+  fillValueCount: number;
+  errorMessage: string | null;
+  retrievedAt: string;
+}
+
+export interface NasaDiskCacheEntry {
+  cacheKey: string;
+  temporalResolution: 'daily' | 'monthly';
+  timestampMs: number;
+  data: unknown;
+}
+
 export interface DatabaseSchema {
   demoSeedVersion?: number;
   roles: Role[];
@@ -1165,6 +1242,9 @@ export interface DatabaseSchema {
     serverEntityId: string | null;
     syncedAt: string;
   }[];
+  savedRotationPlans?: SavedRotationPlan[];
+  nasaRetrievals?: NasaRetrievalProvenance[];
+  nasaCache?: NasaDiskCacheEntry[];
 }
 
 export interface SanitizedUser {
