@@ -6,21 +6,51 @@ import { createServer as createViteServer } from 'vite';
 import {
   AuthRequest,
   clearSessionCookie,
+  createAuthRateLimiter,
   createSessionForUser,
   extractSessionToken,
   requireAuth,
   requireRoles,
   sanitizeUser,
+  securityHeadersMiddleware,
   setSessionCookie,
   validateEmail,
   validatePasswordStrength,
 } from './src/server/auth.ts';
+import {
+  buildAdminFarmOversight,
+  buildAdminPortalOverview,
+  buildLanguageTranslationAudit,
+  getExternalIntegrationStatuses,
+  getTranslationEntriesForLang,
+} from './src/server/adminPortal.ts';
+import {
+  buildExistingFarmerDashboard,
+  buildProspectiveFarmerDashboard,
+} from './src/server/dashboardAnalytics.ts';
 import { generateAgriculturalAdvice, generateFarmAiAnalytics } from './src/server/gemini.ts';
 import { addIncidentFollowUp, buildIncidentDashboard, createFarmIncident } from './src/server/incidents.ts';
+import {
+  LEARNING_CATEGORIES,
+  buildLearningCentrePayload,
+  resolveMaterialForUser,
+  userCanManageLearning,
+} from './src/server/learningCentre.ts';
+import { REPORT_TYPES, generateAndSaveReport } from './src/server/reporting.ts';
 import { getFarmSoilAndLandIntelligence } from './src/server/soilLandIntelligence.ts';
 import { buildStockOverview, recordCropStockMovement, updateStockUnitPrice } from './src/server/stockInventory.ts';
 import { enrichVisualAnalysis, runVisualAgriculturalAnalysis } from './src/server/visualAnalysis.ts';
 import { getFarmWeatherIntelligence } from './src/server/weather.ts';
+import {
+  buildWeatherFeedbackOverview,
+  generateAiLocalWeatherSummary,
+  recordForecastSnapshots,
+  submitFarmerWeatherObservation,
+} from './src/server/weatherFeedback.ts';
+import {
+  buildBusinessPlannerOverview,
+  computeBusinessPlanMetrics,
+} from './src/server/businessPlanner.ts';
 import {
   BEGINNER_GUIDES,
   FARMING_OPPORTUNITIES,
@@ -40,27 +70,114 @@ import {
   verifyPassword,
 } from './src/server/store.ts';
 import {
+  buildExpertFarmReview,
+  buildExpertOverview,
+  getActiveFarmGrantForExpert,
+  getActiveFarmGrantForOrganisationUser,
+  getCollaborationDirectory,
+  getOrCreateExpertProfile,
+  listFarmerAccessGrants,
+  grantFarmAccess,
+  revokeFarmAccessGrant,
+  submitExpertFeedback,
+  updateExpertProfile,
+} from './src/server/expertPortal.ts';
+import {
+  NOTIFICATION_CATEGORY_META,
+  dispatchNotification,
+  generateDueRemindersForUser,
+  getChannelIntegrationReadiness,
+  getOrCreateUserNotificationPreference,
+  updateUserNotificationPreference,
+} from './src/server/notifications.ts';
+import {
+  addOrganisationMember,
+  broadcastOrganisationCommunication,
+  buildOrganisationOverview,
+  getOrganisationMembersView,
+  getUserOrganisation,
+  registerOrUpdateOrganisation,
+} from './src/server/organisationPortal.ts';
+import { buildOfflineBundle, processOfflineSyncBatch } from './src/server/offlineSync.ts';
+import {
+  buildPrivacySummary,
+  eraseUserAccountPopia,
+  exportUserPersonalData,
+  purgeExpiredArtifacts,
+  validateSafeMediaDataUrl,
+} from './src/server/privacy.ts';
+import {
+  BusinessPlanScenario,
+  BusinessScaleTier,
   CropActivityType,
   CropGrowthStage,
   CropStockMovementType,
+  ExpertConcernCategory,
+  ExpertSpecialisation,
+  FarmAccessScopes,
   GeoJsonPolygon,
   IncidentStatus,
   IncidentType,
   LanguageCode,
+  LearningCategoryCode,
+  LearningContentType,
+  LearningDifficulty,
+  LearningMaterial,
   LivestockAnimalType,
   LivestockHealthStatus,
   LivestockRecordType,
   LocationSource,
   MixedEntryCategory,
+  NotificationCategory,
+  OrganisationMemberRole,
+  OrganisationType,
+  RainfallIntensity,
+  ReportTypeCode,
   RoleCode,
   VisualAnalysisCategory,
+  WindObservationLevel,
 } from './src/server/types.ts';
 
 const PORT = Number(process.env.PORT || 3000);
 
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
+  app.use(securityHeadersMiddleware);
   app.use(express.json({ limit: '15mb' }));
+
+  const authRateLimiter = createAuthRateLimiter(15, 60_000);
+
+  // Enforce runtime maintenance mode for operational API calls while allowing auth, health & admin access
+  app.use('/api', (req, res, next) => {
+    if (!store.db.systemConfig?.application?.maintenanceMode) {
+      next();
+      return;
+    }
+    const p = req.path;
+    if (
+      p === '/health' ||
+      p.startsWith('/meta/') ||
+      p.startsWith('/auth/') ||
+      p.startsWith('/admin/')
+    ) {
+      next();
+      return;
+    }
+    const rawToken = extractSessionToken(req);
+    if (rawToken) {
+      const sess = store.db.sessions.find((s) => s.tokenHash === hashToken(rawToken));
+      const user = sess ? store.db.users.find((u) => u.id === sess.userId) : null;
+      const role = user ? store.db.roles.find((r) => r.id === user.roleId) : null;
+      if (role?.code === 'system_administrator') {
+        next();
+        return;
+      }
+    }
+    res.status(503).json({
+      error: 'Field Shift is temporarily in scheduled maintenance mode. Please try again shortly.',
+    });
+  });
 
   // Health Check
   app.get('/api/health', (_req, res) => {
@@ -84,11 +201,44 @@ async function startServer() {
     res.json(SOUTH_AFRICA_PROVINCES);
   });
 
+  app.get('/api/meta/translations', (_req, res) => {
+    res.json({
+      overrides: store.db.translationOverrides.map((o) => ({
+        languageCode: o.languageCode,
+        key: o.key,
+        value: o.value,
+      })),
+      application: {
+        platformName: store.db.systemConfig.application.platformName,
+        defaultLanguageCode: store.db.systemConfig.application.defaultLanguageCode,
+        allowSelfRegistration: store.db.systemConfig.application.allowSelfRegistration,
+        maintenanceMode: store.db.systemConfig.application.maintenanceMode,
+      },
+      announcements: store.db.systemAnnouncements.filter((a) => a.isActive),
+    });
+  });
+
   // ------------------------------------------------------------------
   // Authentication & Session Architecture
   // ------------------------------------------------------------------
-  app.post('/api/auth/register', (req, res) => {
-    const { fullName, email, password, roleCode, preferredLanguageCode } = req.body || {};
+  app.post('/api/auth/register', authRateLimiter, (req, res) => {
+    if (!store.db.systemConfig?.application?.allowSelfRegistration) {
+      res.status(403).json({
+        error: 'New self-service account registration is currently disabled by the System Administrator.',
+      });
+      return;
+    }
+    const {
+      fullName,
+      email,
+      password,
+      roleCode,
+      preferredLanguageCode,
+      expertSpecialisation,
+      expertQualifications,
+      organisationName,
+      organisationType,
+    } = req.body || {};
 
     if (!fullName || typeof fullName !== 'string' || fullName.trim().length < 2) {
       res.status(400).json({ error: 'Please enter your full name (at least 2 characters).' });
@@ -171,15 +321,59 @@ async function startServer() {
 
     store.db.users.push(newUser);
     store.db.userProfiles.push(newProfile);
-    store.db.notifications.unshift({
-      id: `notif-${crypto.randomUUID()}`,
+
+    if (requestedRoleCode === 'agricultural_expert') {
+      const validSpecs: ExpertSpecialisation[] = [
+        'agronomist',
+        'soil_specialist',
+        'livestock_specialist',
+        'veterinarian',
+        'agricultural_consultant',
+      ];
+      getOrCreateExpertProfile(userId);
+      updateExpertProfile(userId, {
+        specialisation: validSpecs.includes(expertSpecialisation)
+          ? expertSpecialisation
+          : 'agricultural_consultant',
+        qualifications:
+          typeof expertQualifications === 'string' && expertQualifications.trim()
+            ? expertQualifications.trim()
+            : 'Registered Agricultural Expert',
+        languagesSpoken: [validLang],
+      });
+    }
+
+    if (requestedRoleCode === 'organisation_manager') {
+      const sanitized = sanitizeUser(newUser);
+      const validOrgTypes: OrganisationType[] = [
+        'cooperative',
+        'agricultural_company',
+        'extension_agency',
+        'research_body',
+      ];
+      registerOrUpdateOrganisation({
+        user: sanitized,
+        name:
+          typeof organisationName === 'string' && organisationName.trim()
+            ? organisationName.trim()
+            : `${fullName.trim()} Agricultural Organisation`,
+        organisationType: validOrgTypes.includes(organisationType)
+          ? organisationType
+          : 'cooperative',
+      });
+    }
+
+    getOrCreateUserNotificationPreference(userId);
+    dispatchNotification({
       userId,
-      title: 'Welcome to Field Shift',
-      message: `Your account is created. Activation code: ${activationCode}. Complete your profile to unlock personalised guidance.`,
-      category: 'system',
-      isRead: false,
-      actionUrl: '/profile',
-      createdAt: now,
+      category: 'account_security',
+      title: 'Welcome to Field Shift — Account Activation Code',
+      message: `Your account is created. Activation code: ${activationCode}. Keep your credentials private and verify your account in Profile.`,
+      priority: 'high',
+      isMandatorySecurity: true,
+      actionUrl: 'profile',
+      relatedEntityType: 'User',
+      relatedEntityId: userId,
     });
 
     const { rawToken } = createSessionForUser(userId);
@@ -200,7 +394,7 @@ async function startServer() {
     });
   });
 
-  app.post('/api/auth/login', (req, res) => {
+  app.post('/api/auth/login', authRateLimiter, (req, res) => {
     const { email, password } = req.body || {};
     if (!email || typeof email !== 'string' || !password || typeof password !== 'string') {
       res.status(400).json({ error: 'Email and password are required.' });
@@ -210,6 +404,14 @@ async function startServer() {
     const normalizedEmail = email.trim().toLowerCase();
     const user = store.db.users.find((u) => u.email === normalizedEmail);
     if (!user || !verifyPassword(password, user.passwordHash, user.passwordSalt)) {
+      store.logAudit(
+        user?.id || null,
+        'USER_LOGIN_FAILED',
+        'User',
+        user?.id || null,
+        { email: normalizedEmail },
+        req.ip || '127.0.0.1'
+      );
       res.status(401).json({ error: 'Invalid email or password.' });
       return;
     }
@@ -272,11 +474,19 @@ async function startServer() {
     user.activationToken = null;
     user.updatedAt = new Date().toISOString();
     store.logAudit(user.id, 'ACCOUNT_ACTIVATED', 'User', user.id, {}, req.ip || '127.0.0.1');
+    dispatchNotification({
+      userId: user.id,
+      category: 'account_security',
+      title: 'Account Activated',
+      message: 'Your Field Shift account has been verified and activated.',
+      isMandatorySecurity: true,
+      actionUrl: 'profile',
+    });
 
     res.json({ user: sanitizeUser(user), message: 'Account activated successfully.' });
   });
 
-  app.post('/api/auth/forgot-password', (req, res) => {
+  app.post('/api/auth/forgot-password', authRateLimiter, (req, res) => {
     const { email } = req.body || {};
     if (!email || typeof email !== 'string' || !validateEmail(email)) {
       res.status(400).json({ error: 'Please provide a valid email address.' });
@@ -303,15 +513,25 @@ async function startServer() {
       createdAt: new Date().toISOString(),
     });
     store.logAudit(user.id, 'PASSWORD_RESET_REQUESTED', 'User', user.id, {}, req.ip || '127.0.0.1');
+    dispatchNotification({
+      userId: user.id,
+      category: 'account_security',
+      title: 'Password Reset Requested',
+      message: 'A password reset code was requested for your account. If this was not you, sign in and review your security settings.',
+      priority: 'high',
+      isMandatorySecurity: true,
+      actionUrl: 'notifications',
+    });
 
+    const isProd = process.env.NODE_ENV === 'production';
     res.json({
       ok: true,
       message: 'Password reset code generated (valid for 30 minutes).',
-      previewResetCode: rawResetToken,
+      ...(isProd ? {} : { previewResetCode: rawResetToken }),
     });
   });
 
-  app.post('/api/auth/reset-password', (req, res) => {
+  app.post('/api/auth/reset-password', authRateLimiter, (req, res) => {
     const { email, resetCode, newPassword } = req.body || {};
     if (!email || !resetCode || !newPassword) {
       res.status(400).json({ error: 'Email, reset code, and new password are required.' });
@@ -351,6 +571,15 @@ async function startServer() {
     tokenRecord.usedAt = new Date().toISOString();
     store.db.sessions = store.db.sessions.filter((s) => s.userId !== user.id);
     store.logAudit(user.id, 'PASSWORD_RESET_COMPLETED', 'User', user.id, {}, req.ip || '127.0.0.1');
+    dispatchNotification({
+      userId: user.id,
+      category: 'account_security',
+      title: 'Password Changed Successfully',
+      message: 'Your account password was reset and previous active sessions were signed out.',
+      priority: 'high',
+      isMandatorySecurity: true,
+      actionUrl: 'notifications',
+    });
 
     res.json({ ok: true, message: 'Password updated successfully. You may now sign in.' });
   });
@@ -411,27 +640,92 @@ async function startServer() {
   // ------------------------------------------------------------------
   // Helper Functions for Ownership & Hydration
   // ------------------------------------------------------------------
-  function userCanAccessFarm(user: NonNullable<AuthRequest['authUser']>, farmId: string): boolean {
+  function recordAiInsight(params: {
+    userId: string;
+    farmId: string | null;
+    category: 'advisory' | 'analytics' | 'visual_analysis' | 'weather_summary';
+    title: string;
+    summary: string;
+    recommendations: string[];
+    languageCode: LanguageCode;
+    poweredBy: 'gemini' | 'grounded_fallback' | 'deterministic_summary';
+  }) {
+    const insightId = `ai-${crypto.randomUUID()}`;
+    store.db.aiInsightRecords.unshift({
+      id: insightId,
+      userId: params.userId,
+      farmId: params.farmId,
+      category: params.category,
+      title: params.title.slice(0, 140),
+      summary: params.summary.slice(0, 500),
+      recommendations: params.recommendations.slice(0, 5),
+      languageCode: params.languageCode,
+      poweredBy: params.poweredBy,
+      createdAt: new Date().toISOString(),
+    });
+    if (store.db.aiInsightRecords.length > 200) {
+      store.db.aiInsightRecords = store.db.aiInsightRecords.slice(0, 200);
+    }
+    store.save();
+
+    dispatchNotification({
+      userId: params.userId,
+      category: 'ai_recommendation',
+      title: params.title.slice(0, 140),
+      message: params.summary.slice(0, 240),
+      actionUrl: params.category === 'visual_analysis' ? 'visual' : 'advisor',
+      relatedEntityType: 'AiInsightRecord',
+      relatedEntityId: insightId,
+      prefixWithLanguageTag: true,
+    });
+  }
+
+  function userCanAccessFarm(
+    user: NonNullable<AuthRequest['authUser']>,
+    farmId: string,
+    requiredScope?: keyof FarmAccessScopes
+  ): boolean {
     const farm = store.db.farms.find((f) => f.id === farmId);
     if (!farm) return false;
     if (farm.ownerId === user.id) return true;
-    return ['system_administrator', 'agricultural_expert', 'organisation_manager'].includes(
-      user.roleCode
-    );
+    // Administrators do NOT receive automatic unrestricted access to private farmer records;
+    // they only access private farm records if explicitly granted audited permission.
+    if (user.roleCode === 'system_administrator') {
+      return user.permissions.includes('admin:private_farmer_records');
+    }
+    if (user.roleCode === 'agricultural_expert') {
+      const grant = getActiveFarmGrantForExpert(user.id, farmId);
+      if (!grant) return false;
+      if (requiredScope && !grant.scopes[requiredScope]) return false;
+      return true;
+    }
+    // Organisation managers are strictly isolated from raw personal farmer/location/financial/media endpoints;
+    // they must access anonymised, farmer-authorised aggregates via /api/organisation/overview and /api/reports/generate.
+    return false;
   }
 
   function userCanModifyFarm(user: NonNullable<AuthRequest['authUser']>, farmId: string): boolean {
     const farm = store.db.farms.find((f) => f.id === farmId);
     if (!farm) return false;
-    return farm.ownerId === user.id || user.roleCode === 'system_administrator';
+    if (farm.ownerId === user.id) return true;
+    return (
+      user.roleCode === 'system_administrator' &&
+      user.permissions.includes('admin:private_farmer_records')
+    );
   }
 
-  function getAccessibleFarmIds(user: NonNullable<AuthRequest['authUser']>): string[] {
-    const canViewAll = ['system_administrator', 'agricultural_expert', 'organisation_manager'].includes(
-      user.roleCode
-    );
+  function getAccessibleFarmIds(
+    user: NonNullable<AuthRequest['authUser']>,
+    requiredScope?: keyof FarmAccessScopes
+  ): string[] {
+    if (
+      user.roleCode === 'system_administrator' &&
+      user.permissions.includes('admin:private_farmer_records')
+    ) {
+      return store.db.farms.map((f) => f.id);
+    }
     return store.db.farms
-      .filter((f) => canViewAll || f.ownerId === user.id)
+      .filter((f) => userCanAccessFarm(user, f.id, requiredScope))
       .map((f) => f.id);
   }
 
@@ -663,7 +957,14 @@ async function startServer() {
   // Farm & Field Management (GPS + OpenStreetMap + Boundaries)
   // ------------------------------------------------------------------
   app.get('/api/farms', requireAuth, (req: AuthRequest, res) => {
-    const ids = getAccessibleFarmIds(req.authUser!);
+    if (req.authUser!.roleCode === 'organisation_manager') {
+      res.status(403).json({
+        error:
+          'Organisation accounts cannot list raw personal farm records under POPIA. Use /api/organisation/overview for anonymised member aggregates.',
+      });
+      return;
+    }
+    const ids = getAccessibleFarmIds(req.authUser!, 'overview');
     res.json(ids.map((id) => hydrateFarm(id)).filter(Boolean));
   });
 
@@ -771,7 +1072,7 @@ async function startServer() {
   );
 
   app.get('/api/farms/:id', requireAuth, (req: AuthRequest, res) => {
-    if (!userCanAccessFarm(req.authUser!, req.params.id)) {
+    if (!userCanAccessFarm(req.authUser!, req.params.id, 'overview')) {
       res.status(403).json({ error: 'You do not have access to this farm.' });
       return;
     }
@@ -986,6 +1287,11 @@ async function startServer() {
     store.db.cropStockMovements = store.db.cropStockMovements.filter((cm) => cm.farmId !== farm.id);
     store.db.stockPriceSettings = store.db.stockPriceSettings.filter((sp) => sp.farmId !== farm.id);
     store.db.farmIncidents = store.db.farmIncidents.filter((inc) => inc.farmId !== farm.id);
+    store.db.weatherForecastRecords = store.db.weatherForecastRecords.filter((w) => w.farmId !== farm.id);
+    store.db.weatherObservations = store.db.weatherObservations.filter((w) => w.farmId !== farm.id);
+    for (const bp of store.db.businessPlans) {
+      if (bp.farmId === farm.id) bp.farmId = null;
+    }
 
     store.logAudit(
       req.authUser!.id,
@@ -1133,8 +1439,12 @@ async function startServer() {
   // Crop Management & Historical Activity Tracking
   // ------------------------------------------------------------------
   app.get('/api/crops/analytics', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'crops');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
+    if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
+      res.status(403).json({ error: 'You do not have crop access to this farm.' });
+      return;
+    }
     const crops = store.db.crops.filter(
       (c) => accessibleFarmIds.includes(c.farmId) && (!farmFilter || c.farmId === farmFilter)
     );
@@ -1205,8 +1515,12 @@ async function startServer() {
   });
 
   app.get('/api/crops', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'crops');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
+    if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
+      res.status(403).json({ error: 'You do not have crop access to this farm.' });
+      return;
+    }
     const list = store.db.crops
       .filter(
         (c) => accessibleFarmIds.includes(c.farmId) && (!farmFilter || c.farmId === farmFilter)
@@ -1246,6 +1560,12 @@ async function startServer() {
     if (!farmId || !cropName || !cropVariety || !plantingDate || !expectedHarvestingDate) {
       res.status(400).json({
         error: 'Farm, crop name, variety, planting date, and expected harvest date are required.',
+      });
+      return;
+    }
+    if (String(expectedHarvestingDate) < String(plantingDate)) {
+      res.status(400).json({
+        error: 'Expected harvesting date cannot be earlier than the planting date.',
       });
       return;
     }
@@ -1294,6 +1614,10 @@ async function startServer() {
 
     store.db.crops.push(newCrop);
     if (newCrop.plantingQuantity > 0) {
+      const derivedUnitPrice =
+        newCrop.estimatedValueZar > 0
+          ? Number((newCrop.estimatedValueZar / newCrop.plantingQuantity).toFixed(2))
+          : 0;
       store.db.cropStockMovements.unshift({
         id: `csm-${crypto.randomUUID()}`,
         cropId: newCrop.id,
@@ -1303,8 +1627,8 @@ async function startServer() {
         movementDate: newCrop.plantingDate,
         quantityDelta: newCrop.plantingQuantity,
         unit: 'plants',
-        unitPriceZar: 0,
-        totalValueZar: 0,
+        unitPriceZar: derivedUnitPrice,
+        totalValueZar: Number((newCrop.plantingQuantity * derivedUnitPrice).toFixed(2)),
         resultingRemainingPlants: newCrop.plantingQuantity,
         resultingStoredKg: 0,
         notes: `Initial planting registered (${newCrop.plantingQuantity.toLocaleString()} plants across ${newCrop.cultivatedAreaHectares} ha).`,
@@ -1376,15 +1700,13 @@ async function startServer() {
     if (cropName) crop.cropName = String(cropName).trim();
     if (cropVariety) crop.cropVariety = String(cropVariety).trim();
     if (plantingDate) crop.plantingDate = String(plantingDate);
-    if (plantingQuantity !== undefined) crop.plantingQuantity = Math.max(0, Number(plantingQuantity));
-    if (damagedPlants !== undefined) crop.damagedPlants = Math.max(0, Number(damagedPlants));
-    if (cultivatedAreaHectares !== undefined) {
-      crop.cultivatedAreaHectares = Math.max(0.05, Number(cultivatedAreaHectares));
-    }
-    if (soilInformation !== undefined) crop.soilInformation = String(soilInformation);
-    if (irrigationMethod !== undefined) crop.irrigationMethod = String(irrigationMethod);
-    if (fertiliserInformation !== undefined) crop.fertiliserInformation = String(fertiliserInformation);
     if (expectedHarvestingDate) crop.expectedHarvestingDate = String(expectedHarvestingDate);
+    if (crop.expectedHarvestingDate < crop.plantingDate) {
+      crop.plantingDate = previousSnapshot.plantingDate;
+      crop.expectedHarvestingDate = previousSnapshot.expectedHarvestingDate;
+      res.status(400).json({ error: 'Expected harvesting date cannot be earlier than the planting date.' });
+      return;
+    }
     if (
       growthStage &&
       ['planted', 'germination', 'vegetative', 'flowering', 'fruiting', 'mature', 'harvested'].includes(
@@ -1401,6 +1723,68 @@ async function startServer() {
       crop.estimatedValueZar = Math.max(0, Number(estimatedValueZar));
     }
     crop.updatedAt = now;
+
+    // Append immutable stock movement entries if plant or harvest quantities changed during edit
+    if (crop.plantingQuantity !== previousSnapshot.plantingQuantity) {
+      const delta = crop.plantingQuantity - previousSnapshot.plantingQuantity;
+      store.db.cropStockMovements.unshift({
+        id: `csm-${crypto.randomUUID()}`,
+        cropId: crop.id,
+        farmId: crop.farmId,
+        actorUserId: req.authUser!.id,
+        movementType: 'adjustment',
+        movementDate: now.slice(0, 10),
+        quantityDelta: delta,
+        unit: 'plants',
+        unitPriceZar: 0,
+        totalValueZar: 0,
+        resultingRemainingPlants: Math.max(0, crop.plantingQuantity - crop.damagedPlants),
+        resultingStoredKg: null,
+        notes: `Planted quantity adjusted from ${previousSnapshot.plantingQuantity.toLocaleString()} to ${crop.plantingQuantity.toLocaleString()} via crop record update.`,
+        incidentId: null,
+        createdAt: now,
+      });
+    }
+    if (crop.damagedPlants !== previousSnapshot.damagedPlants) {
+      const dmgDelta = crop.damagedPlants - previousSnapshot.damagedPlants;
+      store.db.cropStockMovements.unshift({
+        id: `csm-${crypto.randomUUID()}`,
+        cropId: crop.id,
+        farmId: crop.farmId,
+        actorUserId: req.authUser!.id,
+        movementType: dmgDelta > 0 ? 'damage' : 'adjustment',
+        movementDate: now.slice(0, 10),
+        quantityDelta: -dmgDelta,
+        unit: 'plants',
+        unitPriceZar: 0,
+        totalValueZar: 0,
+        resultingRemainingPlants: Math.max(0, crop.plantingQuantity - crop.damagedPlants),
+        resultingStoredKg: null,
+        notes: `Damaged plants updated from ${previousSnapshot.damagedPlants.toLocaleString()} to ${crop.damagedPlants.toLocaleString()} via crop record update.`,
+        incidentId: null,
+        createdAt: now,
+      });
+    }
+    if (crop.harvestedQuantityKg !== previousSnapshot.harvestedQuantityKg) {
+      const kgDelta = Number((crop.harvestedQuantityKg - previousSnapshot.harvestedQuantityKg).toFixed(2));
+      store.db.cropStockMovements.unshift({
+        id: `csm-${crypto.randomUUID()}`,
+        cropId: crop.id,
+        farmId: crop.farmId,
+        actorUserId: req.authUser!.id,
+        movementType: kgDelta > 0 ? 'harvest' : 'adjustment',
+        movementDate: now.slice(0, 10),
+        quantityDelta: kgDelta,
+        unit: 'kg',
+        unitPriceZar: 0,
+        totalValueZar: 0,
+        resultingRemainingPlants: Math.max(0, crop.plantingQuantity - crop.damagedPlants),
+        resultingStoredKg: null,
+        notes: `Harvested quantity updated from ${previousSnapshot.harvestedQuantityKg.toLocaleString()} kg to ${crop.harvestedQuantityKg.toLocaleString()} kg via crop record update.`,
+        incidentId: null,
+        createdAt: now,
+      });
+    }
 
     store.db.cropActivities.unshift({
       id: `cact-${crypto.randomUUID()}`,
@@ -1462,7 +1846,7 @@ async function startServer() {
       res.status(404).json({ error: 'Crop not found.' });
       return;
     }
-    if (!userCanAccessFarm(req.authUser!, crop.farmId)) {
+    if (!userCanAccessFarm(req.authUser!, crop.farmId, 'crops')) {
       res.status(403).json({ error: 'Access denied.' });
       return;
     }
@@ -1573,8 +1957,12 @@ async function startServer() {
   // Livestock Management & Analytics
   // ------------------------------------------------------------------
   app.get('/api/livestock/analytics', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'livestock');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
+    if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
+      res.status(403).json({ error: 'You do not have livestock access to this farm.' });
+      return;
+    }
     const groups = store.db.livestockGroups.filter(
       (g) => accessibleFarmIds.includes(g.farmId) && (!farmFilter || g.farmId === farmFilter)
     );
@@ -1621,8 +2009,12 @@ async function startServer() {
   });
 
   app.get('/api/livestock', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'livestock');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
+    if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
+      res.status(403).json({ error: 'You do not have livestock access to this farm.' });
+      return;
+    }
     const list = store.db.livestockGroups
       .filter(
         (g) => accessibleFarmIds.includes(g.farmId) && (!farmFilter || g.farmId === farmFilter)
@@ -1798,7 +2190,7 @@ async function startServer() {
       res.status(404).json({ error: 'Livestock group not found.' });
       return;
     }
-    if (!userCanAccessFarm(req.authUser!, group.farmId)) {
+    if (!userCanAccessFarm(req.authUser!, group.farmId, 'livestock')) {
       res.status(403).json({ error: 'Access denied.' });
       return;
     }
@@ -1878,8 +2270,12 @@ async function startServer() {
   // Mixed Farming Management (Shared Land, Feed, Water, Combined Finances)
   // ------------------------------------------------------------------
   app.get('/api/mixed-farming/summary', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'overview');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
+    if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
+      res.status(403).json({ error: 'Access denied for this farm.' });
+      return;
+    }
     const targetIds = farmFilter
       ? accessibleFarmIds.filter((id) => id === farmFilter)
       : accessibleFarmIds;
@@ -1934,8 +2330,12 @@ async function startServer() {
   });
 
   app.get('/api/mixed-farming', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'overview');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
+    if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
+      res.status(403).json({ error: 'Access denied for this farm.' });
+      return;
+    }
     const entries = store.db.mixedFarmingEntries
       .filter(
         (e) => accessibleFarmIds.includes(e.farmId) && (!farmFilter || e.farmId === farmFilter)
@@ -2025,11 +2425,88 @@ async function startServer() {
   });
 
   // ------------------------------------------------------------------
-  // Notifications
+  // Central Notification & Communication System
   // ------------------------------------------------------------------
   app.get('/api/notifications', requireAuth, (req: AuthRequest, res) => {
-    const items = store.db.notifications.filter((n) => n.userId === req.authUser!.id);
+    const categoryFilter = req.query.category ? String(req.query.category) : '';
+    const unreadOnly = req.query.unreadOnly === 'true';
+    const items = store.db.notifications
+      .filter((n) => n.userId === req.authUser!.id)
+      .filter((n) => (!categoryFilter || categoryFilter === 'all' ? true : n.category === categoryFilter))
+      .filter((n) => (unreadOnly ? !n.isRead : true));
     res.json(items);
+  });
+
+  app.get('/api/notifications/feed', requireAuth, (req: AuthRequest, res) => {
+    const userId = req.authUser!.id;
+    const notifications = store.db.notifications.filter((n) => n.userId === userId);
+    const deliveries = store.db.notificationDeliveries
+      .filter((d) => d.userId === userId)
+      .slice(0, 60);
+    res.json({
+      notifications,
+      unreadCount: notifications.filter((n) => !n.isRead).length,
+      deliveries,
+      integrationReadiness: getChannelIntegrationReadiness(),
+    });
+  });
+
+  app.get('/api/notifications/preferences', requireAuth, (req: AuthRequest, res) => {
+    res.json({
+      preferences: getOrCreateUserNotificationPreference(req.authUser!.id),
+      categoriesMeta: NOTIFICATION_CATEGORY_META,
+      integrationReadiness: getChannelIntegrationReadiness(),
+    });
+  });
+
+  app.put('/api/notifications/preferences', requireAuth, (req: AuthRequest, res) => {
+    const updated = updateUserNotificationPreference(req.authUser!.id, req.body || {});
+    store.logAudit(
+      req.authUser!.id,
+      'NOTIFICATION_PREFERENCES_UPDATED',
+      'NotificationPreference',
+      req.authUser!.id,
+      { channels: updated.channels, categories: updated.categories },
+      req.ip || '127.0.0.1'
+    );
+    res.json({
+      preferences: updated,
+      categoriesMeta: NOTIFICATION_CATEGORY_META,
+      integrationReadiness: getChannelIntegrationReadiness(),
+    });
+  });
+
+  app.post('/api/notifications/read-all', requireAuth, (req: AuthRequest, res) => {
+    let count = 0;
+    for (const n of store.db.notifications) {
+      if (n.userId === req.authUser!.id && !n.isRead) {
+        n.isRead = true;
+        count++;
+      }
+    }
+    if (count > 0) store.save();
+    res.json({ ok: true, markedCount: count });
+  });
+
+  app.post('/api/notifications/generate-reminders', requireAuth, (req: AuthRequest, res) => {
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const summary = generateDueRemindersForUser(req.authUser!.id, accessibleFarmIds);
+    res.json({ ok: true, ...summary });
+  });
+
+  app.post('/api/notifications/dispatch-test', requireAuth, (req: AuthRequest, res) => {
+    const { category, title, message, isMandatorySecurity } = req.body || {};
+    const cat: NotificationCategory = category || 'upcoming_activity';
+    const result = dispatchNotification({
+      userId: req.authUser!.id,
+      category: cat,
+      title: String(title || 'Field Shift Notification Check'),
+      message: String(message || 'Preference and multi-channel delivery check completed.'),
+      isMandatorySecurity: Boolean(isMandatorySecurity),
+      actionUrl: 'notifications',
+      prefixWithLanguageTag: true,
+    });
+    res.json(result);
   });
 
   app.post('/api/notifications/:id/read', requireAuth, (req: AuthRequest, res) => {
@@ -2050,8 +2527,8 @@ async function startServer() {
   // ------------------------------------------------------------------
   app.get('/api/soil-land/farms/:farmId', requireAuth, async (req: AuthRequest, res) => {
     const { farmId } = req.params;
-    if (!userCanAccessFarm(req.authUser!, farmId)) {
-      res.status(403).json({ error: 'You do not have access to this farm.' });
+    if (!userCanAccessFarm(req.authUser!, farmId, 'soil')) {
+      res.status(403).json({ error: 'You do not have soil access to this farm.' });
       return;
     }
     try {
@@ -2184,16 +2661,24 @@ async function startServer() {
   });
 
   // ------------------------------------------------------------------
-  // Location-Specific Agricultural Weather Intelligence
+  // Location-Specific Agricultural Weather Intelligence & Feedback Loop
   // ------------------------------------------------------------------
   app.get('/api/weather/farms/:farmId', requireAuth, async (req: AuthRequest, res) => {
     const { farmId } = req.params;
-    if (!userCanAccessFarm(req.authUser!, farmId)) {
-      res.status(403).json({ error: 'You do not have access to this farm.' });
+    if (!userCanAccessFarm(req.authUser!, farmId, 'weather')) {
+      res.status(403).json({ error: 'You do not have weather access to this farm.' });
       return;
     }
     try {
       const payload = await getFarmWeatherIntelligence(farmId);
+      if (payload.serviceAvailable && (payload.daily.length > 0 || payload.historicalRainfall.historicalDays.length > 0)) {
+        recordForecastSnapshots({
+          farmId,
+          sourceName: payload.source,
+          daily: payload.daily,
+          historicalDays: payload.historicalRainfall.historicalDays,
+        });
+      }
       res.json(payload);
     } catch (err: unknown) {
       res.status(404).json({
@@ -2201,6 +2686,175 @@ async function startServer() {
       });
     }
   });
+
+  app.get('/api/weather/farms/:farmId/feedback', requireAuth, (req: AuthRequest, res) => {
+    const { farmId } = req.params;
+    if (!userCanAccessFarm(req.authUser!, farmId, 'weather')) {
+      res.status(403).json({ error: 'You do not have weather access to this farm.' });
+      return;
+    }
+    try {
+      res.json(buildWeatherFeedbackOverview(farmId));
+    } catch (err: unknown) {
+      res.status(404).json({
+        error: err instanceof Error ? err.message : 'Unable to load local weather feedback.',
+      });
+    }
+  });
+
+  app.post('/api/weather/farms/:farmId/observations', requireAuth, (req: AuthRequest, res) => {
+    const { farmId } = req.params;
+    if (!userCanModifyFarm(req.authUser!, farmId)) {
+      res.status(403).json({ error: 'Only the registered farm owner can submit farm weather observations.' });
+      return;
+    }
+
+    const {
+      observationDate,
+      rainfallOccurred,
+      rainfallIntensity,
+      measuredRainfallMm,
+      temperatureC,
+      windObservation,
+      windSpeedEstimateKmh,
+      notes,
+    } = req.body || {};
+
+    if (!observationDate || typeof observationDate !== 'string') {
+      res.status(400).json({ error: 'Observation date is required.' });
+      return;
+    }
+
+    const validIntensities: RainfallIntensity[] = ['none', 'light', 'moderate', 'heavy', 'extreme'];
+    const validWinds: WindObservationLevel[] = [
+      'calm',
+      'light_breeze',
+      'moderate_wind',
+      'strong_wind',
+      'gale',
+    ];
+
+    const resolvedIntensity: RainfallIntensity = validIntensities.includes(rainfallIntensity)
+      ? rainfallIntensity
+      : rainfallOccurred
+      ? 'moderate'
+      : 'none';
+
+    const resolvedWind: WindObservationLevel = validWinds.includes(windObservation)
+      ? windObservation
+      : 'light_breeze';
+
+    const parseOptNum = (v: unknown): number | null => {
+      if (v === '' || v === null || v === undefined) return null;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    try {
+      const created = submitFarmerWeatherObservation({
+        user: req.authUser!,
+        farmId,
+        observationDate: observationDate.slice(0, 10),
+        rainfallOccurred: Boolean(rainfallOccurred),
+        rainfallIntensity: resolvedIntensity,
+        measuredRainfallMm: parseOptNum(measuredRainfallMm),
+        temperatureC: parseOptNum(temperatureC),
+        windObservation: resolvedWind,
+        windSpeedEstimateKmh: parseOptNum(windSpeedEstimateKmh),
+        notes: String(notes || ''),
+      });
+      if (resolvedIntensity === 'heavy' || resolvedIntensity === 'extreme') {
+        const farm = store.db.farms.find((f) => f.id === farmId);
+        dispatchNotification({
+          userId: req.authUser!.id,
+          category: 'weather_warning',
+          title: `Heavy/Extreme Weather Reported at ${farm?.name || 'Farm'}`,
+          message: `You recorded ${resolvedIntensity} rainfall (${created.measuredRainfallMm ?? 'observed'} mm). Inspect field drainage and log damage if needed.`,
+          priority: 'high',
+          actionUrl: 'weather',
+          relatedEntityType: 'FarmerWeatherObservation',
+          relatedEntityId: created.id,
+          prefixWithLanguageTag: true,
+        });
+      }
+      res.status(201).json({ observation: created, overview: buildWeatherFeedbackOverview(farmId) });
+    } catch (err: unknown) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Unable to save weather observation.',
+      });
+    }
+  });
+
+  app.post('/api/weather/farms/:farmId/feedback-summary', requireAuth, async (req: AuthRequest, res) => {
+    const { farmId } = req.params;
+    if (!userCanAccessFarm(req.authUser!, farmId, 'weather')) {
+      res.status(403).json({ error: 'You do not have weather access to this farm.' });
+      return;
+    }
+    const targetLang: LanguageCode =
+      req.body?.languageCode && store.db.languages.some((l) => l.code === req.body.languageCode)
+        ? req.body.languageCode
+        : req.authUser!.preferredLanguageCode;
+
+    try {
+      const summary = await generateAiLocalWeatherSummary({ farmId, languageCode: targetLang });
+      recordAiInsight({
+        userId: req.authUser!.id,
+        farmId,
+        category: 'weather_summary',
+        title: 'Local Weather & Forecast Comparison Summary',
+        summary: summary.narrative,
+        recommendations: summary.caveats,
+        languageCode: targetLang,
+        poweredBy: summary.poweredBy,
+      });
+      res.json(summary);
+    } catch (err: unknown) {
+      res.status(500).json({
+        error: err instanceof Error ? err.message : 'Unable to generate local weather summary.',
+      });
+    }
+  });
+
+  app.patch(
+    '/api/weather/observations/:id/qc',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const obs = store.db.weatherObservations.find((o) => o.id === req.params.id);
+      if (!obs) {
+        res.status(404).json({ error: 'Observation not found.' });
+        return;
+      }
+      if (!userCanAccessFarm(req.authUser!, obs.farmId, 'weather')) {
+        res.status(403).json({ error: 'You are not authorised to review weather observations for this farm.' });
+        return;
+      }
+      const { qcStatus, qcNotes } = req.body || {};
+      if (!['pending_qc', 'qc_passed_reference', 'qc_flagged_outlier'].includes(qcStatus)) {
+        res.status(400).json({ error: 'Invalid QC status.' });
+        return;
+      }
+      obs.qcStatus = qcStatus;
+      obs.qcNotes = String(
+        qcNotes ||
+          (qcStatus === 'qc_passed_reference'
+            ? 'Reviewed for quality-controlled calibration reference only. Still distinct from verified weather-station telemetry.'
+            : 'Flagged by agricultural reviewer.')
+      );
+      obs.updatedAt = new Date().toISOString();
+      store.logAudit(
+        req.authUser!.id,
+        'WEATHER_OBSERVATION_QC_REVIEWED',
+        'FarmerWeatherObservation',
+        obs.id,
+        { farmId: obs.farmId, qcStatus },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+      res.json(obs);
+    }
+  );
 
   // ------------------------------------------------------------------
   // Gemini AI Agricultural Intelligence Endpoints (Server-Side Only)
@@ -2230,6 +2884,17 @@ async function startServer() {
         user,
         farmId: farmId ? String(farmId) : null,
         conversationHistory: Array.isArray(conversationHistory) ? conversationHistory : [],
+      });
+
+      recordAiInsight({
+        userId: user.id,
+        farmId: farmId ? String(farmId) : null,
+        category: 'advisory',
+        title: question.trim().slice(0, 90),
+        summary: result.answer,
+        recommendations: result.suggestedActions || [],
+        languageCode: targetLang,
+        poweredBy: result.poweredBy,
       });
 
       store.logAudit(
@@ -2266,6 +2931,17 @@ async function startServer() {
         user,
         farmId: farmId ? String(farmId) : null,
         languageCode: targetLang,
+      });
+
+      recordAiInsight({
+        userId: user.id,
+        farmId: farmId ? String(farmId) : null,
+        category: 'analytics',
+        title: `Farm Analytics: ${report.farmName}`,
+        summary: report.farmPerformanceSummary,
+        recommendations: report.suggestedNextActions || [],
+        languageCode: targetLang,
+        poweredBy: report.poweredBy,
       });
 
       store.logAudit(
@@ -2458,7 +3134,7 @@ async function startServer() {
   ];
 
   app.get('/api/visual-analysis', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'aiInsights');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have access to this farm.' });
@@ -2489,7 +3165,7 @@ async function startServer() {
       languageCode,
     } = req.body || {};
 
-    if (!farmId || !userCanAccessFarm(req.authUser!, String(farmId))) {
+    if (!farmId || !userCanAccessFarm(req.authUser!, String(farmId), 'aiInsights')) {
       res.status(403).json({ error: 'Please select a valid farm you can access.' });
       return;
     }
@@ -2504,16 +3180,31 @@ async function startServer() {
       return;
     }
 
+    const maxMediaMb = store.db.systemConfig?.application?.maxMediaUploadMb || 15;
+    const allowedFrameMimes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
     const validFrames = frames
       .slice(0, 4)
       .filter((f) => f && typeof f.dataBase64 === 'string' && f.dataBase64.length > 20)
       .map((f) => ({
-        mimeType: typeof f.mimeType === 'string' && f.mimeType ? f.mimeType : 'image/jpeg',
+        mimeType: typeof f.mimeType === 'string' && allowedFrameMimes.includes(f.mimeType.toLowerCase())
+          ? f.mimeType.toLowerCase()
+          : 'image/jpeg',
         dataBase64: String(f.dataBase64),
       }));
 
     if (validFrames.length === 0) {
-      res.status(400).json({ error: 'Uploaded media could not be decoded. Please try a JPEG or PNG image.' });
+      res.status(400).json({ error: 'Uploaded media could not be decoded. Please try a JPEG, PNG, or WebP image.' });
+      return;
+    }
+
+    const previewCandidate =
+      typeof mediaPreviewDataUrl === 'string' && mediaPreviewDataUrl.trim()
+        ? mediaPreviewDataUrl
+        : `data:${validFrames[0].mimeType};base64,${validFrames[0].dataBase64.replace(/^data:[^;]+;base64,/, '')}`;
+
+    const mediaCheck = validateSafeMediaDataUrl(previewCandidate, maxMediaMb, false);
+    if (!mediaCheck.valid) {
+      res.status(400).json({ error: mediaCheck.error || 'Unsafe or oversized media payload.' });
       return;
     }
 
@@ -2534,12 +3225,20 @@ async function startServer() {
         mediaFileName: String(mediaFileName || (mediaType === 'video' ? 'field-video.mp4' : 'field-photo.jpg')),
         mediaMimeType: String(mediaMimeType || validFrames[0].mimeType),
         frames: validFrames,
-        mediaPreviewDataUrl:
-          typeof mediaPreviewDataUrl === 'string' && mediaPreviewDataUrl.startsWith('data:image/')
-            ? mediaPreviewDataUrl
-            : `data:${validFrames[0].mimeType};base64,${validFrames[0].dataBase64.replace(/^data:[^;]+;base64,/, '')}`,
+        mediaPreviewDataUrl: mediaCheck.sanitizedUrl || null,
         userQuestion: typeof userQuestion === 'string' ? userQuestion : '',
         languageCode: targetLang,
+      });
+
+      recordAiInsight({
+        userId: req.authUser!.id,
+        farmId: String(farmId),
+        category: 'visual_analysis',
+        title: `Visual Scan: ${record.possibleFindings[0] || record.category}`,
+        summary: record.explanation,
+        recommendations: record.recommendedActions,
+        languageCode: targetLang,
+        poweredBy: record.poweredBy,
       });
 
       store.save();
@@ -2729,13 +3428,68 @@ async function startServer() {
   // Comprehensive Agricultural Stock & Inventory Management
   // ------------------------------------------------------------------
   app.get('/api/stock/overview', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const user = req.authUser!;
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'overview');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
       res.status(403).json({ error: 'You do not have access to this farm.' });
       return;
     }
-    res.json(buildStockOverview(accessibleFarmIds, farmFilter));
+    const overview = buildStockOverview(accessibleFarmIds, farmFilter);
+    // POPIA financial confidentiality: if an expert lacks financialSummary scope for any returned farm, redact ZAR figures
+    if (user.roleCode === 'agricultural_expert') {
+      const canSeeFinancial = (farmId: string) =>
+        Boolean(getActiveFarmGrantForExpert(user.id, farmId)?.scopes.financialSummary);
+      const allFinancialAllowed = (farmFilter ? [farmFilter] : accessibleFarmIds).every(canSeeFinancial);
+      if (!allFinancialAllowed) {
+        res.json({
+          ...overview,
+          pricingDisclaimer:
+            'Financial valuation amounts are hidden for farms where the farmer has not granted financialSummary permission.',
+          totals: {
+            ...overview.totals,
+            totalCropStockValueZar: 0,
+            totalLivestockValueZar: 0,
+            totalHarvestValueZar: 0,
+            totalStoredProductionValueZar: 0,
+            totalDamagedStockValueZar: 0,
+            totalRemainingStockValueZar: 0,
+            netStockValueChangeZar: 0,
+          },
+          cropStocks: overview.cropStocks.map((row) =>
+            canSeeFinancial(row.farmId)
+              ? row
+              : {
+                  ...row,
+                  plantUnitPriceZar: 0,
+                  harvestUnitPriceZar: 0,
+                  priceSource: 'Redacted (Farmer financialSummary scope not granted)',
+                  initialPlantedValueZar: 0,
+                  damagedStockValueZar: 0,
+                  remainingStandingValueZar: 0,
+                  estimatedHarvestValueZar: 0,
+                  storedStockValueZar: 0,
+                  salesValueZar: 0,
+                  netStockValueChangeZar: 0,
+                }
+          ),
+          livestockStocks: overview.livestockStocks.map((row) =>
+            canSeeFinancial(row.farmId)
+              ? row
+              : {
+                  ...row,
+                  unitPriceZar: 0,
+                  priceSource: 'Redacted (Farmer financialSummary scope not granted)',
+                  remainingValueZar: 0,
+                  deathLossValueZar: 0,
+                  netValueChangeZar: 0,
+                }
+          ),
+        });
+        return;
+      }
+    }
+    res.json(overview);
   });
 
   app.post('/api/stock/crops/:cropId/movements', requireAuth, (req: AuthRequest, res) => {
@@ -2765,8 +3519,13 @@ async function startServer() {
     }
 
     const qty = Number(quantity);
-    if (!Number.isFinite(qty) || qty <= 0) {
-      res.status(400).json({ error: 'Please provide a positive quantity.' });
+    if (!Number.isFinite(qty) || (movementType === 'adjustment' ? qty === 0 : qty <= 0)) {
+      res.status(400).json({
+        error:
+          movementType === 'adjustment'
+            ? 'Please provide a non-zero adjustment quantity.'
+            : 'Please provide a positive quantity.',
+      });
       return;
     }
 
@@ -2786,10 +3545,27 @@ async function startServer() {
       'CROP_STOCK_MOVEMENT',
       'CropStockMovement',
       movement.id,
-      { cropId: crop.id, movementType, quantityDelta: movement.quantityDelta, totalValueZar: movement.totalValueZar },
+      {
+        farmId: crop.farmId,
+        cropId: crop.id,
+        movementType,
+        quantityDelta: movement.quantityDelta,
+        totalValueZar: movement.totalValueZar,
+      },
       req.ip || '127.0.0.1'
     );
     store.save();
+
+    dispatchNotification({
+      userId: crop.ownerId,
+      category: 'stock_change',
+      title: `Stock ${movementType.replace(/_/g, ' ')}: ${crop.cropName}`,
+      message: `${Math.abs(movement.quantityDelta).toLocaleString()} ${movement.unit} recorded on ${movement.movementDate}. Remaining plants: ${(movement.resultingRemainingPlants ?? crop.plantingQuantity - crop.damagedPlants).toLocaleString()}.`,
+      actionUrl: 'stock',
+      relatedEntityType: 'CropStockMovement',
+      relatedEntityId: movement.id,
+      prefixWithLanguageTag: true,
+    });
 
     res.status(201).json({ movement, crop });
   });
@@ -2835,10 +3611,10 @@ async function startServer() {
   ];
 
   app.get('/api/incidents', requireAuth, (req: AuthRequest, res) => {
-    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'incidents');
     const farmFilter = req.query.farmId ? String(req.query.farmId) : null;
     if (farmFilter && !accessibleFarmIds.includes(farmFilter)) {
-      res.status(403).json({ error: 'You do not have access to this farm.' });
+      res.status(403).json({ error: 'You do not have incident access to this farm.' });
       return;
     }
     res.json(buildIncidentDashboard(accessibleFarmIds, farmFilter));
@@ -2878,6 +3654,17 @@ async function startServer() {
       return;
     }
 
+    const maxMediaMb = store.db.systemConfig?.application?.maxMediaUploadMb || 15;
+    const mediaCheck = validateSafeMediaDataUrl(
+      typeof mediaPreviewDataUrl === 'string' ? mediaPreviewDataUrl : null,
+      maxMediaMb,
+      false
+    );
+    if (!mediaCheck.valid) {
+      res.status(400).json({ error: mediaCheck.error || 'Unsafe or oversized media attachment.' });
+      return;
+    }
+
     const incident = createFarmIncident({
       user: req.authUser!,
       farmId: String(farmId),
@@ -2890,7 +3677,7 @@ async function startServer() {
       description: String(description),
       mediaFileName: mediaFileName ? String(mediaFileName) : null,
       mediaType: mediaType === 'video' ? 'video' : mediaType === 'image' ? 'image' : null,
-      mediaPreviewDataUrl: typeof mediaPreviewDataUrl === 'string' ? mediaPreviewDataUrl : null,
+      mediaPreviewDataUrl: mediaCheck.sanitizedUrl || null,
       affectedQuantity: Number(affectedQuantity) || 0,
       affectedUnit: String(affectedUnit || 'units'),
       affectedAreaHectares: Number(affectedAreaHectares) || 0,
@@ -2907,6 +3694,45 @@ async function startServer() {
     });
 
     store.save();
+
+    const farm = store.db.farms.find((f) => f.id === String(farmId));
+    dispatchNotification({
+      userId: farm?.ownerId || req.authUser!.id,
+      category: 'agricultural_incident',
+      title: `Incident Recorded: ${incident.title}`,
+      message: `${incident.incidentType.replace(/_/g, ' ')} at ${farm?.name || 'Farm'}. Follow-up monitoring is active.`,
+      priority: 'high',
+      actionUrl: 'incidents',
+      relatedEntityType: 'FarmIncident',
+      relatedEntityId: incident.id,
+      prefixWithLanguageTag: true,
+    });
+
+    // Notify experts who have active incident access grant for this farm
+    const expertGrants = store.db.farmAccessGrants.filter(
+      (g) =>
+        g.status === 'active' &&
+        g.farmId === String(farmId) &&
+        g.granteeType === 'expert' &&
+        g.scopes.incidents &&
+        g.granteeUserId
+    );
+    for (const g of expertGrants) {
+      if (g.granteeUserId) {
+        dispatchNotification({
+          userId: g.granteeUserId,
+          category: 'agricultural_incident',
+          title: `Authorised Farm Incident: ${incident.title}`,
+          message: `${farm?.name || 'Authorised farm'} logged a new ${incident.incidentType.replace(/_/g, ' ')} incident awaiting advisory review.`,
+          priority: 'high',
+          actionUrl: 'dashboard',
+          relatedEntityType: 'FarmIncident',
+          relatedEntityId: incident.id,
+          prefixWithLanguageTag: true,
+        });
+      }
+    }
+
     res.status(201).json(incident);
   });
 
@@ -2965,11 +3791,1797 @@ async function startServer() {
       'INCIDENT_STATUS_UPDATED',
       'FarmIncident',
       incident.id,
-      { previousStatus: prev, newStatus: status },
+      { farmId: incident.farmId, previousStatus: prev, newStatus: status },
       req.ip || '127.0.0.1'
     );
     store.save();
     res.json(incident);
+  });
+
+  // ------------------------------------------------------------------
+  // Farming Business Planner (Prospective & Existing Farmers)
+  // ------------------------------------------------------------------
+  app.get('/api/business-planner', requireAuth, (req: AuthRequest, res) => {
+    const accessibleFarmIds = getAccessibleFarmIds(req.authUser!);
+    res.json(buildBusinessPlannerOverview(req.authUser!, accessibleFarmIds));
+  });
+
+  app.post('/api/business-planner/calculate', requireAuth, (req: AuthRequest, res) => {
+    const body = req.body || {};
+    if (body.farmId && !userCanAccessFarm(req.authUser!, String(body.farmId))) {
+      res.status(403).json({ error: 'You do not have access to the selected farm.' });
+      return;
+    }
+    const calc = computeBusinessPlanMetrics({
+      farmId: body.farmId ? String(body.farmId) : null,
+      planName: String(body.planName || 'Draft Scenario'),
+      farmingType: String(body.farmingType || 'horticulture_veg'),
+      scaleTier: (['small_scale', 'medium_scale', 'large_scale'].includes(body.scaleTier)
+        ? body.scaleTier
+        : 'small_scale') as BusinessScaleTier,
+      province: String(body.province || 'KwaZulu-Natal'),
+      district: String(body.district || ''),
+      farmSizeHectares: Number(body.farmSizeHectares) || 1,
+      productionGoals: String(body.productionGoals || ''),
+      marketChannel: String(body.marketChannel || ''),
+      equipmentCostZar: Number(body.equipmentCostZar) || 0,
+      equipmentNotes: String(body.equipmentNotes || ''),
+      seedsPlantingCostZar: Number(body.seedsPlantingCostZar) || 0,
+      fertilisersCostZar: Number(body.fertilisersCostZar) || 0,
+      feedCostZar: Number(body.feedCostZar) || 0,
+      waterCostZar: Number(body.waterCostZar) || 0,
+      waterDemandM3: Number(body.waterDemandM3) || 0,
+      labourWorkers: Number(body.labourWorkers) || 0,
+      labourCostZar: Number(body.labourCostZar) || 0,
+      infrastructureCostZar: Number(body.infrastructureCostZar) || 0,
+      operatingExpensesZar: Number(body.operatingExpensesZar) || 0,
+      expectedProductionQty: Number(body.expectedProductionQty) || 0,
+      productionUnit: String(body.productionUnit || 'kg'),
+      sellingPricePerUnitZar: Number(body.sellingPricePerUnitZar) || 0,
+      assumptionsNotes: String(body.assumptionsNotes || ''),
+    });
+    res.json(calc);
+  });
+
+  app.post('/api/business-planner/plans', requireAuth, (req: AuthRequest, res) => {
+    const body = req.body || {};
+    if (!body.planName || !body.farmingType) {
+      res.status(400).json({ error: 'Plan name and farming type are required.' });
+      return;
+    }
+    if (body.farmId && !userCanAccessFarm(req.authUser!, String(body.farmId))) {
+      res.status(403).json({ error: 'You do not have access to the selected farm.' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const scaleTier: BusinessScaleTier = ['small_scale', 'medium_scale', 'large_scale'].includes(
+      body.scaleTier
+    )
+      ? body.scaleTier
+      : 'small_scale';
+
+    const plan: BusinessPlanScenario = {
+      id: `bplan-${crypto.randomUUID()}`,
+      ownerId: req.authUser!.id,
+      farmId: body.farmId ? String(body.farmId) : null,
+      planName: String(body.planName).trim(),
+      farmingType: String(body.farmingType).trim(),
+      scaleTier,
+      province: String(body.province || req.authUser!.profile?.province || 'KwaZulu-Natal'),
+      district: String(body.district || req.authUser!.profile?.district || ''),
+      farmSizeHectares: Math.max(0.05, Number(body.farmSizeHectares) || 1),
+      productionGoals: String(body.productionGoals || '').trim(),
+      marketChannel: String(body.marketChannel || 'Local Buyers & Fresh Produce Market').trim(),
+      equipmentCostZar: Math.max(0, Number(body.equipmentCostZar) || 0),
+      equipmentNotes: String(body.equipmentNotes || '').trim(),
+      seedsPlantingCostZar: Math.max(0, Number(body.seedsPlantingCostZar) || 0),
+      fertilisersCostZar: Math.max(0, Number(body.fertilisersCostZar) || 0),
+      feedCostZar: Math.max(0, Number(body.feedCostZar) || 0),
+      waterCostZar: Math.max(0, Number(body.waterCostZar) || 0),
+      waterDemandM3: Math.max(0, Number(body.waterDemandM3) || 0),
+      labourWorkers: Math.max(0, Number(body.labourWorkers) || 0),
+      labourCostZar: Math.max(0, Number(body.labourCostZar) || 0),
+      infrastructureCostZar: Math.max(0, Number(body.infrastructureCostZar) || 0),
+      operatingExpensesZar: Math.max(0, Number(body.operatingExpensesZar) || 0),
+      expectedProductionQty: Math.max(0, Number(body.expectedProductionQty) || 0),
+      productionUnit: String(body.productionUnit || 'kg').trim(),
+      sellingPricePerUnitZar: Math.max(0, Number(body.sellingPricePerUnitZar) || 0),
+      assumptionsNotes: String(body.assumptionsNotes || '').trim(),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    store.db.businessPlans.unshift(plan);
+    store.logAudit(
+      req.authUser!.id,
+      'BUSINESS_PLAN_CREATED',
+      'BusinessPlanScenario',
+      plan.id,
+      { planName: plan.planName, scaleTier: plan.scaleTier, farmId: plan.farmId },
+      req.ip || '127.0.0.1'
+    );
+    store.save();
+
+    res.status(201).json({
+      ...plan,
+      calculation: computeBusinessPlanMetrics(plan),
+    });
+  });
+
+  app.put('/api/business-planner/plans/:id', requireAuth, (req: AuthRequest, res) => {
+    const plan = store.db.businessPlans.find((p) => p.id === req.params.id);
+    if (!plan) {
+      res.status(404).json({ error: 'Business plan not found.' });
+      return;
+    }
+    if (plan.ownerId !== req.authUser!.id && req.authUser!.roleCode !== 'system_administrator') {
+      res.status(403).json({ error: 'You do not have permission to edit this business plan.' });
+      return;
+    }
+
+    const body = req.body || {};
+    if (body.farmId !== undefined) {
+      if (body.farmId && !userCanAccessFarm(req.authUser!, String(body.farmId))) {
+        res.status(403).json({ error: 'Access denied for selected farm.' });
+        return;
+      }
+      plan.farmId = body.farmId ? String(body.farmId) : null;
+    }
+    if (body.planName) plan.planName = String(body.planName).trim();
+    if (body.farmingType) plan.farmingType = String(body.farmingType).trim();
+    if (['small_scale', 'medium_scale', 'large_scale'].includes(body.scaleTier)) {
+      plan.scaleTier = body.scaleTier;
+    }
+    if (body.province !== undefined) plan.province = String(body.province);
+    if (body.district !== undefined) plan.district = String(body.district);
+    if (body.farmSizeHectares !== undefined) plan.farmSizeHectares = Math.max(0.05, Number(body.farmSizeHectares) || 1);
+    if (body.productionGoals !== undefined) plan.productionGoals = String(body.productionGoals);
+    if (body.marketChannel !== undefined) plan.marketChannel = String(body.marketChannel);
+    if (body.equipmentCostZar !== undefined) plan.equipmentCostZar = Math.max(0, Number(body.equipmentCostZar) || 0);
+    if (body.equipmentNotes !== undefined) plan.equipmentNotes = String(body.equipmentNotes);
+    if (body.seedsPlantingCostZar !== undefined) plan.seedsPlantingCostZar = Math.max(0, Number(body.seedsPlantingCostZar) || 0);
+    if (body.fertilisersCostZar !== undefined) plan.fertilisersCostZar = Math.max(0, Number(body.fertilisersCostZar) || 0);
+    if (body.feedCostZar !== undefined) plan.feedCostZar = Math.max(0, Number(body.feedCostZar) || 0);
+    if (body.waterCostZar !== undefined) plan.waterCostZar = Math.max(0, Number(body.waterCostZar) || 0);
+    if (body.waterDemandM3 !== undefined) plan.waterDemandM3 = Math.max(0, Number(body.waterDemandM3) || 0);
+    if (body.labourWorkers !== undefined) plan.labourWorkers = Math.max(0, Number(body.labourWorkers) || 0);
+    if (body.labourCostZar !== undefined) plan.labourCostZar = Math.max(0, Number(body.labourCostZar) || 0);
+    if (body.infrastructureCostZar !== undefined) plan.infrastructureCostZar = Math.max(0, Number(body.infrastructureCostZar) || 0);
+    if (body.operatingExpensesZar !== undefined) plan.operatingExpensesZar = Math.max(0, Number(body.operatingExpensesZar) || 0);
+    if (body.expectedProductionQty !== undefined) plan.expectedProductionQty = Math.max(0, Number(body.expectedProductionQty) || 0);
+    if (body.productionUnit !== undefined) plan.productionUnit = String(body.productionUnit);
+    if (body.sellingPricePerUnitZar !== undefined) plan.sellingPricePerUnitZar = Math.max(0, Number(body.sellingPricePerUnitZar) || 0);
+    if (body.assumptionsNotes !== undefined) plan.assumptionsNotes = String(body.assumptionsNotes);
+    plan.updatedAt = new Date().toISOString();
+
+    store.save();
+    res.json({
+      ...plan,
+      calculation: computeBusinessPlanMetrics(plan),
+    });
+  });
+
+  app.delete('/api/business-planner/plans/:id', requireAuth, (req: AuthRequest, res) => {
+    const plan = store.db.businessPlans.find((p) => p.id === req.params.id);
+    if (!plan) {
+      res.status(404).json({ error: 'Business plan not found.' });
+      return;
+    }
+    if (plan.ownerId !== req.authUser!.id && req.authUser!.roleCode !== 'system_administrator') {
+      res.status(403).json({ error: 'Access denied.' });
+      return;
+    }
+    store.db.businessPlans = store.db.businessPlans.filter((p) => p.id !== plan.id);
+    store.save();
+    res.json({ ok: true });
+  });
+
+  // ------------------------------------------------------------------
+  // Agricultural Learning Centre (Multilingual, Accessible, Admin CMS)
+  // ------------------------------------------------------------------
+  app.get('/api/learning/materials', requireAuth, (req: AuthRequest, res) => {
+    const reqLang = req.query.languageCode ? String(req.query.languageCode) : undefined;
+    const validLang =
+      reqLang && store.db.languages.some((l) => l.code === reqLang)
+        ? (reqLang as LanguageCode)
+        : req.authUser!.preferredLanguageCode;
+    const includeDrafts = req.query.includeDrafts === 'true';
+
+    res.json(
+      buildLearningCentrePayload({
+        user: req.authUser!,
+        languageCode: validLang,
+        includeDrafts,
+      })
+    );
+  });
+
+  app.post('/api/learning/materials/:id/save', requireAuth, (req: AuthRequest, res) => {
+    const material = store.db.learningMaterials.find((m) => m.id === req.params.id);
+    if (!material) {
+      res.status(404).json({ error: 'Learning material not found.' });
+      return;
+    }
+    const now = new Date().toISOString();
+    let prog = store.db.learningProgress.find(
+      (p) => p.userId === req.authUser!.id && p.materialId === material.id
+    );
+    if (!prog) {
+      prog = {
+        id: `lprog-${crypto.randomUUID()}`,
+        userId: req.authUser!.id,
+        materialId: material.id,
+        isSaved: true,
+        status: 'not_started',
+        completedSteps: [],
+        progressPercent: 0,
+        lastAccessedAt: now,
+        completedAt: null,
+      };
+      store.db.learningProgress.push(prog);
+    } else {
+      prog.isSaved = typeof req.body?.isSaved === 'boolean' ? req.body.isSaved : !prog.isSaved;
+      prog.lastAccessedAt = now;
+    }
+    store.save();
+    res.json({
+      progress: prog,
+      material: resolveMaterialForUser(material, req.authUser!, req.body?.languageCode),
+    });
+  });
+
+  app.post('/api/learning/materials/:id/progress', requireAuth, (req: AuthRequest, res) => {
+    const material = store.db.learningMaterials.find((m) => m.id === req.params.id);
+    if (!material) {
+      res.status(404).json({ error: 'Learning material not found.' });
+      return;
+    }
+
+    const now = new Date().toISOString();
+    const { status, completedSteps, totalSteps } = req.body || {};
+
+    let prog = store.db.learningProgress.find(
+      (p) => p.userId === req.authUser!.id && p.materialId === material.id
+    );
+    if (!prog) {
+      prog = {
+        id: `lprog-${crypto.randomUUID()}`,
+        userId: req.authUser!.id,
+        materialId: material.id,
+        isSaved: false,
+        status: 'in_progress',
+        completedSteps: [],
+        progressPercent: 0,
+        lastAccessedAt: now,
+        completedAt: null,
+      };
+      store.db.learningProgress.push(prog);
+    }
+
+    if (Array.isArray(completedSteps)) {
+      prog.completedSteps = completedSteps
+        .map((n) => Number(n))
+        .filter((n) => Number.isInteger(n) && n >= 0);
+    }
+
+    const denom = Math.max(1, Number(totalSteps) || material.translations.en?.steps.length || 1);
+    if (status === 'completed') {
+      prog.status = 'completed';
+      prog.progressPercent = 100;
+      prog.completedAt = now;
+    } else if (status === 'not_started') {
+      prog.status = 'not_started';
+      prog.completedSteps = [];
+      prog.progressPercent = 0;
+      prog.completedAt = null;
+    } else {
+      const pct = Math.min(100, Math.round((prog.completedSteps.length / denom) * 100));
+      prog.progressPercent = pct > 0 ? pct : 25;
+      prog.status = prog.progressPercent >= 100 ? 'completed' : 'in_progress';
+      prog.completedAt = prog.status === 'completed' ? now : null;
+    }
+    prog.lastAccessedAt = now;
+    store.save();
+
+    res.json({
+      progress: prog,
+      material: resolveMaterialForUser(material, req.authUser!, req.body?.languageCode),
+    });
+  });
+
+  app.post('/api/learning/admin/materials', requireAuth, (req: AuthRequest, res) => {
+    if (!userCanManageLearning(req.authUser!)) {
+      res.status(403).json({ error: 'Only authorised administrators or agricultural experts can create learning materials.' });
+      return;
+    }
+
+    const {
+      category,
+      contentType,
+      difficulty,
+      illustrationKey,
+      customIllustrationDataUrl,
+      videoUrl,
+      videoDurationLabel,
+      sourceAttribution,
+      verifiedOfficialReference,
+      status,
+      estimatedMinutes,
+      tags,
+      languageCode,
+      title,
+      summary,
+      body,
+      steps,
+      reviewed,
+    } = req.body || {};
+
+    const validCategories = LEARNING_CATEGORIES.map((c) => c.code);
+    if (!validCategories.includes(category)) {
+      res.status(400).json({ error: 'Please select a valid learning category.' });
+      return;
+    }
+    if (!title || !summary || !body) {
+      res.status(400).json({ error: 'Title, summary, and guide body content are required.' });
+      return;
+    }
+
+    const lang: LanguageCode =
+      languageCode && store.db.languages.some((l) => l.code === languageCode)
+        ? languageCode
+        : 'en';
+    const now = new Date().toISOString();
+    const id = `learn-${crypto.randomUUID()}`;
+    const slug = `${String(title)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-|-$/g, '')}-${id.slice(-6)}`;
+
+    const stepList = Array.isArray(steps)
+      ? steps.map((s) => String(s).trim()).filter(Boolean)
+      : typeof steps === 'string'
+      ? steps
+          .split('\n')
+          .map((s) => s.trim())
+          .filter(Boolean)
+      : [];
+
+    const newMaterial: LearningMaterial = {
+      id,
+      slug,
+      category: category as LearningCategoryCode,
+      contentType: (['article', 'step_by_step_guide', 'illustrated_guide', 'video_lesson'].includes(
+        contentType
+      )
+        ? contentType
+        : 'article') as LearningContentType,
+      difficulty: (['beginner', 'intermediate', 'experienced'].includes(difficulty)
+        ? difficulty
+        : 'beginner') as LearningDifficulty,
+      illustrationKey: String(illustrationKey || 'soil_crops'),
+      customIllustrationDataUrl:
+        typeof customIllustrationDataUrl === 'string' && customIllustrationDataUrl.startsWith('data:image/')
+          ? customIllustrationDataUrl
+          : null,
+      videoUrl: typeof videoUrl === 'string' && videoUrl.trim() ? videoUrl.trim() : null,
+      videoDurationLabel: videoDurationLabel ? String(videoDurationLabel).trim() : undefined,
+      videoSlides: [],
+      sourceAttribution: String(
+        sourceAttribution || 'Field Shift Editorial Agricultural Guidance (Internal Draft)'
+      ).trim(),
+      verifiedOfficialReference: Boolean(verifiedOfficialReference),
+      status: ['published', 'draft', 'archived'].includes(status) ? status : 'draft',
+      estimatedMinutes: Math.max(1, Number(estimatedMinutes) || 5),
+      tags: Array.isArray(tags)
+        ? tags.map(String)
+        : typeof tags === 'string'
+        ? tags
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean)
+        : [],
+      translations: {
+        [lang]: {
+          title: String(title).trim(),
+          summary: String(summary).trim(),
+          body: String(body).trim(),
+          steps: stepList,
+          reviewed: Boolean(reviewed),
+          reviewedBy: reviewed ? req.authUser!.profile?.fullName || req.authUser!.email : undefined,
+          reviewedAt: reviewed ? now.slice(0, 10) : undefined,
+        },
+      },
+      createdByUserId: req.authUser!.id,
+      updatedByUserId: req.authUser!.id,
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    store.db.learningMaterials.unshift(newMaterial);
+    store.logAudit(
+      req.authUser!.id,
+      'LEARNING_MATERIAL_CREATED',
+      'LearningMaterial',
+      newMaterial.id,
+      { category: newMaterial.category, status: newMaterial.status, title: String(title).trim() },
+      req.ip || '127.0.0.1'
+    );
+    store.save();
+
+    res.status(201).json(resolveMaterialForUser(newMaterial, req.authUser!, lang));
+  });
+
+  app.put('/api/learning/admin/materials/:id', requireAuth, (req: AuthRequest, res) => {
+    if (!userCanManageLearning(req.authUser!)) {
+      res.status(403).json({ error: 'Only authorised administrators or agricultural experts can edit learning materials.' });
+      return;
+    }
+
+    const material = store.db.learningMaterials.find((m) => m.id === req.params.id);
+    if (!material) {
+      res.status(404).json({ error: 'Learning material not found.' });
+      return;
+    }
+
+    const {
+      category,
+      contentType,
+      difficulty,
+      illustrationKey,
+      videoUrl,
+      videoDurationLabel,
+      sourceAttribution,
+      verifiedOfficialReference,
+      status,
+      estimatedMinutes,
+      tags,
+      languageCode,
+      title,
+      summary,
+      body,
+      steps,
+      reviewed,
+    } = req.body || {};
+
+    const validCategories = LEARNING_CATEGORIES.map((c) => c.code);
+    if (category && validCategories.includes(category)) material.category = category;
+    if (['article', 'step_by_step_guide', 'illustrated_guide', 'video_lesson'].includes(contentType)) {
+      material.contentType = contentType;
+    }
+    if (['beginner', 'intermediate', 'experienced'].includes(difficulty)) {
+      material.difficulty = difficulty;
+    }
+    if (illustrationKey) material.illustrationKey = String(illustrationKey);
+    if (videoUrl !== undefined) material.videoUrl = videoUrl ? String(videoUrl).trim() : null;
+    if (videoDurationLabel !== undefined) material.videoDurationLabel = String(videoDurationLabel);
+    if (sourceAttribution !== undefined) material.sourceAttribution = String(sourceAttribution).trim();
+    if (typeof verifiedOfficialReference === 'boolean') {
+      material.verifiedOfficialReference = verifiedOfficialReference;
+    }
+    if (['published', 'draft', 'archived'].includes(status)) {
+      material.status = status;
+    }
+    if (estimatedMinutes !== undefined) material.estimatedMinutes = Math.max(1, Number(estimatedMinutes) || 5);
+    if (tags !== undefined) {
+      material.tags = Array.isArray(tags)
+        ? tags.map(String)
+        : String(tags)
+            .split(',')
+            .map((t) => t.trim())
+            .filter(Boolean);
+    }
+
+    const targetLang: LanguageCode =
+      languageCode && store.db.languages.some((l) => l.code === languageCode)
+        ? languageCode
+        : 'en';
+
+    const now = new Date().toISOString();
+    if (title || summary || body || steps !== undefined) {
+      const prevTr = material.translations[targetLang];
+      const stepList = Array.isArray(steps)
+        ? steps.map((s) => String(s).trim()).filter(Boolean)
+        : typeof steps === 'string'
+        ? steps
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : prevTr?.steps || [];
+
+      const isReviewed = typeof reviewed === 'boolean' ? reviewed : Boolean(prevTr?.reviewed);
+      material.translations[targetLang] = {
+        title: String(title || prevTr?.title || '').trim(),
+        summary: String(summary || prevTr?.summary || '').trim(),
+        body: String(body || prevTr?.body || '').trim(),
+        steps: stepList,
+        reviewed: isReviewed,
+        reviewedBy: isReviewed
+          ? prevTr?.reviewedBy || req.authUser!.profile?.fullName || req.authUser!.email
+          : undefined,
+        reviewedAt: isReviewed ? now.slice(0, 10) : undefined,
+      };
+    }
+
+    material.updatedByUserId = req.authUser!.id;
+    material.updatedAt = now;
+    store.logAudit(
+      req.authUser!.id,
+      'LEARNING_MATERIAL_UPDATED',
+      'LearningMaterial',
+      material.id,
+      { category: material.category, status: material.status, language: targetLang },
+      req.ip || '127.0.0.1'
+    );
+    store.save();
+
+    res.json(resolveMaterialForUser(material, req.authUser!, targetLang));
+  });
+
+  app.patch('/api/learning/admin/materials/:id/status', requireAuth, (req: AuthRequest, res) => {
+    if (!userCanManageLearning(req.authUser!)) {
+      res.status(403).json({ error: 'Only authorised administrators or experts can publish/unpublish materials.' });
+      return;
+    }
+    const material = store.db.learningMaterials.find((m) => m.id === req.params.id);
+    if (!material) {
+      res.status(404).json({ error: 'Learning material not found.' });
+      return;
+    }
+    const { status } = req.body || {};
+    if (!['published', 'draft', 'archived'].includes(status)) {
+      res.status(400).json({ error: 'Invalid status.' });
+      return;
+    }
+    material.status = status;
+    material.updatedByUserId = req.authUser!.id;
+    material.updatedAt = new Date().toISOString();
+    store.logAudit(
+      req.authUser!.id,
+      'LEARNING_MATERIAL_STATUS_CHANGED',
+      'LearningMaterial',
+      material.id,
+      { status },
+      req.ip || '127.0.0.1'
+    );
+    store.save();
+    res.json(resolveMaterialForUser(material, req.authUser!));
+  });
+
+  app.put(
+    '/api/learning/admin/materials/:id/translations/:langCode',
+    requireAuth,
+    (req: AuthRequest, res) => {
+      if (!userCanManageLearning(req.authUser!)) {
+        res.status(403).json({ error: 'Only authorised administrators or experts can manage translations.' });
+        return;
+      }
+      const material = store.db.learningMaterials.find((m) => m.id === req.params.id);
+      if (!material) {
+        res.status(404).json({ error: 'Learning material not found.' });
+        return;
+      }
+      const langCode = req.params.langCode as LanguageCode;
+      if (!store.db.languages.some((l) => l.code === langCode)) {
+        res.status(400).json({ error: 'Invalid South African official language code.' });
+        return;
+      }
+
+      const { title, summary, body, steps, reviewed } = req.body || {};
+      if (!title || !summary || !body) {
+        res.status(400).json({ error: 'Title, summary, and body are required for translation.' });
+        return;
+      }
+      const now = new Date().toISOString();
+      const stepList = Array.isArray(steps)
+        ? steps.map((s) => String(s).trim()).filter(Boolean)
+        : typeof steps === 'string'
+        ? steps
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
+      const isReviewed = Boolean(reviewed);
+      material.translations[langCode] = {
+        title: String(title).trim(),
+        summary: String(summary).trim(),
+        body: String(body).trim(),
+        steps: stepList,
+        reviewed: isReviewed,
+        reviewedBy: isReviewed ? req.authUser!.profile?.fullName || req.authUser!.email : undefined,
+        reviewedAt: isReviewed ? now.slice(0, 10) : undefined,
+      };
+      material.updatedByUserId = req.authUser!.id;
+      material.updatedAt = now;
+
+      store.logAudit(
+        req.authUser!.id,
+        'LEARNING_TRANSLATION_SAVED',
+        'LearningMaterial',
+        material.id,
+        { langCode, reviewed: isReviewed },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+
+      res.json(resolveMaterialForUser(material, req.authUser!, langCode));
+    }
+  );
+
+  app.delete('/api/learning/admin/materials/:id', requireAuth, (req: AuthRequest, res) => {
+    if (!userCanManageLearning(req.authUser!)) {
+      res.status(403).json({ error: 'Access denied.' });
+      return;
+    }
+    const existing = store.db.learningMaterials.find((m) => m.id === req.params.id);
+    if (!existing) {
+      res.status(404).json({ error: 'Learning material not found.' });
+      return;
+    }
+    store.db.learningMaterials = store.db.learningMaterials.filter((m) => m.id !== existing.id);
+    store.db.learningProgress = store.db.learningProgress.filter((p) => p.materialId !== existing.id);
+    store.save();
+    res.json({ ok: true });
+  });
+
+  // ------------------------------------------------------------------
+  // Comprehensive Farmer Dashboards & Prospective Saved Locations
+  // ------------------------------------------------------------------
+  app.get('/api/dashboard/overview', requireAuth, async (req: AuthRequest, res) => {
+    const user = req.authUser!;
+    if (user.roleCode === 'organisation_manager') {
+      res.status(403).json({
+        error:
+          'Organisation managers must use /api/organisation/overview for privacy-protected portfolio aggregates.',
+      });
+      return;
+    }
+    if (user.roleCode === 'prospective_farmer') {
+      res.json(
+        buildProspectiveFarmerDashboard({
+          user,
+          provinceFilter: req.query.province ? String(req.query.province) : undefined,
+        })
+      );
+      return;
+    }
+
+    const accessibleFarmIds = getAccessibleFarmIds(user, 'overview');
+    const farmId = req.query.farmId ? String(req.query.farmId) : 'all';
+    if (farmId !== 'all' && !accessibleFarmIds.includes(farmId)) {
+      res.status(403).json({ error: 'You do not have access to the requested farm.' });
+      return;
+    }
+
+    const payload = await buildExistingFarmerDashboard({
+      user,
+      accessibleFarmIds,
+      farmId,
+      fieldId: req.query.fieldId ? String(req.query.fieldId) : 'all',
+      startDate: req.query.startDate ? String(req.query.startDate) : '',
+      endDate: req.query.endDate ? String(req.query.endDate) : '',
+      category: req.query.category ? String(req.query.category) : 'all',
+    });
+    res.json(payload);
+  });
+
+  app.post('/api/prospective/locations', requireAuth, (req: AuthRequest, res) => {
+    const { province, district, townOrArea, intendedHectares, waterSourceNote, notes } =
+      req.body || {};
+    if (!province || !townOrArea) {
+      res.status(400).json({ error: 'Province and town or target area are required.' });
+      return;
+    }
+
+    const loc = {
+      id: `ploc-${crypto.randomUUID()}`,
+      userId: req.authUser!.id,
+      province: String(province).trim(),
+      district: String(district || '').trim(),
+      townOrArea: String(townOrArea).trim(),
+      intendedHectares: Math.max(0.1, Number(intendedHectares) || 1),
+      waterSourceNote: String(waterSourceNote || 'To be verified on site').trim(),
+      notes: String(notes || '').trim(),
+      createdAt: new Date().toISOString(),
+    };
+    store.db.savedProspectiveLocations.unshift(loc);
+    store.logAudit(
+      req.authUser!.id,
+      'PROSPECTIVE_LOCATION_SAVED',
+      'SavedProspectiveLocation',
+      loc.id,
+      { province: loc.province, townOrArea: loc.townOrArea },
+      req.ip || '127.0.0.1'
+    );
+    store.save();
+    res.status(201).json(loc);
+  });
+
+  app.delete('/api/prospective/locations/:id', requireAuth, (req: AuthRequest, res) => {
+    const existing = store.db.savedProspectiveLocations.find((l) => l.id === req.params.id);
+    if (!existing) {
+      res.status(404).json({ error: 'Saved location not found.' });
+      return;
+    }
+    if (existing.userId !== req.authUser!.id) {
+      res.status(403).json({ error: 'Access denied.' });
+      return;
+    }
+    store.db.savedProspectiveLocations = store.db.savedProspectiveLocations.filter(
+      (l) => l.id !== existing.id
+    );
+    store.save();
+    res.json({ ok: true });
+  });
+
+  // ------------------------------------------------------------------
+  // Reporting & Data Export Endpoints (PDF / CSV / Organisation Aggregate)
+  // ------------------------------------------------------------------
+  app.get('/api/reports/types', requireAuth, (_req: AuthRequest, res) => {
+    res.json(REPORT_TYPES);
+  });
+
+  app.get('/api/reports/history', requireAuth, (req: AuthRequest, res) => {
+    const user = req.authUser!;
+    const list = store.db.generatedReports
+      .filter((r) => r.userId === user.id)
+      .slice(0, 50);
+    res.json(list);
+  });
+
+  app.post('/api/reports/generate', requireAuth, (req: AuthRequest, res) => {
+    const user = req.authUser!;
+    if (!user.permissions.includes('reports:generate')) {
+      res.status(403).json({ error: 'Your account does not have permission to generate reports.' });
+      return;
+    }
+
+    const { reportType, farmId, startDate, endDate, farmingCategory, aggregateOrganisation } =
+      req.body || {};
+    const validType = REPORT_TYPES.some((rt) => rt.code === reportType);
+    if (!validType) {
+      res.status(400).json({ error: 'Please select a valid report type.' });
+      return;
+    }
+
+    if (aggregateOrganisation && !user.permissions.includes('reports:organisation_aggregate') && user.roleCode !== 'organisation_manager') {
+      res.status(403).json({
+        error: 'Organisation aggregated reporting is restricted to authorised organisation accounts.',
+      });
+      return;
+    }
+
+    try {
+      const accessibleFarmIds = getAccessibleFarmIds(user);
+      const result = generateAndSaveReport({
+        user,
+        accessibleFarmIds,
+        reportType: reportType as ReportTypeCode,
+        farmId: farmId ? String(farmId) : 'all',
+        startDate: startDate ? String(startDate) : '',
+        endDate: endDate ? String(endDate) : '',
+        farmingCategory: farmingCategory ? String(farmingCategory) : 'all',
+        aggregateOrganisation: Boolean(aggregateOrganisation),
+      });
+      res.json(result);
+    } catch (err: unknown) {
+      res.status(403).json({
+        error: err instanceof Error ? err.message : 'Unable to generate requested report.',
+      });
+    }
+  });
+
+  // ------------------------------------------------------------------
+  // System Administration Portal Endpoints (Exclusively System Admins)
+  // ------------------------------------------------------------------
+  const PERMISSION_CATALOG = [
+    { key: 'profile:read', label: 'View Own Profile', group: 'Account' },
+    { key: 'profile:update', label: 'Edit Own Profile & Preferences', group: 'Account' },
+    { key: 'farms:create', label: 'Register Farms', group: 'Farm Operations' },
+    { key: 'farms:read_own', label: 'View Own Farms', group: 'Farm Operations' },
+    { key: 'farms:update_own', label: 'Edit Own Farms', group: 'Farm Operations' },
+    { key: 'farms:delete_own', label: 'Delete Own Farms', group: 'Farm Operations' },
+    { key: 'fields:manage_own', label: 'Manage Fields & Polygons', group: 'Farm Operations' },
+    { key: 'crops:manage_own', label: 'Manage Crops & Stock', group: 'Farm Operations' },
+    { key: 'livestock:manage_own', label: 'Manage Livestock & Herds', group: 'Farm Operations' },
+    { key: 'mixed:manage_own', label: 'Manage Mixed Farming Entries', group: 'Farm Operations' },
+    { key: 'farms:read_regional', label: 'Advisory Read Access (Expert)', group: 'Advisory & Org' },
+    { key: 'farms:read_portfolio', label: 'Organisation Member Portfolio Read', group: 'Advisory & Org' },
+    { key: 'reports:generate', label: 'Generate Reports', group: 'Reporting' },
+    { key: 'reports:export', label: 'Export PDF & CSV Reports', group: 'Reporting' },
+    { key: 'reports:organisation_aggregate', label: 'Generate Privacy-Protected Org Aggregates', group: 'Reporting' },
+    { key: 'business:plan', label: 'Use Farming Business Planner', group: 'Planning & Learning' },
+    { key: 'learning:access', label: 'Access Learning Centre', group: 'Planning & Learning' },
+    { key: 'learning:manage', label: 'Author & Publish Learning Content', group: 'Planning & Learning' },
+    { key: 'ai:advise', label: 'Use AI Agricultural Advisor', group: 'Planning & Learning' },
+    { key: 'admin:portal_access', label: 'Access System Admin Portal', group: 'Administration' },
+    { key: 'admin:users_read', label: 'View User Directory', group: 'Administration' },
+    { key: 'admin:users_manage', label: 'Activate / Deactivate User Accounts', group: 'Administration' },
+    { key: 'admin:roles_assign', label: 'Assign User Roles', group: 'Administration' },
+    { key: 'admin:permissions_manage', label: 'Grant & Revoke Granular Permissions', group: 'Administration' },
+    { key: 'admin:oversight_aggregated', label: 'View Non-PII Farm Oversight Summaries', group: 'Administration' },
+    { key: 'admin:languages_manage', label: 'Manage Languages & UI Translations', group: 'Administration' },
+    { key: 'admin:config_manage', label: 'Manage System Configuration & Announcements', group: 'Administration' },
+    { key: 'admin:audit_read', label: 'Inspect Security & Audit Logs', group: 'Administration' },
+    {
+      key: 'admin:private_farmer_records',
+      label: 'Scoped Private Farmer Record Inspection (Sensitive — Audited)',
+      group: 'Privacy Escalation',
+    },
+  ];
+
+  app.get(
+    '/api/admin/overview',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      res.json(buildAdminPortalOverview(req.authUser!));
+    }
+  );
+
+  app.get(
+    '/api/admin/permissions/catalog',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (_req: AuthRequest, res) => {
+      res.json(PERMISSION_CATALOG);
+    }
+  );
+
+  app.get(
+    '/api/admin/users/:id/activity',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const target = store.db.users.find((u) => u.id === req.params.id);
+      if (!target) {
+        res.status(404).json({ error: 'User not found.' });
+        return;
+      }
+      const sanitized = sanitizeUser(target);
+      const hasPrivatePerm = req.authUser!.permissions.includes('admin:private_farmer_records');
+      if (!hasPrivatePerm && sanitized.profile) {
+        sanitized.profile = {
+          ...sanitized.profile,
+          phoneNumber: sanitized.profile.phoneNumber ? '[Protected — Private Farmer Info]' : '',
+        };
+      }
+      const activity = store.db.auditLogs
+        .filter((a) => a.actorUserId === target.id || a.entityId === target.id)
+        .slice(0, 40);
+
+      res.json({
+        user: sanitized,
+        ownedFarmCount: store.db.farms.filter((f) => f.ownerId === target.id).length,
+        activity,
+      });
+    }
+  );
+
+  app.patch(
+    '/api/admin/users/:id/permissions',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      if (!req.authUser!.permissions.includes('admin:permissions_manage')) {
+        res.status(403).json({ error: 'Permission denied to modify user permissions.' });
+        return;
+      }
+      const target = store.db.users.find((u) => u.id === req.params.id);
+      if (!target) {
+        res.status(404).json({ error: 'User not found.' });
+        return;
+      }
+
+      const { permissionKey, isAllowed } = req.body || {};
+      if (!permissionKey || typeof isAllowed !== 'boolean') {
+        res.status(400).json({ error: 'permissionKey and boolean isAllowed are required.' });
+        return;
+      }
+      if (!PERMISSION_CATALOG.some((p) => p.key === permissionKey)) {
+        res.status(400).json({ error: 'Unknown permission key.' });
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const existing = store.db.userPermissions.find(
+        (p) => p.userId === target.id && p.permissionKey === permissionKey
+      );
+      if (existing) {
+        existing.isAllowed = isAllowed;
+      } else {
+        store.db.userPermissions.push({
+          id: `perm-${crypto.randomUUID()}`,
+          roleId: target.roleId,
+          userId: target.id,
+          permissionKey: String(permissionKey),
+          isAllowed,
+          createdAt: now,
+        });
+      }
+
+      store.logAudit(
+        req.authUser!.id,
+        isAllowed ? 'ADMIN_PERMISSION_GRANTED' : 'ADMIN_PERMISSION_REVOKED',
+        'UserPermission',
+        target.id,
+        { targetEmail: target.email, permissionKey, isAllowed },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+
+      res.json({ user: sanitizeUser(target) });
+    }
+  );
+
+  app.get(
+    '/api/admin/farm-oversight',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const payload = buildAdminFarmOversight(req.authUser!);
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_FARM_OVERSIGHT_VIEWED',
+        'FarmOversight',
+        null,
+        { hasPrivateRecordPermission: payload.hasPrivateRecordPermission },
+        req.ip || '127.0.0.1'
+      );
+      res.json(payload);
+    }
+  );
+
+  app.get(
+    '/api/admin/languages',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (_req: AuthRequest, res) => {
+      res.json(buildLanguageTranslationAudit());
+    }
+  );
+
+  app.patch(
+    '/api/admin/languages/:code',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const lang = store.db.languages.find((l) => l.code === req.params.code);
+      if (!lang) {
+        res.status(404).json({ error: 'Language not found.' });
+        return;
+      }
+      const { isActive, hasAudioSupport, hasSignLanguageSupport } = req.body || {};
+      if (typeof isActive === 'boolean') {
+        if (lang.code === 'en' && !isActive) {
+          res.status(400).json({ error: 'English baseline language cannot be deactivated.' });
+          return;
+        }
+        lang.isActive = isActive;
+      }
+      if (typeof hasAudioSupport === 'boolean') lang.hasAudioSupport = hasAudioSupport;
+      if (typeof hasSignLanguageSupport === 'boolean') {
+        lang.hasSignLanguageSupport = hasSignLanguageSupport;
+      }
+
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_LANGUAGE_UPDATED',
+        'Language',
+        lang.code,
+        {
+          isActive: lang.isActive,
+          hasAudioSupport: lang.hasAudioSupport,
+          hasSignLanguageSupport: lang.hasSignLanguageSupport,
+        },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+      res.json(lang);
+    }
+  );
+
+  app.get(
+    '/api/admin/translations/:langCode',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const langCode = req.params.langCode as LanguageCode;
+      if (!store.db.languages.some((l) => l.code === langCode)) {
+        res.status(404).json({ error: 'Language not found.' });
+        return;
+      }
+      res.json(getTranslationEntriesForLang(langCode));
+    }
+  );
+
+  app.put(
+    '/api/admin/translations/:langCode',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const langCode = req.params.langCode as LanguageCode;
+      if (!store.db.languages.some((l) => l.code === langCode)) {
+        res.status(404).json({ error: 'Language not found.' });
+        return;
+      }
+      const { key, value, reviewed } = req.body || {};
+      if (!key || typeof value !== 'string' || !value.trim()) {
+        res.status(400).json({ error: 'Translation key and non-empty value are required.' });
+        return;
+      }
+
+      const now = new Date().toISOString();
+      const existing = store.db.translationOverrides.find(
+        (o) => o.languageCode === langCode && o.key === key
+      );
+      if (existing) {
+        existing.value = value.trim();
+        existing.reviewed = typeof reviewed === 'boolean' ? reviewed : true;
+        existing.updatedByUserId = req.authUser!.id;
+        existing.updatedAt = now;
+      } else {
+        store.db.translationOverrides.push({
+          id: `tov-${crypto.randomUUID()}`,
+          languageCode: langCode,
+          key: String(key),
+          value: value.trim(),
+          reviewed: typeof reviewed === 'boolean' ? reviewed : true,
+          updatedByUserId: req.authUser!.id,
+          updatedAt: now,
+        });
+      }
+
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_TRANSLATION_SAVED',
+        'TranslationOverride',
+        `${langCode}:${key}`,
+        { languageCode: langCode, key },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+
+      res.json(getTranslationEntriesForLang(langCode));
+    }
+  );
+
+  app.get(
+    '/api/admin/system-config',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (_req: AuthRequest, res) => {
+      res.json({
+        config: store.db.systemConfig,
+        integrations: getExternalIntegrationStatuses(),
+        announcements: store.db.systemAnnouncements,
+      });
+    }
+  );
+
+  app.put(
+    '/api/admin/system-config',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const { application, notifications, agriculturalReference, ai } = req.body || {};
+      const cfg = store.db.systemConfig;
+
+      if (application && typeof application === 'object') {
+        if (typeof application.platformName === 'string' && application.platformName.trim()) {
+          cfg.application.platformName = application.platformName.trim();
+        }
+        if (
+          application.defaultLanguageCode &&
+          store.db.languages.some((l) => l.code === application.defaultLanguageCode)
+        ) {
+          cfg.application.defaultLanguageCode = application.defaultLanguageCode;
+        }
+        if (typeof application.allowSelfRegistration === 'boolean') {
+          cfg.application.allowSelfRegistration = application.allowSelfRegistration;
+        }
+        if (typeof application.maintenanceMode === 'boolean') {
+          cfg.application.maintenanceMode = application.maintenanceMode;
+        }
+        if (application.maxMediaUploadMb !== undefined) {
+          cfg.application.maxMediaUploadMb = Math.max(1, Math.min(50, Number(application.maxMediaUploadMb) || 15));
+        }
+        if (application.sessionTimeoutHours !== undefined) {
+          cfg.application.sessionTimeoutHours = Math.max(1, Math.min(720, Number(application.sessionTimeoutHours) || 168));
+        }
+      }
+
+      if (notifications && typeof notifications === 'object') {
+        if (typeof notifications.inAppAlertsEnabled === 'boolean') {
+          cfg.notifications.inAppAlertsEnabled = notifications.inAppAlertsEnabled;
+        }
+        if (typeof notifications.emailDigestEnabled === 'boolean') {
+          cfg.notifications.emailDigestEnabled = notifications.emailDigestEnabled;
+        }
+        if (notifications.rainfallAlertThresholdMm !== undefined) {
+          cfg.notifications.rainfallAlertThresholdMm = Math.max(5, Number(notifications.rainfallAlertThresholdMm) || 35);
+        }
+        if (notifications.heatAlertThresholdC !== undefined) {
+          cfg.notifications.heatAlertThresholdC = Math.max(25, Number(notifications.heatAlertThresholdC) || 34);
+        }
+        if (typeof notifications.incidentEscalationNotify === 'boolean') {
+          cfg.notifications.incidentEscalationNotify = notifications.incidentEscalationNotify;
+        }
+      }
+
+      if (agriculturalReference && typeof agriculturalReference === 'object') {
+        if (Array.isArray(agriculturalReference.supportedCategories)) {
+          cfg.agriculturalReference.supportedCategories = agriculturalReference.supportedCategories
+            .map((c: unknown) => String(c).trim())
+            .filter(Boolean);
+        }
+        if (typeof agriculturalReference.defaultExtensionDeskEmail === 'string') {
+          cfg.agriculturalReference.defaultExtensionDeskEmail = agriculturalReference.defaultExtensionDeskEmail.trim();
+        }
+        if (typeof agriculturalReference.soilLabGuidanceNote === 'string') {
+          cfg.agriculturalReference.soilLabGuidanceNote = agriculturalReference.soilLabGuidanceNote.trim();
+        }
+        if (typeof agriculturalReference.valuationDisclaimerText === 'string') {
+          cfg.agriculturalReference.valuationDisclaimerText = agriculturalReference.valuationDisclaimerText.trim();
+        }
+        if (typeof agriculturalReference.diagnosticSafetyNotice === 'string') {
+          cfg.agriculturalReference.diagnosticSafetyNotice = agriculturalReference.diagnosticSafetyNotice.trim();
+        }
+      }
+
+      if (ai && typeof ai === 'object') {
+        if (typeof ai.aiEnabled === 'boolean') cfg.ai.aiEnabled = ai.aiEnabled;
+        if (typeof ai.primaryModel === 'string' && ai.primaryModel.trim()) {
+          cfg.ai.primaryModel = ai.primaryModel.trim();
+        }
+        if (typeof ai.fallbackModel === 'string' && ai.fallbackModel.trim()) {
+          cfg.ai.fallbackModel = ai.fallbackModel.trim();
+        }
+        if (typeof ai.visualAnalysisEnabled === 'boolean') {
+          cfg.ai.visualAnalysisEnabled = ai.visualAnalysisEnabled;
+        }
+        if (typeof ai.weatherAiSummaryEnabled === 'boolean') {
+          cfg.ai.weatherAiSummaryEnabled = ai.weatherAiSummaryEnabled;
+        }
+        if (typeof ai.advisorySafetyDisclaimer === 'string') {
+          cfg.ai.advisorySafetyDisclaimer = ai.advisorySafetyDisclaimer.trim();
+        }
+      }
+
+      cfg.updatedByUserId = req.authUser!.id;
+      cfg.updatedAt = new Date().toISOString();
+
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_SYSTEM_CONFIG_UPDATED',
+        'SystemConfig',
+        'global',
+        { updatedSections: Object.keys(req.body || {}) },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+
+      res.json({
+        config: cfg,
+        integrations: getExternalIntegrationStatuses(),
+        announcements: store.db.systemAnnouncements,
+      });
+    }
+  );
+
+  app.post(
+    '/api/admin/announcements',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const { title, message, targetRole, severity, expiresAt } = req.body || {};
+      if (!title || !message) {
+        res.status(400).json({ error: 'Announcement title and message are required.' });
+        return;
+      }
+
+      const ann = {
+        id: `ann-${crypto.randomUUID()}`,
+        title: String(title).trim(),
+        message: String(message).trim(),
+        targetRole: targetRole || 'all',
+        severity: (['info', 'advisory', 'warning'].includes(severity) ? severity : 'info') as
+          | 'info'
+          | 'advisory'
+          | 'warning',
+        isActive: true,
+        createdByUserId: req.authUser!.id,
+        createdAt: new Date().toISOString(),
+        expiresAt: expiresAt ? String(expiresAt) : null,
+      };
+      store.db.systemAnnouncements.unshift(ann);
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_ANNOUNCEMENT_CREATED',
+        'SystemAnnouncement',
+        ann.id,
+        { title: ann.title, targetRole: ann.targetRole },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+      res.status(201).json(ann);
+    }
+  );
+
+  app.patch(
+    '/api/admin/announcements/:id',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const ann = store.db.systemAnnouncements.find((a) => a.id === req.params.id);
+      if (!ann) {
+        res.status(404).json({ error: 'Announcement not found.' });
+        return;
+      }
+      const { isActive, title, message, severity } = req.body || {};
+      if (typeof isActive === 'boolean') ann.isActive = isActive;
+      if (typeof title === 'string' && title.trim()) ann.title = title.trim();
+      if (typeof message === 'string' && message.trim()) ann.message = message.trim();
+      if (['info', 'advisory', 'warning'].includes(severity)) ann.severity = severity;
+
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_ANNOUNCEMENT_UPDATED',
+        'SystemAnnouncement',
+        ann.id,
+        { isActive: ann.isActive },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+      res.json(ann);
+    }
+  );
+
+  app.delete(
+    '/api/admin/announcements/:id',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const ann = store.db.systemAnnouncements.find((a) => a.id === req.params.id);
+      if (!ann) {
+        res.status(404).json({ error: 'Announcement not found.' });
+        return;
+      }
+      store.db.systemAnnouncements = store.db.systemAnnouncements.filter((a) => a.id !== ann.id);
+      store.logAudit(
+        req.authUser!.id,
+        'ADMIN_ANNOUNCEMENT_DELETED',
+        'SystemAnnouncement',
+        ann.id,
+        { title: ann.title },
+        req.ip || '127.0.0.1'
+      );
+      store.save();
+      res.json({ ok: true });
+    }
+  );
+
+  // ------------------------------------------------------------------
+  // Farmer Collaboration & Scoped Access Grants (Experts & Organisations)
+  // ------------------------------------------------------------------
+  app.get('/api/collaboration/directory', requireAuth, (_req: AuthRequest, res) => {
+    res.json(getCollaborationDirectory());
+  });
+
+  app.get('/api/collaboration/grants', requireAuth, (req: AuthRequest, res) => {
+    const grants = listFarmerAccessGrants(req.authUser!.id);
+    const feedback = store.db.expertFeedbacks
+      .filter((ef) => {
+        const farm = store.db.farms.find((f) => f.id === ef.farmId);
+        return farm?.ownerId === req.authUser!.id;
+      })
+      .map((ef) => {
+        const farm = store.db.farms.find((f) => f.id === ef.farmId);
+        return { ...ef, farmName: farm?.name || 'Registered Farm' };
+      })
+      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    res.json({ grants, expertFeedback: feedback });
+  });
+
+  app.post('/api/collaboration/grants', requireAuth, (req: AuthRequest, res) => {
+    const { farmId, granteeType, granteeUserId, organisationId, scopes, authorisedBasis } =
+      req.body || {};
+    if (!farmId || !['expert', 'organisation'].includes(granteeType)) {
+      res.status(400).json({ error: 'farmId and granteeType (expert or organisation) are required.' });
+      return;
+    }
+    try {
+      const grant = grantFarmAccess({
+        farmerUser: req.authUser!,
+        farmId: String(farmId),
+        granteeType,
+        granteeUserId: granteeUserId ? String(granteeUserId) : null,
+        organisationId: organisationId ? String(organisationId) : null,
+        scopes: scopes && typeof scopes === 'object' ? scopes : undefined,
+        authorisedBasis: authorisedBasis ? String(authorisedBasis) : undefined,
+      });
+      res.status(201).json(grant);
+    } catch (err: unknown) {
+      res.status(403).json({
+        error: err instanceof Error ? err.message : 'Unable to grant farm access.',
+      });
+    }
+  });
+
+  app.patch('/api/collaboration/grants/:id/revoke', requireAuth, (req: AuthRequest, res) => {
+    try {
+      const grant = revokeFarmAccessGrant(req.authUser!, req.params.id);
+      res.json(grant);
+    } catch (err: unknown) {
+      res.status(403).json({
+        error: err instanceof Error ? err.message : 'Unable to revoke access grant.',
+      });
+    }
+  });
+
+  app.patch('/api/collaboration/feedback/:id/acknowledge', requireAuth, (req: AuthRequest, res) => {
+    const fb = store.db.expertFeedbacks.find((f) => f.id === req.params.id);
+    if (!fb) {
+      res.status(404).json({ error: 'Feedback record not found.' });
+      return;
+    }
+    const farm = store.db.farms.find((f) => f.id === fb.farmId);
+    if (farm?.ownerId !== req.authUser!.id && req.authUser!.roleCode !== 'system_administrator') {
+      res.status(403).json({ error: 'Only the farm owner can acknowledge expert feedback.' });
+      return;
+    }
+    fb.farmerAcknowledged = true;
+    fb.updatedAt = new Date().toISOString();
+    store.save();
+    res.json(fb);
+  });
+
+  // ------------------------------------------------------------------
+  // Agricultural Expert Portal Endpoints
+  // ------------------------------------------------------------------
+  app.get(
+    '/api/expert/overview',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      res.json(buildExpertOverview(req.authUser!));
+    }
+  );
+
+  app.put(
+    '/api/expert/profile',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const updated = updateExpertProfile(req.authUser!.id, req.body || {});
+      store.logAudit(
+        req.authUser!.id,
+        'EXPERT_PROFILE_UPDATED',
+        'ExpertProfile',
+        req.authUser!.id,
+        { specialisation: updated.specialisation, yearsExperience: updated.yearsExperience },
+        req.ip || '127.0.0.1'
+      );
+      res.json(updated);
+    }
+  );
+
+  app.get(
+    '/api/expert/farms/:farmId/review',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      try {
+        const review = buildExpertFarmReview(req.authUser!, req.params.farmId);
+        store.logAudit(
+          req.authUser!.id,
+          'EXPERT_FARM_REVIEWED',
+          'Farm',
+          req.params.farmId,
+          { scopes: review.scopes },
+          req.ip || '127.0.0.1'
+        );
+        res.json(review);
+      } catch (err: unknown) {
+        res.status(403).json({
+          error: err instanceof Error ? err.message : 'Access denied to farm review.',
+        });
+      }
+    }
+  );
+
+  app.post(
+    '/api/expert/feedback',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const {
+        farmId,
+        concernCategory,
+        subject,
+        assessment,
+        recommendations,
+        status,
+        incidentId,
+        cropId,
+        livestockGroupId,
+        soilReportId,
+        aiInsightId,
+      } = req.body || {};
+
+      if (!farmId || !subject || !assessment) {
+        res.status(400).json({ error: 'farmId, subject, and professional assessment are required.' });
+        return;
+      }
+
+      const validCats: ExpertConcernCategory[] = [
+        'farm_info',
+        'crop_concern',
+        'soil_info',
+        'livestock_concern',
+        'ai_review',
+        'incident_assistance',
+        'general_guidance',
+      ];
+      const cat: ExpertConcernCategory = validCats.includes(concernCategory)
+        ? concernCategory
+        : 'general_guidance';
+      const validStatus = ['pending_review', 'in_progress', 'completed'].includes(status)
+        ? status
+        : 'completed';
+      const recs = Array.isArray(recommendations)
+        ? recommendations.map(String)
+        : typeof recommendations === 'string'
+        ? recommendations
+            .split('\n')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : [];
+
+      try {
+        const created = submitExpertFeedback({
+          expertUser: req.authUser!,
+          farmId: String(farmId),
+          concernCategory: cat,
+          subject: String(subject),
+          assessment: String(assessment),
+          recommendations: recs,
+          status: validStatus,
+          incidentId: incidentId ? String(incidentId) : null,
+          cropId: cropId ? String(cropId) : null,
+          livestockGroupId: livestockGroupId ? String(livestockGroupId) : null,
+          soilReportId: soilReportId ? String(soilReportId) : null,
+          aiInsightId: aiInsightId ? String(aiInsightId) : null,
+        });
+        res.status(201).json(created);
+      } catch (err: unknown) {
+        res.status(403).json({
+          error: err instanceof Error ? err.message : 'Unable to submit expert feedback.',
+        });
+      }
+    }
+  );
+
+  app.patch(
+    '/api/expert/feedback/:id',
+    requireAuth,
+    requireRoles('agricultural_expert', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const fb = store.db.expertFeedbacks.find((f) => f.id === req.params.id);
+      if (!fb) {
+        res.status(404).json({ error: 'Feedback record not found.' });
+        return;
+      }
+      if (fb.expertUserId !== req.authUser!.id && req.authUser!.roleCode !== 'system_administrator') {
+        res.status(403).json({ error: 'You can only update your own feedback records.' });
+        return;
+      }
+      const { status, assessment, recommendations } = req.body || {};
+      if (['pending_review', 'in_progress', 'completed'].includes(status)) fb.status = status;
+      if (typeof assessment === 'string' && assessment.trim()) fb.assessment = assessment.trim();
+      if (Array.isArray(recommendations)) {
+        fb.recommendations = recommendations.map((r) => String(r).trim()).filter(Boolean);
+      }
+      fb.updatedAt = new Date().toISOString();
+      store.save();
+      res.json(fb);
+    }
+  );
+
+  // ------------------------------------------------------------------
+  // Organisation Manager Portal Endpoints (Privacy-Protected Aggregates)
+  // ------------------------------------------------------------------
+  app.get(
+    '/api/organisation/overview',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      res.json(buildOrganisationOverview(req.authUser!));
+    }
+  );
+
+  app.post(
+    '/api/organisation/register',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const { name, organisationType, registrationNumber, province, district, primaryFocus, contactEmail, contactPhone, description } =
+        req.body || {};
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        res.status(400).json({ error: 'Organisation name is required.' });
+        return;
+      }
+      const validTypes: OrganisationType[] = [
+        'cooperative',
+        'agricultural_company',
+        'extension_agency',
+        'research_body',
+      ];
+      const org = registerOrUpdateOrganisation({
+        user: req.authUser!,
+        name,
+        organisationType: validTypes.includes(organisationType) ? organisationType : 'cooperative',
+        registrationNumber,
+        province,
+        district,
+        primaryFocus,
+        contactEmail,
+        contactPhone,
+        description,
+      });
+      res.json(org);
+    }
+  );
+
+  app.put(
+    '/api/organisation/profile',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const { name, organisationType, registrationNumber, province, district, primaryFocus, contactEmail, contactPhone, description } =
+        req.body || {};
+      if (!name || typeof name !== 'string' || !name.trim()) {
+        res.status(400).json({ error: 'Organisation name is required.' });
+        return;
+      }
+      const validTypes: OrganisationType[] = [
+        'cooperative',
+        'agricultural_company',
+        'extension_agency',
+        'research_body',
+      ];
+      const org = registerOrUpdateOrganisation({
+        user: req.authUser!,
+        name,
+        organisationType: validTypes.includes(organisationType) ? organisationType : 'cooperative',
+        registrationNumber,
+        province,
+        district,
+        primaryFocus,
+        contactEmail,
+        contactPhone,
+        description,
+      });
+      res.json(org);
+    }
+  );
+
+  app.get(
+    '/api/organisation/users',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const org = getUserOrganisation(req.authUser!.id);
+      if (!org) {
+        res.json([]);
+        return;
+      }
+      res.json(getOrganisationMembersView(org.id));
+    }
+  );
+
+  app.post(
+    '/api/organisation/users',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const org = getUserOrganisation(req.authUser!.id);
+      if (!org) {
+        res.status(400).json({ error: 'Please register your organisation profile first.' });
+        return;
+      }
+      const { fullName, email, orgRole, tempPassword } = req.body || {};
+      if (!fullName || !email || !validateEmail(String(email))) {
+        res.status(400).json({ error: 'Valid member full name and email are required.' });
+        return;
+      }
+      const validRoles: OrganisationMemberRole[] = ['owner', 'manager', 'analyst', 'advisor'];
+      const resolvedRole: OrganisationMemberRole = validRoles.includes(orgRole)
+        ? orgRole
+        : 'analyst';
+      try {
+        const mem = addOrganisationMember({
+          actorUser: req.authUser!,
+          orgId: org.id,
+          fullName: String(fullName),
+          email: String(email),
+          orgRole: resolvedRole,
+          tempPassword: tempPassword ? String(tempPassword) : undefined,
+        });
+        res.status(201).json({ membership: mem, members: getOrganisationMembersView(org.id) });
+      } catch (err: unknown) {
+        res.status(400).json({
+          error: err instanceof Error ? err.message : 'Unable to add organisation user.',
+        });
+      }
+    }
+  );
+
+  app.patch(
+    '/api/organisation/users/:membershipId',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const org = getUserOrganisation(req.authUser!.id);
+      if (!org) {
+        res.status(404).json({ error: 'Organisation not found.' });
+        return;
+      }
+      const mem = store.db.organisationMemberships.find(
+        (m) => m.id === req.params.membershipId && m.organisationId === org.id
+      );
+      if (!mem) {
+        res.status(404).json({ error: 'Organisation member not found.' });
+        return;
+      }
+      const { orgRole, status } = req.body || {};
+      if (['owner', 'manager', 'analyst', 'advisor'].includes(orgRole)) {
+        mem.orgRole = orgRole;
+      }
+      if (['active', 'inactive'].includes(status)) {
+        if (mem.userId === req.authUser!.id && status === 'inactive') {
+          res.status(400).json({ error: 'You cannot deactivate your own membership.' });
+          return;
+        }
+        mem.status = status;
+      }
+      store.save();
+      res.json({ membership: mem, members: getOrganisationMembersView(org.id) });
+    }
+  );
+
+  app.post(
+    '/api/organisation/communications',
+    requireAuth,
+    requireRoles('organisation_manager', 'system_administrator'),
+    (req: AuthRequest, res) => {
+      const { title, message, targetAudience, priority } = req.body || {};
+      if (!title || !message) {
+        res.status(400).json({ error: 'Communication title and message are required.' });
+        return;
+      }
+      const audience = ['authorised_farmers', 'org_members', 'all_connected'].includes(targetAudience)
+        ? targetAudience
+        : 'all_connected';
+      const result = broadcastOrganisationCommunication({
+        actorUser: req.authUser!,
+        title: String(title),
+        message: String(message),
+        targetAudience: audience,
+        priority: priority === 'high' ? 'high' : 'normal',
+      });
+      res.status(201).json(result);
+    }
+  );
+
+  // ------------------------------------------------------------------
+  // POPIA Privacy, Retention, Data Export & Account Erasure
+  // ------------------------------------------------------------------
+  app.get('/api/privacy/summary', requireAuth, (req: AuthRequest, res) => {
+    res.json(buildPrivacySummary(req.authUser!));
+  });
+
+  app.get('/api/privacy/export', requireAuth, (req: AuthRequest, res) => {
+    try {
+      const bundle = exportUserPersonalData(req.authUser!.id);
+      store.logAudit(
+        req.authUser!.id,
+        'POPIA_PERSONAL_DATA_EXPORTED',
+        'User',
+        req.authUser!.id,
+        { farmsExported: bundle.farms.length },
+        req.ip || '127.0.0.1'
+      );
+      res.json(bundle);
+    } catch (err: unknown) {
+      res.status(404).json({ error: err instanceof Error ? err.message : 'Unable to export personal data.' });
+    }
+  });
+
+  app.post('/api/privacy/erase-account', requireAuth, (req: AuthRequest, res) => {
+    const { currentPassword, confirmPhrase } = req.body || {};
+    if (confirmPhrase !== 'ERASE MY ACCOUNT') {
+      res.status(400).json({ error: 'Please type "ERASE MY ACCOUNT" to confirm permanent deletion.' });
+      return;
+    }
+    try {
+      const result = eraseUserAccountPopia({
+        userId: req.authUser!.id,
+        password: String(currentPassword || ''),
+        ipAddress: req.ip || '127.0.0.1',
+      });
+      clearSessionCookie(res);
+      res.json({
+        ok: true,
+        message: 'Your personal data, sessions, sharing grants, and owned farm records have been erased in compliance with POPIA.',
+        ...result,
+      });
+    } catch (err: unknown) {
+      res.status(400).json({
+        error: err instanceof Error ? err.message : 'Unable to erase account.',
+      });
+    }
+  });
+
+  app.post(
+    '/api/admin/privacy/purge-expired',
+    requireAuth,
+    requireRoles('system_administrator'),
+    (req: AuthRequest, res) => {
+      const result = purgeExpiredArtifacts(req.authUser!.id);
+      res.json(result);
+    }
+  );
+
+  // ------------------------------------------------------------------
+  // Offline Rural Connectivity & Synchronisation Endpoints
+  // ------------------------------------------------------------------
+  app.get('/api/offline/bundle', requireAuth, (req: AuthRequest, res) => {
+    try {
+      const accessibleFarmIds = getAccessibleFarmIds(req.authUser!, 'overview');
+      const requestedRaw = req.query.farmIds ? String(req.query.farmIds) : '';
+      const requestedFarmIds = requestedRaw
+        ? requestedRaw
+            .split(',')
+            .map((s) => s.trim())
+            .filter(Boolean)
+        : undefined;
+      const bundle = buildOfflineBundle({
+        user: req.authUser!,
+        accessibleFarmIds,
+        requestedFarmIds,
+      });
+      res.json(bundle);
+    } catch (err: unknown) {
+      res.status(403).json({
+        error: err instanceof Error ? err.message : 'Unable to package offline farm bundle.',
+      });
+    }
+  });
+
+  app.post('/api/offline/sync', requireAuth, (req: AuthRequest, res) => {
+    if (req.authUser!.roleCode === 'organisation_manager') {
+      res.status(403).json({
+        error: 'Organisation accounts cannot push offline farm mutations.',
+      });
+      return;
+    }
+    const { mutations } = req.body || {};
+    if (!Array.isArray(mutations)) {
+      res.status(400).json({ error: 'mutations array is required.' });
+      return;
+    }
+    if (mutations.length > 100) {
+      res.status(400).json({ error: 'Maximum 100 offline records may be synchronised per batch.' });
+      return;
+    }
+    const result = processOfflineSyncBatch({
+      user: req.authUser!,
+      canModifyFarm: userCanModifyFarm,
+      mutations,
+    });
+    res.json(result);
   });
 
   // ------------------------------------------------------------------

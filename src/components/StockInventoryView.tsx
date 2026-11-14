@@ -18,6 +18,7 @@ import {
   CropStockMovementType,
   CropStockRow,
   FarmItem,
+  LivestockRecordType,
   LivestockStockRow,
   StockOverviewPayload,
 } from '../types';
@@ -73,6 +74,16 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
   const [movePrice, setMovePrice] = useState('');
   const [moveNotes, setMoveNotes] = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Livestock movement modal
+  const [moveLivestock, setMoveLivestock] = useState<LivestockStockRow | null>(null);
+  const [lvkRecType, setLvkRecType] = useState<LivestockRecordType>('Sale');
+  const [lvkRecDate, setLvkRecDate] = useState(new Date().toISOString().slice(0, 10));
+  const [lvkCount, setLvkCount] = useState('1');
+  const [lvkProdAmount, setLvkProdAmount] = useState('0');
+  const [lvkProdUnit, setLvkProdUnit] = useState('eggs');
+  const [lvkValueZar, setLvkValueZar] = useState('0');
+  const [lvkNotes, setLvkNotes] = useState('');
 
   const loadStockOverview = useCallback(async () => {
     setLoading(true);
@@ -156,6 +167,46 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
       onDataChanged();
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Unable to record stock movement.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleOpenLivestockMovement = (row: LivestockStockRow) => {
+    setMoveLivestock(row);
+    setLvkRecType('Sale');
+    setLvkRecDate(new Date().toISOString().slice(0, 10));
+    setLvkCount('1');
+    setLvkProdAmount('0');
+    setLvkProdUnit(row.animalType === 'Poultry' ? 'eggs' : row.animalType === 'Cattle' ? 'liters' : 'kg');
+    setLvkValueZar(String(row.unitPriceZar));
+    setLvkNotes('');
+  };
+
+  const handleSubmitLivestockMovement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!moveLivestock) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await apiRequest(`/api/livestock/${moveLivestock.livestockGroupId}/records`, {
+        method: 'POST',
+        body: JSON.stringify({
+          recordType: lvkRecType,
+          recordDate: lvkRecDate,
+          count: Number(lvkCount) || 0,
+          productionAmount: Number(lvkProdAmount) || 0,
+          productionUnit: lvkProdUnit,
+          valueZar: Number(lvkValueZar) || 0,
+          notes: lvkNotes || `Livestock ${lvkRecType} recorded via Stock & Inventory`,
+        }),
+      });
+      setMoveLivestock(null);
+      setSuccessMsg('Livestock movement recorded in historical ledger.');
+      await loadStockOverview();
+      onDataChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to record livestock movement.');
     } finally {
       setSubmitting(false);
     }
@@ -431,6 +482,44 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       </div>
                     </div>
 
+                    {/* Explicit Valuation Breakdown (Quantity, Unit Price, Total Value, Valuation Date) */}
+                    <div className="bg-white border border-[#E2E6DF] rounded-lg p-3 overflow-x-auto">
+                      <table className="w-full text-left text-[11px]">
+                        <thead>
+                          <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                            <th className="py-1 pr-3 font-semibold">Valuation Component</th>
+                            <th className="py-1 pr-3 font-semibold">Quantity</th>
+                            <th className="py-1 pr-3 font-semibold">Unit Price</th>
+                            <th className="py-1 pr-3 font-semibold">Total Value</th>
+                            <th className="py-1 font-semibold">Valuation Date</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[#E2E6DF] font-mono tabular-nums text-[#143326]">
+                          <tr>
+                            <td className="py-1.5 pr-3 font-sans font-medium">Standing Crop Stock</td>
+                            <td className="py-1.5 pr-3">{row.remainingPlants.toLocaleString()} plants</td>
+                            <td className="py-1.5 pr-3">R{row.plantUnitPriceZar.toFixed(2)} / plant</td>
+                            <td className="py-1.5 pr-3 font-bold text-[#1B4332]">R{row.remainingStandingValueZar.toLocaleString()}</td>
+                            <td className="py-1.5 text-[#4A5A50]">{new Date(row.valuationDate).toLocaleDateString()}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-3 font-sans font-medium">Stored Production</td>
+                            <td className="py-1.5 pr-3">{row.storedProductionKg.toLocaleString()} kg</td>
+                            <td className="py-1.5 pr-3">R{row.harvestUnitPriceZar.toFixed(2)} / kg</td>
+                            <td className="py-1.5 pr-3 font-bold text-[#1B4332]">R{row.storedStockValueZar.toLocaleString()}</td>
+                            <td className="py-1.5 text-[#4A5A50]">{new Date(row.valuationDate).toLocaleDateString()}</td>
+                          </tr>
+                          <tr>
+                            <td className="py-1.5 pr-3 font-sans font-medium">Damaged Stock Loss</td>
+                            <td className="py-1.5 pr-3">{row.damagedPlants.toLocaleString()} plants</td>
+                            <td className="py-1.5 pr-3">R{row.plantUnitPriceZar.toFixed(2)} / plant</td>
+                            <td className="py-1.5 pr-3 font-bold text-[#8E2424]">R{row.damagedStockValueZar.toLocaleString()}</td>
+                            <td className="py-1.5 text-[#4A5A50]">{new Date(row.valuationDate).toLocaleDateString()}</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+
                     {/* Calculation Assumptions & Price Source */}
                     <div className="text-[11px] text-[#4A5A50] flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-[#E2E6DF]">
                       <span className="flex items-center gap-1.5">
@@ -472,14 +561,24 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                           {row.farmName} {row.fieldName ? `· ${row.fieldName}` : ''} · Health: {row.healthStatus}
                         </p>
                       </div>
-                      <button
-                        type="button"
-                        onClick={() => openEditPriceForLivestock(row)}
-                        className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1 cursor-pointer"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                        <span>Edit Unit Price (R{row.unitPriceZar.toLocaleString()}/head)</span>
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => openEditPriceForLivestock(row)}
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg border border-[#D4DDD2] bg-white hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] flex items-center gap-1 cursor-pointer"
+                        >
+                          <Edit3 className="w-3.5 h-3.5" />
+                          <span>Edit Unit Price (R{row.unitPriceZar.toLocaleString()}/head)</span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleOpenLivestockMovement(row)}
+                          className="min-h-[38px] px-3 py-1.5 rounded-lg bg-[#1B4332] text-white hover:bg-[#2D6A4F] text-xs font-semibold flex items-center gap-1 cursor-pointer"
+                        >
+                          <ArrowDownUp className="w-3.5 h-3.5" />
+                          <span>Record Movement</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3 pt-2 border-t border-[#E2E6DF] text-xs">
@@ -508,9 +607,9 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                         </p>
                       </div>
                       <div>
-                        <p className="text-[#4A5A50]">Remaining Value</p>
+                        <p className="text-[#4A5A50]">Unit Price / Total</p>
                         <p className="font-mono font-bold tabular-nums text-[#1B4332] mt-0.5">
-                          R{row.remainingValueZar.toLocaleString()}
+                          R{row.unitPriceZar.toLocaleString()} · R{row.remainingValueZar.toLocaleString()}
                         </p>
                       </div>
                       <div>
@@ -531,10 +630,15 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                       </div>
                     </div>
 
-                    <p className="text-[11px] text-[#4A5A50] pt-2 border-t border-[#E2E6DF] flex items-center gap-1.5">
-                      <Calculator className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
-                      <span>{row.calculationAssumption}</span>
-                    </p>
+                    <div className="text-[11px] text-[#4A5A50] pt-2 border-t border-[#E2E6DF] flex flex-wrap items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5">
+                        <Calculator className="w-3.5 h-3.5 text-[#2D6A4F] shrink-0" />
+                        <span>{row.calculationAssumption}</span>
+                      </span>
+                      <span className="font-mono">
+                        Valuation Date: {new Date(row.valuationDate).toLocaleDateString()}
+                      </span>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -807,7 +911,7 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
                   </label>
                   <input
                     type="number"
-                    min="0.01"
+                    min={moveType === 'adjustment' ? undefined : '0.01'}
                     step="0.01"
                     required
                     value={moveQty}
@@ -855,6 +959,163 @@ export const StockInventoryView: React.FC<StockInventoryViewProps> = ({
               <button
                 type="button"
                 onClick={() => setMoveCrop(null)}
+                className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submitting}
+                className="min-h-[42px] px-5 py-2 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+              >
+                Record Movement
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Record Livestock Stock Movement Modal */}
+      {moveLivestock && (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+          <form
+            onSubmit={handleSubmitLivestockMovement}
+            className="bg-white border border-[#E2E6DF] rounded-2xl max-w-lg w-full p-6 space-y-4"
+          >
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg font-bold text-[#143326] flex items-center gap-2">
+                <Beef className="w-5 h-5 text-[#1B4332]" />
+                <span>Record Livestock Stock Movement</span>
+              </h3>
+              <button type="button" onClick={() => setMoveLivestock(null)} className="cursor-pointer">
+                <X className="w-5 h-5 text-[#4A5A50]" />
+              </button>
+            </div>
+            <p className="text-xs text-[#4A5A50]">
+              {moveLivestock.groupName} ({moveLivestock.animalType} · {moveLivestock.breed}) · Current Herd:{' '}
+              <span className="font-mono font-bold text-[#143326]">
+                {moveLivestock.currentQuantity.toLocaleString()} head
+              </span>
+            </p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                    Movement Type
+                  </label>
+                  <select
+                    value={lvkRecType}
+                    onChange={(e) => {
+                      const next = e.target.value as LivestockRecordType;
+                      setLvkRecType(next);
+                      if (next === 'Production' || next === 'Veterinary' || next === 'Feeding' || next === 'Vaccination') {
+                        setLvkCount('0');
+                      } else {
+                        setLvkCount('1');
+                        setLvkValueZar(String(moveLivestock.unitPriceZar));
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+                  >
+                    <option value="Birth">Birth (+head)</option>
+                    <option value="Purchase">Purchase (+head)</option>
+                    <option value="Sale">Sale (-head)</option>
+                    <option value="Death">Death (-head)</option>
+                    <option value="Transfer">Transfer (-head)</option>
+                    <option value="Production">Production (eggs / milk / wool)</option>
+                    <option value="Veterinary">Veterinary Treatment</option>
+                    <option value="Vaccination">Vaccination</option>
+                    <option value="Feeding">Feeding Log</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={lvkRecDate}
+                    onChange={(e) => setLvkRecDate(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                    Head Count
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={lvkCount}
+                    onChange={(e) => {
+                      setLvkCount(e.target.value);
+                      const c = Number(e.target.value) || 0;
+                      if (c > 0 && ['Sale', 'Purchase', 'Birth', 'Death'].includes(lvkRecType)) {
+                        setLvkValueZar(String(c * moveLivestock.unitPriceZar));
+                      }
+                    }}
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                    Production Qty
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.1"
+                    value={lvkProdAmount}
+                    onChange={(e) => setLvkProdAmount(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                    Prod. Unit
+                  </label>
+                  <input
+                    type="text"
+                    value={lvkProdUnit}
+                    onChange={(e) => setLvkProdUnit(e.target.value)}
+                    className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">
+                  Total Value / Cost (ZAR)
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1"
+                  value={lvkValueZar}
+                  onChange={(e) => setLvkValueZar(e.target.value)}
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-[#4A5A50] mb-1">Notes</label>
+                <input
+                  type="text"
+                  required
+                  value={lvkNotes}
+                  onChange={(e) => setLvkNotes(e.target.value)}
+                  placeholder="Auction buyer, newborn tag IDs, vet reference, or daily yield..."
+                  className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setMoveLivestock(null)}
                 className="min-h-[42px] px-4 py-2 rounded-xl border border-[#D4DDD2] text-sm font-semibold"
               >
                 Cancel

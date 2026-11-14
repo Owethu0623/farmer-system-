@@ -9,6 +9,11 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import {
+  enqueueOfflineMutation,
+  isLikelyOfflineError,
+  loadOfflineBundle,
+} from '../lib/offlineSync';
+import {
   FarmItem,
   LivestockAnalytics,
   LivestockAnimalType,
@@ -22,6 +27,7 @@ import {
 } from '../types';
 
 interface LivestockMixedViewProps {
+  userId?: string;
   initialSection: 'livestock' | 'mixed';
   farms: FarmItem[];
   selectedFarmId: string | null;
@@ -56,6 +62,7 @@ const MIXED_CATEGORIES: { value: MixedEntryCategory; label: string }[] = [
 ];
 
 export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
+  userId,
   initialSection,
   farms,
   selectedFarmId,
@@ -63,6 +70,8 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
 }) => {
   const [section, setSection] = useState<'livestock' | 'mixed'>(initialSection);
   const [farmFilter, setFarmFilter] = useState<string>(selectedFarmId || 'all');
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   useEffect(() => {
     setSection(initialSection);
@@ -118,20 +127,38 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
 
   const loadAll = useCallback(async () => {
     const qs = farmFilter !== 'all' ? `?farmId=${encodeURIComponent(farmFilter)}` : '';
-    const [gList, lStats, mSum, mList] = await Promise.all([
-      apiRequest<LivestockGroupItem[]>(`/api/livestock${qs}`),
-      apiRequest<LivestockAnalytics>(`/api/livestock/analytics${qs}`),
-      apiRequest<MixedFarmingSummary>(`/api/mixed-farming/summary${qs}`),
-      apiRequest<MixedFarmingEntryItem[]>(`/api/mixed-farming${qs}`),
-    ]);
-    setGroups(gList);
-    setLivestockStats(lStats);
-    setMixedSummary(mSum);
-    setMixedEntries(mList);
-  }, [farmFilter]);
+    try {
+      const [gList, lStats, mSum, mList] = await Promise.all([
+        apiRequest<LivestockGroupItem[]>(`/api/livestock${qs}`),
+        apiRequest<LivestockAnalytics>(`/api/livestock/analytics${qs}`),
+        apiRequest<MixedFarmingSummary>(`/api/mixed-farming/summary${qs}`),
+        apiRequest<MixedFarmingEntryItem[]>(`/api/mixed-farming${qs}`),
+      ]);
+      setGroups(gList);
+      setLivestockStats(lStats);
+      setMixedSummary(mSum);
+      setMixedEntries(mList);
+    } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(userId);
+        if (bundle) {
+          const filtered =
+            farmFilter !== 'all'
+              ? bundle.livestockGroups.filter((g) => g.farmId === farmFilter)
+              : bundle.livestockGroups;
+          setGroups(filtered);
+          setNotice(
+            `Offline mode: showing cached livestock herds downloaded at ${new Date(bundle.downloadedAt).toLocaleString()}.`
+          );
+          return;
+        }
+      }
+      setError(err instanceof Error ? err.message : 'Unable to load livestock and mixed farming records.');
+    }
+  }, [farmFilter, userId]);
 
   useEffect(() => {
-    loadAll().catch(() => {});
+    loadAll();
   }, [loadAll]);
 
   const openCreateGroup = () => {
@@ -172,6 +199,8 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
   const handleSaveGroup = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingGroup(true);
+    setError(null);
+    setNotice(null);
     try {
       const payload = {
         farmId: gFarmId,
@@ -198,37 +227,78 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
       setGroupModalMode(null);
       await loadAll();
       onDataChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not save livestock group.');
     } finally {
       setSavingGroup(false);
     }
   };
 
   const handleDeleteGroup = async (id: string) => {
-    await apiRequest(`/api/livestock/${id}`, { method: 'DELETE' });
-    await loadAll();
-    onDataChanged();
+    setError(null);
+    try {
+      await apiRequest(`/api/livestock/${id}`, { method: 'DELETE' });
+      await loadAll();
+      onDataChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not delete livestock group.');
+    }
   };
 
   const handleSaveRecord = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!recordTarget) return;
     setSavingRec(true);
+    setError(null);
+    setNotice(null);
+    const recPayload = {
+      recordType: recType,
+      recordDate: recDate,
+      count: recCount,
+      productionAmount: recProdAmt,
+      productionUnit: recProdUnit,
+      valueZar: recValueZar,
+      notes: recNotes,
+    };
+
+    const queueRecordOffline = async () => {
+      if (!userId) return false;
+      await enqueueOfflineMutation({
+        userId,
+        mutationType: 'livestock_record',
+        label: `${recType} — ${recordTarget.groupName}`,
+        farmId: recordTarget.farmId,
+        farmName: recordTarget.farmName || null,
+        baseUpdatedAt: recordTarget.updatedAt,
+        payload: {
+          livestockGroupId: recordTarget.id,
+          ...recPayload,
+        },
+      });
+      setRecordTarget(null);
+      setNotice('Offline mode: livestock event saved locally and queued for sync.');
+      return true;
+    };
+
     try {
+      const simulatedOffline =
+        typeof window !== 'undefined' &&
+        window.localStorage.getItem('fieldshift_simulated_offline') === 'true';
+      if ((typeof navigator !== 'undefined' && !navigator.onLine) || simulatedOffline) {
+        if (await queueRecordOffline()) return;
+      }
       await apiRequest(`/api/livestock/${recordTarget.id}/records`, {
         method: 'POST',
-        body: JSON.stringify({
-          recordType: recType,
-          recordDate: recDate,
-          count: recCount,
-          productionAmount: recProdAmt,
-          productionUnit: recProdUnit,
-          valueZar: recValueZar,
-          notes: recNotes,
-        }),
+        body: JSON.stringify(recPayload),
       });
       setRecordTarget(null);
       await loadAll();
       onDataChanged();
+    } catch (err: unknown) {
+      if (isLikelyOfflineError(err) && (await queueRecordOffline())) {
+        return;
+      }
+      setError(err instanceof Error ? err.message : 'Could not save livestock record.');
     } finally {
       setSavingRec(false);
     }
@@ -236,40 +306,89 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
 
   const openHistory = async (g: LivestockGroupItem) => {
     setHistoryGroup(g);
-    const list = await apiRequest<LivestockRecordItem[]>(`/api/livestock/${g.id}/records`);
-    setHistoryRecords(list);
+    try {
+      const list = await apiRequest<LivestockRecordItem[]>(`/api/livestock/${g.id}/records`);
+      setHistoryRecords(list);
+    } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(userId);
+        if (bundle) {
+          setHistoryRecords(
+            bundle.livestockRecords.filter((r) => r.livestockGroupId === g.id)
+          );
+          return;
+        }
+      }
+      setHistoryRecords([]);
+    }
   };
 
   const handleSaveMixed = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingMixed(true);
+    setError(null);
+    setNotice(null);
+    const mixedPayload = {
+      farmId: mFarmId,
+      entryCategory: mCategory,
+      title: mTitle,
+      entryDate: mDate,
+      expenseZar: mExpense,
+      productionQuantity: mProdQty,
+      productionUnit: mProdUnit,
+      waterLiters: mWaterLiters,
+      notes: mNotes,
+    };
+
+    const queueMixedOffline = async () => {
+      if (!userId) return false;
+      const fName = farms.find((f) => f.id === mFarmId)?.name || null;
+      await enqueueOfflineMutation({
+        userId,
+        mutationType: 'mixed_entry',
+        label: `Mixed log: ${mTitle}`,
+        farmId: mFarmId,
+        farmName: fName,
+        payload: mixedPayload,
+      });
+      setShowMixedModal(false);
+      setNotice('Offline mode: mixed farming entry saved locally and queued for sync.');
+      return true;
+    };
+
     try {
+      const simulatedOffline =
+        typeof window !== 'undefined' &&
+        window.localStorage.getItem('fieldshift_simulated_offline') === 'true';
+      if ((typeof navigator !== 'undefined' && !navigator.onLine) || simulatedOffline) {
+        if (await queueMixedOffline()) return;
+      }
       await apiRequest('/api/mixed-farming', {
         method: 'POST',
-        body: JSON.stringify({
-          farmId: mFarmId,
-          entryCategory: mCategory,
-          title: mTitle,
-          entryDate: mDate,
-          expenseZar: mExpense,
-          productionQuantity: mProdQty,
-          productionUnit: mProdUnit,
-          waterLiters: mWaterLiters,
-          notes: mNotes,
-        }),
+        body: JSON.stringify(mixedPayload),
       });
       setShowMixedModal(false);
       await loadAll();
       onDataChanged();
+    } catch (err: unknown) {
+      if (isLikelyOfflineError(err) && (await queueMixedOffline())) {
+        return;
+      }
+      setError(err instanceof Error ? err.message : 'Could not save mixed farming entry.');
     } finally {
       setSavingMixed(false);
     }
   };
 
   const handleDeleteMixed = async (id: string) => {
-    await apiRequest(`/api/mixed-farming/${id}`, { method: 'DELETE' });
-    await loadAll();
-    onDataChanged();
+    setError(null);
+    try {
+      await apiRequest(`/api/mixed-farming/${id}`, { method: 'DELETE' });
+      await loadAll();
+      onDataChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not delete mixed farming entry.');
+    }
   };
 
   const maxCatCount = Math.max(
@@ -347,6 +466,18 @@ export const LivestockMixedView: React.FC<LivestockMixedViewProps> = ({
           )}
         </div>
       </div>
+
+      {notice && (
+        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm">
+          {notice}
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* LIVESTOCK SECTION */}
       {section === 'livestock' && (

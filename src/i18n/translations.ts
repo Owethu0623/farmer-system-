@@ -22,8 +22,16 @@ export interface TranslationBundle {
   navVisualAnalysis: string;
   navStock: string;
   navIncidents: string;
+  navBusinessPlanner: string;
+  navLearningCentre: string;
+  navReports: string;
   navAdvisor: string;
+  navExpertPortal: string;
+  navOrganisationPortal: string;
+  navNotifications: string;
   navAdmin: string;
+  navAdminPortal: string;
+  navOfflineSync: string;
   navProfile: string;
   navSettings: string;
   prospectiveTitle: string;
@@ -86,8 +94,16 @@ const BASE_EN: TranslationBundle = {
   navVisualAnalysis: 'Visual Analysis',
   navStock: 'Stock & Valuation',
   navIncidents: 'Incidents & Damage',
+  navBusinessPlanner: 'Business Planner',
+  navLearningCentre: 'Learning Centre',
+  navReports: 'Reports & Exports',
   navAdvisor: 'AI Assistant',
+  navExpertPortal: 'Expert Portal',
+  navOrganisationPortal: 'Organisation Portal',
+  navNotifications: 'Notifications',
   navAdmin: 'Administration',
+  navAdminPortal: 'System Admin Portal',
+  navOfflineSync: 'Offline & Sync',
   navProfile: 'Profile',
   navSettings: 'Settings',
   prospectiveTitle: 'I want to start farming',
@@ -127,8 +143,16 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<TranslationBundle>> = {
     navVisualAnalysis: 'Visuele Analise',
     navStock: 'Voorraad & Waarde',
     navIncidents: 'Voorvalle & Skade',
+    navBusinessPlanner: 'Besigheidsbeplanner',
+    navLearningCentre: 'Leersentrum',
+    navReports: 'Verslae & Uitvoere',
     navAdvisor: 'KI-Assistent',
+    navExpertPortal: 'Kundige Portaal',
+    navOrganisationPortal: 'Organisasieportaal',
+    navNotifications: 'Kennisgewings',
     navAdmin: 'Administrasie',
+    navAdminPortal: 'Stelseladministrasie',
+    navOfflineSync: 'Vanlyn & Sinkroniseer',
     navProfile: 'Profiel',
     navSettings: 'Instellings',
     prospectiveTitle: 'Ek wil begin boer',
@@ -162,8 +186,16 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<TranslationBundle>> = {
     navVisualAnalysis: 'Ukuhlolwa Kwezithombe',
     navStock: 'Isitoko Nenani',
     navIncidents: 'Izehlakalo Nomonakalo',
+    navBusinessPlanner: 'Uhlelo Lwebhizinisi',
+    navLearningCentre: 'Isikhungo Sokufunda',
+    navReports: 'Imibiko Nokuthekelisa',
     navAdvisor: 'Umeluleki We-AI',
+    navExpertPortal: 'Iphothali Yochwepheshe',
+    navOrganisationPortal: 'Iphothali Yenhlangano',
+    navNotifications: 'Izaziso',
     navAdmin: 'Abaphathi',
+    navAdminPortal: 'Iphothali Yabaphathi',
+    navOfflineSync: 'Okungaxhunyiwe ku-Inthanethi',
     navProfile: 'Iphrofayela',
     navSettings: 'Izilungiselelo',
     prospectiveTitle: 'Ngifuna ukuqala ukulima',
@@ -193,6 +225,7 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<TranslationBundle>> = {
     navLivestock: 'Imfuyo',
     navAdvisor: 'Umcebisi',
     navAdmin: 'Ulawulo',
+    navOfflineSync: 'Ngaphandle kwe-Intanethi',
     navProfile: 'Iprofayile',
     navSettings: 'Useto',
     prospectiveTitle: 'Ndifuna ukuqala ukulima',
@@ -372,8 +405,29 @@ export const TRANSLATIONS: Record<LanguageCode, Partial<TranslationBundle>> = {
   },
 };
 
+const runtimeOverrides: Partial<Record<LanguageCode, Record<string, string>>> = {};
+
+export function applyTranslationOverrides(
+  overrides: { languageCode: LanguageCode; key: string; value: string }[]
+) {
+  for (const key of Object.keys(runtimeOverrides) as LanguageCode[]) {
+    delete runtimeOverrides[key];
+  }
+  for (const ov of overrides) {
+    if (!runtimeOverrides[ov.languageCode]) {
+      runtimeOverrides[ov.languageCode] = {};
+    }
+    runtimeOverrides[ov.languageCode]![ov.key] = ov.value;
+  }
+}
+
 export function t(lang: LanguageCode, key: keyof TranslationBundle): string {
-  return TRANSLATIONS[lang]?.[key] || BASE_EN[key];
+  return (
+    runtimeOverrides[lang]?.[key] ||
+    TRANSLATIONS[lang]?.[key] ||
+    runtimeOverrides.en?.[key] ||
+    BASE_EN[key]
+  );
 }
 
 export function getSpeechLangCode(lang: LanguageCode): string {

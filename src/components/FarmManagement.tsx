@@ -20,6 +20,7 @@ import {
   ProvinceInfo,
 } from '../types';
 import { VoiceInputButton } from './AccessibilityControls';
+import { FarmerAccessControlPanel } from './FarmerAccessControlPanel';
 import { InteractiveFarmMap, SpatialUpdatePayload } from './InteractiveFarmMap';
 
 interface FarmManagementProps {
@@ -649,6 +650,11 @@ export const FarmManagement: React.FC<FarmManagementProps> = ({
                   </div>
                 )}
               </div>
+
+              {(user.roleCode === 'existing_farmer' || user.roleCode === 'system_administrator') &&
+                canModifyActiveFarm && (
+                  <FarmerAccessControlPanel farms={farms} selectedFarmId={activeFarm.id} />
+                )}
             </div>
           )}
         </div>

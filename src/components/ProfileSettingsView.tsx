@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { Bell, CheckCircle2, Globe, Shield, UserCheck } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { Bell, CheckCircle2, Download, Globe, Lock, Shield, Trash2, UserCheck } from 'lucide-react';
 import { LANGUAGE_LIST } from '../i18n/translations';
 import { apiRequest } from '../lib/api';
-import { AuthUser, LanguageCode, NotificationItem } from '../types';
+import { wipeUserOfflineVault } from '../lib/offlineSync';
+import { AuthUser, LanguageCode, NotificationItem, PopiaPrivacySummaryPayload } from '../types';
 import { EasyReadToggle } from './AccessibilityControls';
 
 interface ProfileSettingsViewProps {
@@ -15,6 +16,8 @@ interface ProfileSettingsViewProps {
   onLanguageChange: (code: LanguageCode) => void;
   onUserUpdated: (user: AuthUser) => void;
   onNotificationsRefresh: () => Promise<void>;
+  onOpenNotifications?: () => void;
+  onAccountErased?: () => void;
 }
 
 export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
@@ -27,6 +30,8 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   onLanguageChange,
   onUserUpdated,
   onNotificationsRefresh,
+  onOpenNotifications,
+  onAccountErased,
 }) => {
   const [fullName, setFullName] = useState(user.profile?.fullName || '');
   const [phoneNumber, setPhoneNumber] = useState(user.profile?.phoneNumber || '');
@@ -41,6 +46,21 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // POPIA privacy summary & erasure controls
+  const [privacySummary, setPrivacySummary] = useState<PopiaPrivacySummaryPayload | null>(null);
+  const [exportingData, setExportingData] = useState(false);
+  const [erasePassword, setErasePassword] = useState('');
+  const [eraseConfirmText, setEraseConfirmText] = useState('');
+  const [erasingAccount, setErasingAccount] = useState(false);
+
+  useEffect(() => {
+    if (mode === 'profile') {
+      apiRequest<PopiaPrivacySummaryPayload>('/api/privacy/summary')
+        .then(setPrivacySummary)
+        .catch(() => {});
+    }
+  }, [mode]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,6 +110,57 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
   const markRead = async (id: string) => {
     await apiRequest(`/api/notifications/${id}/read`, { method: 'POST' });
     await onNotificationsRefresh();
+  };
+
+  const handleDownloadPopiaExport = async () => {
+    setExportingData(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const payload = await apiRequest<Record<string, unknown>>('/api/privacy/export');
+      const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `field-shift-popia-export-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setMessage('Personal data export downloaded (POPIA Section 23).');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to export personal data.');
+    } finally {
+      setExportingData(false);
+    }
+  };
+
+  const handleEraseAccount = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    if (eraseConfirmText.trim() !== 'ERASE MY ACCOUNT') {
+      setError('Type "ERASE MY ACCOUNT" exactly to confirm permanent deletion.');
+      return;
+    }
+    setErasingAccount(true);
+    try {
+      await apiRequest('/api/privacy/erase-account', {
+        method: 'POST',
+        body: JSON.stringify({
+          password: erasePassword,
+          confirmationText: eraseConfirmText.trim(),
+        }),
+      });
+      await wipeUserOfflineVault(user.id);
+      if (onAccountErased) {
+        onAccountErased();
+      }
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not complete account erasure.');
+    } finally {
+      setErasingAccount(false);
+    }
   };
 
   return (
@@ -214,11 +285,22 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
 
           {/* Notifications */}
           <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
-            <div className="flex items-center gap-2">
-              <Bell className="w-5 h-5 text-[#1B4332]" />
-              <h2 className="font-display text-lg font-bold text-[#143326]">
-                Notifications ({notifications.length})
-              </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <Bell className="w-5 h-5 text-[#1B4332]" />
+                <h2 className="font-display text-lg font-bold text-[#143326]">
+                  Notifications ({notifications.length})
+                </h2>
+              </div>
+              {onOpenNotifications && (
+                <button
+                  type="button"
+                  onClick={onOpenNotifications}
+                  className="px-3.5 py-2 rounded-xl border border-[#D4DDD2] hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] whitespace-nowrap cursor-pointer"
+                >
+                  Open Notification Centre & Preferences
+                </button>
+              )}
             </div>
             {notifications.length === 0 ? (
               <p className="text-sm text-[#4A5A50]">No notifications yet.</p>
@@ -243,6 +325,120 @@ export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
                 ))}
               </div>
             )}
+          </div>
+
+          {/* POPIA Privacy, Retention & Account Control */}
+          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2">
+                  <Lock className="w-5 h-5 text-[#1B4332]" />
+                  <h2 className="font-display text-lg font-bold text-[#143326]">
+                    POPIA Privacy, Data Retention & Account Rights
+                  </h2>
+                </div>
+                <p className="text-xs text-[#4A5A50]">
+                  Protection of Personal Information Act (South Africa) controls for your personal records, farm locations, financial plans, and media.
+                </p>
+              </div>
+              <button
+                type="button"
+                disabled={exportingData}
+                onClick={handleDownloadPopiaExport}
+                className="min-h-[40px] px-4 py-2 rounded-xl border border-[#D4DDD2] hover:bg-[#EDF2EC] text-xs font-semibold text-[#143326] whitespace-nowrap shrink-0 cursor-pointer flex items-center gap-2"
+              >
+                <Download className="w-4 h-4 text-[#1B4332]" />
+                <span>{exportingData ? 'Preparing Export...' : 'Download Personal Data (JSON)'}</span>
+              </button>
+            </div>
+
+            {privacySummary && (
+              <>
+                <p className="text-xs text-[#2D4B3B] bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3.5 leading-relaxed">
+                  {privacySummary.popiaComplianceNotice}
+                </p>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
+                    <p className="text-[#4A5A50]">Owned Farms</p>
+                    <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                      {privacySummary.ownedFarmsCount}
+                    </p>
+                  </div>
+                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
+                    <p className="text-[#4A5A50]">Active Sharing Grants</p>
+                    <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                      {privacySummary.activeSharingGrantsCount}
+                    </p>
+                  </div>
+                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
+                    <p className="text-[#4A5A50]">Stored Photos/Frames</p>
+                    <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                      {privacySummary.storedMediaCount}
+                    </p>
+                  </div>
+                  <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-3">
+                    <p className="text-[#4A5A50]">Session Timeout</p>
+                    <p className="font-mono text-base font-bold tabular-nums text-[#143326] mt-0.5">
+                      {privacySummary.sessionTimeoutHours}h ({privacySummary.activeSessionsCount} active)
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wider text-[#4A5A50]">
+                    Data Retention & Deletion Policy
+                  </p>
+                  <div className="divide-y divide-[#E2E6DF] border border-[#E2E6DF] rounded-xl px-4">
+                    {privacySummary.retentionSchedule.map((item) => (
+                      <div key={item.category} className="py-2.5 text-xs">
+                        <p className="font-semibold text-[#143326]">{item.category}</p>
+                        <p className="text-[#4A5A50] mt-0.5">{item.rule}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </>
+            )}
+
+            {/* Permanent Account Erasure */}
+            <form
+              onSubmit={handleEraseAccount}
+              className="pt-4 border-t border-[#E2E6DF] space-y-3"
+            >
+              <div className="flex items-center gap-2 text-sm font-bold text-[#8E2424]">
+                <Trash2 className="w-4 h-4" />
+                <span>Permanent Account & Personal Data Erasure (POPIA Section 24)</span>
+              </div>
+              <p className="text-xs text-[#4A5A50]">
+                Deletes your account, personal profile, farm locations, crop/livestock logs, stored photos, weather reports, business plans, and local offline vault, while anonymising audit references.
+              </p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <input
+                  type="password"
+                  required
+                  value={erasePassword}
+                  onChange={(e) => setErasePassword(e.target.value)}
+                  placeholder="Confirm current password"
+                  className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] text-sm"
+                />
+                <input
+                  type="text"
+                  required
+                  value={eraseConfirmText}
+                  onChange={(e) => setEraseConfirmText(e.target.value)}
+                  placeholder='Type "ERASE MY ACCOUNT"'
+                  className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] font-mono text-xs"
+                />
+                <button
+                  type="submit"
+                  disabled={erasingAccount}
+                  className="px-4 py-2.5 rounded-xl bg-[#8E2424] hover:bg-[#731C1C] disabled:opacity-50 text-white text-xs font-semibold cursor-pointer whitespace-nowrap"
+                >
+                  {erasingAccount ? 'Erasing Account...' : 'Permanently Erase My Data'}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       ) : (

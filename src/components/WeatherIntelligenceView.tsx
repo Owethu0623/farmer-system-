@@ -1,16 +1,29 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertTriangle,
+  BarChart3,
+  CheckCircle2,
   CloudRain,
   Droplets,
+  Plus,
   RefreshCw,
+  ShieldAlert,
+  Sparkles,
   Sun,
   Thermometer,
   Wind,
   WifiOff,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
-import { FarmItem, LanguageCode, WeatherIntelligence } from '../types';
+import {
+  FarmItem,
+  LanguageCode,
+  LocalWeatherFeedbackOverview,
+  RainfallIntensity,
+  RoleCode,
+  WeatherIntelligence,
+  WindObservationLevel,
+} from '../types';
 import { SpeakButton } from './AccessibilityControls';
 
 interface WeatherIntelligenceViewProps {
@@ -18,6 +31,7 @@ interface WeatherIntelligenceViewProps {
   selectedFarmId: string | null;
   onSelectFarm: (farmId: string) => void;
   languageCode: LanguageCode;
+  userRoleCode?: RoleCode;
   isSpeaking: boolean;
   speechSupported: boolean;
   onSpeak: (txt: string) => void;
@@ -29,15 +43,35 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
   selectedFarmId,
   onSelectFarm,
   languageCode,
+  userRoleCode,
   isSpeaking,
   speechSupported,
   onSpeak,
   onStopSpeaking,
 }) => {
   const activeFarmId = selectedFarmId || farms[0]?.id || '';
+  const activeFarm = farms.find((f) => f.id === activeFarmId) || farms[0] || null;
+
+  const [activeSection, setActiveSection] = useState<'forecast' | 'feedback'>('forecast');
   const [weather, setWeather] = useState<WeatherIntelligence | null>(null);
+  const [feedback, setFeedback] = useState<LocalWeatherFeedbackOverview | null>(null);
   const [loading, setLoading] = useState(false);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+
+  // Observation Form State
+  const [obsFormOpen, setObsFormOpen] = useState(false);
+  const [obsSubmitting, setObsSubmitting] = useState(false);
+  const [observationDate, setObservationDate] = useState(new Date().toISOString().slice(0, 10));
+  const [rainfallOccurred, setRainfallOccurred] = useState(true);
+  const [rainfallIntensity, setRainfallIntensity] = useState<RainfallIntensity>('moderate');
+  const [measuredRainfallMm, setMeasuredRainfallMm] = useState('12');
+  const [temperatureC, setTemperatureC] = useState('23');
+  const [windObservation, setWindObservation] = useState<WindObservationLevel>('light_breeze');
+  const [windSpeedEstimateKmh, setWindSpeedEstimateKmh] = useState('');
+  const [obsNotes, setObsNotes] = useState('');
 
   const loadWeather = useCallback(async () => {
     if (!activeFarmId) return;
@@ -55,9 +89,102 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
     }
   }, [activeFarmId]);
 
+  const loadFeedback = useCallback(async () => {
+    if (!activeFarmId) return;
+    setFeedbackLoading(true);
+    try {
+      const fb = await apiRequest<LocalWeatherFeedbackOverview>(
+        `/api/weather/farms/${encodeURIComponent(activeFarmId)}/feedback`
+      );
+      setFeedback(fb);
+    } catch {
+      // handled alongside main weather error if any
+    } finally {
+      setFeedbackLoading(false);
+    }
+  }, [activeFarmId]);
+
   useEffect(() => {
-    loadWeather();
-  }, [loadWeather]);
+    loadWeather().then(() => {
+      loadFeedback();
+    });
+  }, [loadWeather, loadFeedback]);
+
+  const handleSubmitObservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!activeFarmId) return;
+    setObsSubmitting(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const res = await apiRequest<{ overview: LocalWeatherFeedbackOverview }>(
+        `/api/weather/farms/${encodeURIComponent(activeFarmId)}/observations`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            observationDate,
+            rainfallOccurred,
+            rainfallIntensity: rainfallOccurred ? rainfallIntensity : 'none',
+            measuredRainfallMm: rainfallOccurred
+              ? measuredRainfallMm === ''
+                ? null
+                : Number(measuredRainfallMm)
+              : 0,
+            temperatureC: temperatureC === '' ? null : Number(temperatureC),
+            windObservation,
+            windSpeedEstimateKmh: windSpeedEstimateKmh === '' ? null : Number(windSpeedEstimateKmh),
+            notes: obsNotes,
+          }),
+        }
+      );
+      setFeedback(res.overview);
+      setObsFormOpen(false);
+      setObsNotes('');
+      setNotice(
+        'On-farm weather observation recorded as an unverified farmer report and compared against stored forecast records.'
+      );
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to submit weather observation.');
+    } finally {
+      setObsSubmitting(false);
+    }
+  };
+
+  const handleGenerateLocalSummary = async () => {
+    if (!activeFarmId) return;
+    setSummaryLoading(true);
+    setError(null);
+    try {
+      const summary = await apiRequest<LocalWeatherFeedbackOverview['summary']>(
+        `/api/weather/farms/${encodeURIComponent(activeFarmId)}/feedback-summary`,
+        {
+          method: 'POST',
+          body: JSON.stringify({ languageCode }),
+        }
+      );
+      setFeedback((prev) => (prev ? { ...prev, summary } : prev));
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to generate local weather summary.');
+    } finally {
+      setSummaryLoading(false);
+    }
+  };
+
+  const handleUpdateQc = async (
+    obsId: string,
+    qcStatus: 'qc_passed_reference' | 'qc_flagged_outlier'
+  ) => {
+    setError(null);
+    try {
+      await apiRequest(`/api/weather/observations/${encodeURIComponent(obsId)}/qc`, {
+        method: 'PATCH',
+        body: JSON.stringify({ qcStatus }),
+      });
+      await loadFeedback();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to update observation QC status.');
+    }
+  };
 
   if (farms.length === 0) {
     return (
@@ -67,7 +194,7 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
           Register a Farm Location for Weather Intelligence
         </h2>
         <p className="text-sm text-[#4A5A50]">
-          Agricultural weather warnings and coordinate forecasts connect directly to each registered farm’s GPS or map coordinates.
+          Agricultural weather warnings, coordinate forecasts, and local farmer rainfall feedback connect directly to each registered farm’s GPS or map coordinates.
         </p>
       </div>
     );
@@ -78,40 +205,98 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
     ...(weather?.historicalRainfall.historicalDays.map((d) => d.precipitationMm) || [10])
   );
 
+  const pairedChartRows = (feedback?.comparisons || [])
+    .filter((c) => c.forecastRecord || c.reportedRainfallMm !== null)
+    .slice(0, 8)
+    .reverse();
+
+  const maxCompareRain = Math.max(
+    10,
+    ...pairedChartRows.flatMap((r) => [
+      r.reportedRainfallMm ?? 0,
+      r.forecastRecord?.predictedRainfallMm ?? 0,
+    ])
+  );
+
+  const canReviewQc =
+    userRoleCode === 'agricultural_expert' || userRoleCode === 'system_administrator';
+
   return (
     <div className="space-y-6">
       {/* Header & Farm Switcher */}
-      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 flex flex-wrap items-center justify-between gap-4">
-        <div className="space-y-1">
-          <h1 className="font-display text-2xl font-bold text-[#143326]">
-            Agricultural Weather Intelligence
-          </h1>
-          <p className="text-sm text-[#4A5A50]">
-            Real coordinate-linked forecasts, historical rainfall, and operational crop/livestock warnings.
-          </p>
+      <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <h1 className="font-display text-2xl font-bold text-[#143326]">
+              Agricultural Weather & Local Feedback Loop
+            </h1>
+            <p className="text-sm text-[#4A5A50]">
+              Coordinate-linked forecasts, agricultural warnings, and farmer-reported weather comparison.
+            </p>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-2.5">
+            <select
+              value={activeFarmId}
+              onChange={(e) => onSelectFarm(e.target.value)}
+              className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold min-h-[42px]"
+            >
+              {farms.map((f) => (
+                <option key={f.id} value={f.id}>
+                  Farm: {f.name}
+                </option>
+              ))}
+            </select>
+
+            <button
+              type="button"
+              onClick={() => {
+                setActiveSection('feedback');
+                setObsFormOpen(true);
+              }}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl border border-[#1B4332] text-[#143326] hover:bg-[#EDF5EF] text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Report Farm Weather</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                loadWeather().then(() => loadFeedback());
+              }}
+              disabled={loading}
+              className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+            >
+              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <span>Update Weather</span>
+            </button>
+          </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2.5">
-          <select
-            value={activeFarmId}
-            onChange={(e) => onSelectFarm(e.target.value)}
-            className="px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold min-h-[42px]"
-          >
-            {farms.map((f) => (
-              <option key={f.id} value={f.id}>
-                Farm: {f.name}
-              </option>
-            ))}
-          </select>
-
+        {/* Segmented Tabs */}
+        <div className="flex flex-wrap items-center gap-2 pt-3 border-t border-[#E2E6DF]">
           <button
             type="button"
-            onClick={loadWeather}
-            disabled={loading}
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold min-h-[42px] cursor-pointer"
+            onClick={() => setActiveSection('forecast')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+              activeSection === 'forecast'
+                ? 'bg-[#1B4332] text-white'
+                : 'bg-[#F6F7F4] text-[#35443B] hover:bg-[#EDF2EC]'
+            }`}
           >
-            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-            <span>Update Weather</span>
+            Live Forecast & Warnings
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveSection('feedback')}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors cursor-pointer whitespace-nowrap ${
+              activeSection === 'feedback'
+                ? 'bg-[#1B4332] text-white'
+                : 'bg-[#F6F7F4] text-[#35443B] hover:bg-[#EDF2EC]'
+            }`}
+          >
+            Local Weather Feedback & Comparison ({feedback?.observations.length ?? 0})
           </button>
         </div>
       </div>
@@ -122,13 +307,26 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
         </div>
       )}
 
-      {loading && !weather && (
+      {notice && (
+        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm flex items-center justify-between gap-2">
+          <span>{notice}</span>
+          <button
+            type="button"
+            onClick={() => setNotice(null)}
+            className="text-xs font-semibold underline cursor-pointer"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
+
+      {activeSection === 'forecast' && loading && !weather && (
         <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-sm text-[#4A5A50]">
           Fetching live coordinate weather and historical rainfall telemetry...
         </div>
       )}
 
-      {weather && (
+      {activeSection === 'forecast' && weather && (
         <>
           {/* Source Attribution & Update Timestamp */}
           <div className="bg-[#F6F7F4] border border-[#D4DDD2] rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-3">
@@ -515,6 +713,577 @@ export const WeatherIntelligenceView: React.FC<WeatherIntelligenceViewProps> = (
             )}
           </section>
         </>
+      )}
+
+      {activeSection === 'feedback' && (
+        <div className="space-y-6">
+          {/* Four-Source Governance & Data Distinction Grid */}
+          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="font-display text-lg font-bold text-[#143326]">
+                  Weather Data Source Separation & Quality Control Policy
+                </h2>
+                <p className="text-xs text-[#4A5A50]">
+                  {feedback?.calibrationPolicyNotice ||
+                    'Farmer-reported observations are never automatically treated as verified measurements and never automatically retrain AI models. Only quality-controlled records may be reviewed for future calibration.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setObsFormOpen(!obsFormOpen)}
+                className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold min-h-[42px] cursor-pointer whitespace-nowrap"
+              >
+                <Plus className="w-4 h-4" />
+                <span>{obsFormOpen ? 'Close Observation Form' : 'Submit On-Farm Observation'}</span>
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 pt-3 border-t border-[#E2E6DF] text-xs">
+              <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-4 space-y-1">
+                <p className="font-semibold text-[#143326]">1. Verified Weather-Station Measurements</p>
+                <p className="text-[#4A5A50] leading-relaxed">
+                  {feedback?.verifiedStationStatus.connected
+                    ? `Connected: ${feedback.verifiedStationStatus.stationName}`
+                    : 'Not Connected (SAWS synoptic station stream requires SAWS_API_KEY).'}
+                </p>
+              </div>
+              <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-4 space-y-1">
+                <p className="font-semibold text-[#143326]">2. Forecast Information</p>
+                <p className="text-[#4A5A50] leading-relaxed">
+                  Stored Open-Meteo coordinate forecasts & gridded reanalysis ({feedback?.forecastRecords.length ?? 0} date snapshots saved for this farm).
+                </p>
+              </div>
+              <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-4 space-y-1">
+                <p className="font-semibold text-[#143326]">3. Farmer-Reported Observations</p>
+                <p className="text-[#4A5A50] leading-relaxed">
+                  On-farm rain gauge, temp, and wind logs ({feedback?.observations.length ?? 0} reports). Marked unverified until quality-controlled.
+                </p>
+              </div>
+              <div className="bg-[#FAFBF9] border border-[#E2E6DF] rounded-xl p-4 space-y-1">
+                <p className="font-semibold text-[#143326]">4. AI-Generated Estimates</p>
+                <p className="text-[#4A5A50] leading-relaxed">
+                  Plain-language local comparison summaries synthesized for farmer awareness only. Never overwrites physical measurements.
+                </p>
+              </div>
+            </div>
+          </section>
+
+          {/* Submit On-Farm Weather Observation Form */}
+          {obsFormOpen && (
+            <form
+              onSubmit={handleSubmitObservation}
+              className="bg-white border border-[#1B4332] rounded-2xl p-6 space-y-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#E2E6DF] pb-3">
+                <div>
+                  <h3 className="font-display text-lg font-bold text-[#143326]">
+                    Log Actual Weather Experienced at {activeFarm?.name}
+                  </h3>
+                  <p className="text-xs text-[#4A5A50]">
+                    Location: {activeFarm?.location?.townOrVillage}, {activeFarm?.location?.localMunicipality},{' '}
+                    {activeFarm?.location?.province} (
+                    <span className="font-mono tabular-nums">
+                      {activeFarm?.location?.latitude.toFixed(4)}, {activeFarm?.location?.longitude.toFixed(4)}
+                    </span>
+                    )
+                  </p>
+                </div>
+                <span className="text-xs font-semibold text-[#9A5B13]">
+                  Recorded as: Farmer-Reported Observation (Unverified)
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Observation Date
+                  </label>
+                  <input
+                    type="date"
+                    value={observationDate}
+                    onChange={(e) => setObservationDate(e.target.value)}
+                    required
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-mono tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Did Rainfall Occur at the Farm?
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRainfallOccurred(true);
+                        if (rainfallIntensity === 'none') setRainfallIntensity('moderate');
+                      }}
+                      className={`py-2.5 rounded-xl border text-sm font-semibold cursor-pointer ${
+                        rainfallOccurred
+                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
+                          : 'bg-white text-[#35443B] border-[#D4DDD2]'
+                      }`}
+                    >
+                      Yes — Rain Occurred
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRainfallOccurred(false);
+                        setRainfallIntensity('none');
+                        setMeasuredRainfallMm('0');
+                      }}
+                      className={`py-2.5 rounded-xl border text-sm font-semibold cursor-pointer ${
+                        !rainfallOccurred
+                          ? 'bg-[#1B4332] text-white border-[#1B4332]'
+                          : 'bg-white text-[#35443B] border-[#D4DDD2]'
+                      }`}
+                    >
+                      No — Dry Day
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Rainfall Intensity
+                  </label>
+                  <select
+                    value={rainfallOccurred ? rainfallIntensity : 'none'}
+                    disabled={!rainfallOccurred}
+                    onChange={(e) => setRainfallIntensity(e.target.value as RainfallIntensity)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold disabled:bg-[#F6F7F4]"
+                  >
+                    <option value="none">None (0 mm)</option>
+                    <option value="light">Light Drizzle / Shower</option>
+                    <option value="moderate">Moderate Steady Rain</option>
+                    <option value="heavy">Heavy Downpour</option>
+                    <option value="extreme">Extreme Storm / Flood Rain</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Measured Rainfall (mm) — Rain Gauge / Estimate
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="0"
+                    max="500"
+                    disabled={!rainfallOccurred}
+                    value={rainfallOccurred ? measuredRainfallMm : '0'}
+                    onChange={(e) => setMeasuredRainfallMm(e.target.value)}
+                    placeholder="e.g. 18.5"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-mono tabular-nums disabled:bg-[#F6F7F4]"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Observed Temperature (°C, optional)
+                  </label>
+                  <input
+                    type="number"
+                    step="0.5"
+                    min="-15"
+                    max="52"
+                    value={temperatureC}
+                    onChange={(e) => setTemperatureC(e.target.value)}
+                    placeholder="e.g. 24.5"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-mono tabular-nums"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Wind Observation
+                  </label>
+                  <select
+                    value={windObservation}
+                    onChange={(e) => setWindObservation(e.target.value as WindObservationLevel)}
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-semibold"
+                  >
+                    <option value="calm">Calm (Leaves Still)</option>
+                    <option value="light_breeze">Light Breeze (Ideal Spraying)</option>
+                    <option value="moderate_wind">Moderate Wind (Branches Move)</option>
+                    <option value="strong_wind">Strong Wind (Avoid Spraying)</option>
+                    <option value="gale">Gale / Damaging Gusts</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Estimated Wind Speed (km/h, optional)
+                  </label>
+                  <input
+                    type="number"
+                    step="1"
+                    min="0"
+                    max="180"
+                    value={windSpeedEstimateKmh}
+                    onChange={(e) => setWindSpeedEstimateKmh(e.target.value)}
+                    placeholder="Optional"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm font-mono tabular-nums"
+                  />
+                </div>
+
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-[#35443B] mb-1">
+                    Field Weather Notes (Gauge placement, hail, storm direction)
+                  </label>
+                  <input
+                    type="text"
+                    value={obsNotes}
+                    onChange={(e) => setObsNotes(e.target.value)}
+                    placeholder="e.g. Manual gauge at North Contour Maize Block checked at 17:30"
+                    className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                  />
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-end gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setObsFormOpen(false)}
+                  className="px-4 py-2.5 rounded-xl border border-[#D4DDD2] text-sm font-semibold text-[#35443B] cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={obsSubmitting}
+                  className="px-5 py-2.5 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-sm font-semibold cursor-pointer"
+                >
+                  {obsSubmitting ? 'Saving & Comparing...' : 'Submit Farm Observation'}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Local Weather Comparison Summary & AI Synthesis */}
+          {feedback && (
+            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-xs text-[#4A5A50]">
+                    <span className="font-semibold text-[#143326]">
+                      {feedback.summary.sourceCategory === 'ai_generated_estimate'
+                        ? 'AI-Generated Local Weather Summary'
+                        : 'Local Weather Comparison Summary'}
+                    </span>
+                    <span aria-hidden="true">·</span>
+                    <span>
+                      Updated{' '}
+                      <span className="font-mono tabular-nums">
+                        {new Date(feedback.summary.generatedAt).toLocaleString()}
+                      </span>
+                    </span>
+                  </div>
+                  <h3 className="font-display text-lg font-bold text-[#143326]">
+                    Forecast vs Farm-Reported Weather Insights
+                  </h3>
+                </div>
+
+                <div className="flex flex-wrap items-center gap-2.5">
+                  <SpeakButton
+                    text={feedback.summary.narrative}
+                    languageCode={languageCode}
+                    isSpeaking={isSpeaking}
+                    onSpeak={onSpeak}
+                    onStop={onStopSpeaking}
+                    supported={speechSupported}
+                    label="Listen"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleGenerateLocalSummary}
+                    disabled={summaryLoading}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#1B4332] hover:bg-[#143326] text-white text-xs font-semibold min-h-[40px] cursor-pointer whitespace-nowrap"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    <span>
+                      {summaryLoading ? 'Generating Summary...' : 'Generate AI Comparison Summary'}
+                    </span>
+                  </button>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-3 border-y border-[#E2E6DF]">
+                <div>
+                  <p className="text-xs text-[#4A5A50]">Farmer Observations</p>
+                  <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-0.5">
+                    {feedback.summary.totalObservations}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#4A5A50]">Passed Plausibility QC</p>
+                  <p className="font-mono text-xl font-bold tabular-nums text-[#1B4332] mt-0.5">
+                    {feedback.summary.qcPassedCount}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#4A5A50]">Rain Occurrence Match</p>
+                  <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-0.5">
+                    {feedback.summary.rainAgreementRatePercent !== null
+                      ? `${feedback.summary.rainAgreementRatePercent}%`
+                      : '—'}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-[#4A5A50]">Avg Rainfall Difference</p>
+                  <p className="font-mono text-xl font-bold tabular-nums text-[#143326] mt-0.5">
+                    {feedback.summary.avgRainfallVarianceMm !== null
+                      ? `${feedback.summary.avgRainfallVarianceMm > 0 ? '+' : ''}${
+                          feedback.summary.avgRainfallVarianceMm
+                        } mm`
+                      : '—'}
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-sm text-[#17201B] leading-relaxed">{feedback.summary.narrative}</p>
+              <ul className="text-xs text-[#4A5A50] space-y-1">
+                {feedback.summary.caveats.map((c) => (
+                  <li key={c}>· {c}</li>
+                ))}
+              </ul>
+            </section>
+          )}
+
+          {/* Forecast vs Reported Rainfall Visual Comparison Chart */}
+          <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-[#1B4332]" />
+                <h3 className="font-display text-lg font-bold text-[#143326]">
+                  Forecast vs Farmer-Reported Rainfall Comparison Chart (mm)
+                </h3>
+              </div>
+              <div className="flex items-center gap-4 text-xs text-[#35443B]">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-sm bg-[#8EB89D] inline-block" />
+                  <span>Stored Forecast Information</span>
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-3 h-3 rounded-sm bg-[#1B4332] inline-block" />
+                  <span>Farmer-Reported Observation (Unverified)</span>
+                </span>
+              </div>
+            </div>
+
+            {feedbackLoading && !feedback ? (
+              <p className="text-sm text-[#4A5A50]">Loading weather comparison history...</p>
+            ) : pairedChartRows.length === 0 ? (
+              <p className="text-sm text-[#4A5A50] py-4 border-t border-[#E2E6DF]">
+                Submit farm weather observations to plot forecast-vs-actual rainfall bars here.
+              </p>
+            ) : (
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-8 gap-3 pt-4 border-t border-[#E2E6DF]">
+                {pairedChartRows.map((row) => {
+                  const fcMm = row.forecastRecord?.predictedRainfallMm ?? 0;
+                  const repMm = row.reportedRainfallMm ?? 0;
+                  const fcH = Math.max(4, Math.round((fcMm / maxCompareRain) * 100));
+                  const repH = Math.max(4, Math.round((repMm / maxCompareRain) * 100));
+                  return (
+                    <div
+                      key={row.observationId}
+                      className="border border-[#E2E6DF] rounded-xl p-3 bg-[#FAFBF9] flex flex-col justify-between space-y-2"
+                    >
+                      <div className="h-28 flex items-end justify-center gap-2 border-b border-[#D4DDD2] pb-1">
+                        <div className="flex flex-col items-center justify-end h-full w-6">
+                          <span className="text-[10px] font-mono tabular-nums text-[#4A5A50] mb-0.5">
+                            {row.forecastRecord ? fcMm : '—'}
+                          </span>
+                          <div
+                            className="w-full rounded-t bg-[#8EB89D]"
+                            style={{ height: `${row.forecastRecord ? fcH : 4}%` }}
+                            title={`Forecast: ${fcMm} mm`}
+                          />
+                        </div>
+                        <div className="flex flex-col items-center justify-end h-full w-6">
+                          <span className="text-[10px] font-mono tabular-nums text-[#143326] font-semibold mb-0.5">
+                            {row.reportedRainfallMm ?? '—'}
+                          </span>
+                          <div
+                            className="w-full rounded-t bg-[#1B4332]"
+                            style={{ height: `${repH}%` }}
+                            title={`Farmer Reported: ${repMm} mm`}
+                          />
+                        </div>
+                      </div>
+                      <div className="text-center">
+                        <p className="text-[11px] font-mono tabular-nums font-semibold text-[#143326]">
+                          {row.observationDate}
+                        </p>
+                        <p className="text-[11px] font-mono tabular-nums text-[#4A5A50]">
+                          {row.rainfallDiffMm !== null
+                            ? `Diff ${row.rainfallDiffMm > 0 ? '+' : ''}${row.rainfallDiffMm}mm`
+                            : 'No fcst'}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          {/* Historical Observations & Detailed Comparison Table */}
+          {feedback && (
+            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h3 className="font-display text-lg font-bold text-[#143326]">
+                  Historical Farm Observations & Forecast Comparison Log
+                </h3>
+                <span className="text-xs text-[#4A5A50]">
+                  Verified Station Telemetry:{' '}
+                  {feedback.verifiedStationStatus.connected
+                    ? feedback.verifiedStationStatus.stationName
+                    : 'Not Connected'}
+                </span>
+              </div>
+
+              {feedback.comparisons.length === 0 ? (
+                <p className="text-sm text-[#4A5A50] py-4 border-t border-[#E2E6DF]">
+                  No farmer weather observations recorded yet for this farm.
+                </p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                        <th className="py-2.5 pr-3 font-semibold">Date & Location</th>
+                        <th className="py-2.5 pr-3 font-semibold">Farmer Report (Unverified)</th>
+                        <th className="py-2.5 pr-3 font-semibold">Stored Forecast Info</th>
+                        <th className="py-2.5 pr-3 font-semibold">Verified Station</th>
+                        <th className="py-2.5 pr-3 font-semibold">Measured Difference</th>
+                        <th className="py-2.5 font-semibold">Quality Control Status</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E2E6DF]">
+                      {feedback.comparisons.map((row) => (
+                        <tr key={row.observationId} className="align-top">
+                          <td className="py-3 pr-3">
+                            <p className="font-mono tabular-nums font-semibold text-[#143326]">
+                              {row.observationDate}
+                            </p>
+                            <p className="text-[#4A5A50] mt-0.5">{row.farmLocationLabel}</p>
+                          </td>
+                          <td className="py-3 pr-3 space-y-0.5">
+                            <p className="font-semibold text-[#143326]">
+                              {row.reportedRainfallOccurred
+                                ? `Rain (${row.reportedIntensity}): ${
+                                    row.reportedRainfallMm !== null ? `${row.reportedRainfallMm} mm` : 'Unmeasured'
+                                  }`
+                                : 'Dry (0 mm)'}
+                            </p>
+                            <p className="font-mono tabular-nums text-[#4A5A50]">
+                              Temp: {row.reportedTemperatureC !== null ? `${row.reportedTemperatureC}°C` : '—'}
+                            </p>
+                            <p className="text-[#4A5A50]">{row.windComparisonNote}</p>
+                          </td>
+                          <td className="py-3 pr-3 space-y-0.5">
+                            {row.forecastRecord ? (
+                              <>
+                                <p className="font-mono tabular-nums font-semibold text-[#1B4332]">
+                                  {row.forecastRecord.predictedRainfallMm} mm
+                                </p>
+                                <p className="font-mono tabular-nums text-[#4A5A50]">
+                                  {row.forecastRecord.predictedTempMinC}°–{row.forecastRecord.predictedTempMaxC}°C · Max wind{' '}
+                                  {row.forecastRecord.predictedWindMaxKmh} km/h
+                                </p>
+                                <p className="text-[#4A5A50]">{row.forecastRecord.weatherDescription}</p>
+                              </>
+                            ) : (
+                              <span className="text-[#4A5A50]">No stored forecast for date</span>
+                            )}
+                          </td>
+                          <td className="py-3 pr-3 text-[#4A5A50]">
+                            {row.verifiedStationAvailable ? (
+                              <span className="font-mono tabular-nums text-[#143326]">
+                                {row.verifiedStationRainMm} mm / {row.verifiedStationTempC}°C
+                              </span>
+                            ) : (
+                              <span>Unavailable (Not connected)</span>
+                            )}
+                          </td>
+                          <td className="py-3 pr-3 space-y-0.5">
+                            <p className="font-mono tabular-nums font-semibold text-[#143326]">
+                              {row.rainfallDiffMm !== null
+                                ? `Rain ${row.rainfallDiffMm > 0 ? '+' : ''}${row.rainfallDiffMm} mm`
+                                : '—'}
+                            </p>
+                            {row.tempDiffC !== null && (
+                              <p className="font-mono tabular-nums text-[#4A5A50]">
+                                Temp {row.tempDiffC > 0 ? '+' : ''}
+                                {row.tempDiffC}°C vs mid
+                              </p>
+                            )}
+                            <p
+                              className={`font-semibold ${
+                                row.rainEventMatch === 'matched'
+                                  ? 'text-[#1B4332]'
+                                  : row.rainEventMatch === 'no_forecast_record'
+                                  ? 'text-[#4A5A50]'
+                                  : 'text-[#9A5B13]'
+                              }`}
+                            >
+                              {row.rainEventMatch === 'matched'
+                                ? 'Rain event matched'
+                                : row.rainEventMatch === 'forecast_rain_not_observed'
+                                ? 'Forecast rain missed farm'
+                                : row.rainEventMatch === 'unexpected_rain_observed'
+                                ? 'Unforecast local rain'
+                                : 'Unpaired'}
+                            </p>
+                          </td>
+                          <td className="py-3 space-y-1">
+                            <div className="flex items-center gap-1 font-semibold">
+                              {row.qcStatus === 'qc_passed_reference' ? (
+                                <>
+                                  <CheckCircle2 className="w-3.5 h-3.5 text-[#1B4332] shrink-0" />
+                                  <span className="text-[#1B4332]">Plausibility Passed (Reference Only)</span>
+                                </>
+                              ) : row.qcStatus === 'qc_flagged_outlier' ? (
+                                <>
+                                  <ShieldAlert className="w-3.5 h-3.5 text-[#8E2424] shrink-0" />
+                                  <span className="text-[#8E2424]">Flagged Outlier</span>
+                                </>
+                              ) : (
+                                <span className="text-[#9A5B13]">Pending QC</span>
+                              )}
+                            </div>
+                            <p className="text-[#4A5A50] max-w-xs leading-snug">{row.qcNotes}</p>
+                            {canReviewQc && (
+                              <div className="flex gap-2 pt-1">
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQc(row.observationId, 'qc_passed_reference')}
+                                  className="text-[11px] font-semibold text-[#1B4332] underline cursor-pointer"
+                                >
+                                  Mark QC Passed
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => handleUpdateQc(row.observationId, 'qc_flagged_outlier')}
+                                  className="text-[11px] font-semibold text-[#8E2424] underline cursor-pointer"
+                                >
+                                  Flag Outlier
+                                </button>
+                              </div>
+                            )}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          )}
+        </div>
       )}
     </div>
   );

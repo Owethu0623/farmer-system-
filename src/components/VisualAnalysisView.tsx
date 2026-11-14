@@ -163,6 +163,9 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
   const [incImpactZar, setIncImpactZar] = useState('0');
   const [savingActionId, setSavingActionId] = useState<string | null>(null);
 
+  const selectedRecordIdRef = useRef<string | null>(null);
+  selectedRecordIdRef.current = selectedRecordId;
+
   const loadFarmTargetsAndHistory = useCallback(async () => {
     setLoadingHistory(true);
     try {
@@ -175,7 +178,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
       setCrops(cropsRes);
       setLivestock(livestockRes);
       setHistory(historyRes);
-      if (historyRes.length > 0 && !selectedRecordId) {
+      if (historyRes.length > 0 && (!selectedRecordIdRef.current || !historyRes.some((h) => h.id === selectedRecordIdRef.current))) {
         setSelectedRecordId(historyRes[0].id);
       }
     } catch (err: unknown) {
@@ -183,11 +186,18 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
     } finally {
       setLoadingHistory(false);
     }
-  }, [activeFarmId, selectedRecordId]);
+  }, [activeFarmId]);
 
   useEffect(() => {
     loadFarmTargetsAndHistory();
   }, [loadFarmTargetsAndHistory]);
+
+  // Attach camera stream reliably once modal mounts
+  useEffect(() => {
+    if (cameraOpen && cameraVideoRef.current && cameraStreamRef.current) {
+      cameraVideoRef.current.srcObject = cameraStreamRef.current;
+    }
+  }, [cameraOpen]);
 
   // Cleanup camera stream and video URLs on unmount
   useEffect(() => {
@@ -212,6 +222,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
     setCameraError(null);
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       setCameraError('Live camera access is unavailable in this browser. Please use the Photo Upload button below.');
+      setCameraOpen(true);
       return;
     }
     setCameraOpen(true);
@@ -296,6 +307,49 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
     }
     const timestampSec = vid.currentTime.toFixed(1);
     setFrames((prev) => [...prev, { ...snapped, label: `Frame @ ${timestampSec}s` }]);
+  };
+
+  const [extractingFrames, setExtractingFrames] = useState(false);
+
+  const handleAutoExtractKeyFrames = async () => {
+    const vid = videoRef.current;
+    if (!vid || !Number.isFinite(vid.duration) || vid.duration <= 0) {
+      setError('Wait for video duration to load before extracting frames.');
+      return;
+    }
+    setExtractingFrames(true);
+    setError(null);
+    const originalTime = vid.currentTime;
+    const targetFractions = [0.15, 0.5, 0.85];
+    const extracted: { mimeType: string; dataBase64: string; previewUrl: string; label: string }[] = [];
+
+    try {
+      for (const frac of targetFractions) {
+        const targetSec = Math.min(Math.max(0.1, vid.duration * frac), Math.max(0.1, vid.duration - 0.1));
+        await new Promise<void>((resolve) => {
+          const onSeeked = () => {
+            vid.removeEventListener('seeked', onSeeked);
+            resolve();
+          };
+          vid.addEventListener('seeked', onSeeked, { once: true });
+          vid.currentTime = targetSec;
+          setTimeout(() => {
+            vid.removeEventListener('seeked', onSeeked);
+            resolve();
+          }, 900);
+        });
+        const snapped = captureVideoFrameToJpeg(vid, 1024);
+        if (snapped) {
+          extracted.push({ ...snapped, label: `Key frame @ ${targetSec.toFixed(1)}s` });
+        }
+      }
+      if (extracted.length > 0) {
+        setFrames(extracted);
+      }
+    } finally {
+      vid.currentTime = originalTime;
+      setExtractingFrames(false);
+    }
   };
 
   const handleSubmitAnalysis = async (e: React.FormEvent) => {
@@ -692,13 +746,23 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   }}
                   className="w-full max-h-56 rounded-lg bg-black object-contain"
                 />
-                <button
-                  type="button"
-                  onClick={handleCaptureVideoFrame}
-                  className="w-full min-h-[42px] px-3 py-2 rounded-xl bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#2D6A4F] cursor-pointer"
-                >
-                  Capture Video Frame at Current Position
-                </button>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleCaptureVideoFrame}
+                    className="w-full min-h-[42px] px-3 py-2 rounded-xl bg-[#1B4332] text-white text-xs font-semibold hover:bg-[#2D6A4F] cursor-pointer"
+                  >
+                    Capture Frame at Current Position
+                  </button>
+                  <button
+                    type="button"
+                    disabled={extractingFrames}
+                    onClick={handleAutoExtractKeyFrames}
+                    className="w-full min-h-[42px] px-3 py-2 rounded-xl border border-[#1B4332] bg-white text-[#143326] text-xs font-semibold hover:bg-[#EDF5EF] disabled:opacity-50 cursor-pointer"
+                  >
+                    {extractingFrames ? 'Extracting Key Frames...' : 'Auto-Extract 3 Key Frames'}
+                  </button>
+                </div>
               </div>
             )}
 
@@ -795,7 +859,7 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
 
                 <div className="flex flex-wrap items-center gap-2">
                   <SpeakButton
-                    text={`Visual analysis for ${activeResult.farmName}. Possible findings: ${activeResult.possibleFindings.join('. ')}. Explanation: ${activeResult.explanation}. Recommended next steps: ${activeResult.recommendedActions.join('. ')}. Note: ${activeResult.safetyDisclaimer}`}
+                    text={`Visual analysis for ${activeResult.farmName}. Possible findings: ${activeResult.possibleFindings.join('. ')}. Possible causes: ${activeResult.possibleCauses.join('. ')}. Explanation: ${activeResult.explanation}. Confidence: ${activeResult.confidenceLevel}. ${activeResult.uncertaintyNote}. Recommended next steps: ${activeResult.recommendedActions.join('. ')}. Note: ${activeResult.safetyDisclaimer}`}
                     languageCode={languageCode}
                     isSpeaking={isSpeaking}
                     onSpeak={onSpeak}
@@ -1149,6 +1213,35 @@ export const VisualAnalysisView: React.FC<VisualAnalysisViewProps> = ({
                   />
                 </div>
               </div>
+              {incidentModalItem.cropId && (() => {
+                const linkedCrop = crops.find((c) => c.id === incidentModalItem.cropId);
+                if (!linkedCrop) return null;
+                const beforeRem = Math.max(0, linkedCrop.plantingQuantity - linkedCrop.damagedPlants);
+                const applied = Math.min(beforeRem, Math.max(0, Number(incAffectedQty) || 0));
+                return (
+                  <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 text-xs text-[#143326]">
+                    <p className="font-bold">Stock Impact Preview ({linkedCrop.cropName})</p>
+                    <p className="font-mono tabular-nums mt-0.5">
+                      Original: {linkedCrop.plantingQuantity.toLocaleString()} · New Damage: {applied.toLocaleString()} · Remaining After: {Math.max(0, beforeRem - applied).toLocaleString()}
+                    </p>
+                  </div>
+                );
+              })()}
+              {incidentModalItem.livestockGroupId && (() => {
+                const linkedGrp = livestock.find((g) => g.id === incidentModalItem.livestockGroupId);
+                if (!linkedGrp) return null;
+                const appliedLoss = incType === 'livestock_death'
+                  ? Math.min(linkedGrp.quantity, Math.max(0, Math.round(Number(incAffectedQty) || 0)))
+                  : 0;
+                return (
+                  <div className="bg-[#EDF5EF] border border-[#BFD6C5] rounded-xl p-3 text-xs text-[#143326]">
+                    <p className="font-bold">Livestock Stock Preview ({linkedGrp.groupName})</p>
+                    <p className="font-mono tabular-nums mt-0.5">
+                      Current Head: {linkedGrp.quantity} · Loss: {appliedLoss} · Remaining After: {Math.max(0, linkedGrp.quantity - appliedLoss)}
+                    </p>
+                  </div>
+                );
+              })()}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-semibold text-[#4A5A50] mb-1">

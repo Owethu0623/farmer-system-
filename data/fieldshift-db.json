@@ -158,9 +158,9 @@
       "isEmailVerified": true,
       "onboardingCompleted": true,
       "activationToken": null,
-      "lastLoginAt": "2026-11-14T13:22:54.784Z",
+      "lastLoginAt": "2026-11-14T14:41:32.168Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T13:22:54.784Z"
+      "updatedAt": "2026-11-14T14:41:32.168Z"
     },
     {
       "id": "user-existing-1",
@@ -173,9 +173,9 @@
       "isEmailVerified": true,
       "onboardingCompleted": true,
       "activationToken": null,
-      "lastLoginAt": "2026-11-14T14:05:11.444Z",
+      "lastLoginAt": "2026-11-14T14:53:02.348Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T14:05:11.444Z"
+      "updatedAt": "2026-11-14T14:53:02.348Z"
     },
     {
       "id": "user-expert-1",
@@ -188,9 +188,9 @@
       "isEmailVerified": true,
       "onboardingCompleted": true,
       "activationToken": null,
-      "lastLoginAt": "2026-11-14T13:22:54.784Z",
+      "lastLoginAt": "2026-11-14T14:52:53.584Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T13:22:54.784Z"
+      "updatedAt": "2026-11-14T14:52:53.584Z"
     },
     {
       "id": "user-org-1",
@@ -203,9 +203,9 @@
       "isEmailVerified": true,
       "onboardingCompleted": true,
       "activationToken": null,
-      "lastLoginAt": "2026-11-14T13:22:54.784Z",
+      "lastLoginAt": "2026-11-14T14:53:02.418Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T13:22:54.784Z"
+      "updatedAt": "2026-11-14T14:53:02.418Z"
     },
     {
       "id": "user-admin-1",
@@ -218,9 +218,9 @@
       "isEmailVerified": true,
       "onboardingCompleted": true,
       "activationToken": null,
-      "lastLoginAt": "2026-11-14T13:22:57.512Z",
+      "lastLoginAt": "2026-11-14T14:41:32.344Z",
       "createdAt": "2026-11-14T13:22:54.784Z",
-      "updatedAt": "2026-11-14T13:22:57.512Z"
+      "updatedAt": "2026-11-14T14:41:32.344Z"
     }
   ],
   "userProfiles": [
@@ -590,20 +590,548 @@
       "createdAt": "2026-11-14T13:22:54.784Z"
     },
     {
-      "id": "perm-role-admin-7",
-      "roleId": "role-admin",
-      "userId": null,
-      "permissionKey": "farms:read_all",
-      "isAllowed": true,
-      "createdAt": "2026-11-14T13:22:54.784Z"
-    },
-    {
       "id": "perm-role-admin-8",
       "roleId": "role-admin",
       "userId": null,
       "permissionKey": "ai:advise",
       "isAllowed": true,
       "createdAt": "2026-11-14T13:22:54.784Z"
+    },
+    {
+      "id": "perm-4860ac3b-3a24-46f0-b684-36dc69025785",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "profile:read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-ad6c85e7-6e4c-4708-b253-8b18da4c633d",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "profile:update",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-7de76007-4e5b-4581-9342-f7f7ffc83e3c",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "opportunities:discover",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-e56b39f3-f3b5-4db8-a292-0b91a0fa74a0",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "suitability:explore",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-436bb9f4-c338-4cf1-a0b5-ca2a9485b7f2",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "business:plan",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-06a5eccc-b59b-454c-a8d1-84629ed16153",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "learning:access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-f7bd6071-b7b0-4019-92bb-b2b27959afe1",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "ai:advise",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-7ca955ab-fdbf-4938-b095-3a48721c73d0",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "profile:read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.625Z"
+    },
+    {
+      "id": "perm-37c9c5dc-6f1b-42ef-99c1-1785bc88e82f",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "profile:update",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-4287ea9a-7fde-41c8-a74c-50ca201bd83f",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "farms:create",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-060c6b9a-98b9-4e8e-b7d5-9ecc53149a92",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "farms:read_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-b273e299-61f1-4796-9bdd-7ebb78dbce26",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "farms:update_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-487305a1-50d7-4720-9a7d-d5d368ae5451",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "farms:delete_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-b8fb4931-b425-4901-853a-29ad84a683b7",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "fields:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-d7b80635-1c7c-4506-9ee4-725622ff9437",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "crops:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-e0efe185-91bd-4d44-a08e-aae1445c769a",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "livestock:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-3ffd37e6-05cb-4112-879c-b0504f08f3d1",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "mixed:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-fcbf71de-0b21-459b-a976-0b0f30643282",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "business:plan",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-364ba920-826a-4f6a-ac72-d90f5192aac2",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "learning:access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-4e369191-353f-453a-b4d9-ebd958b0c0a7",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "ai:advise",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-22f2e1ff-b875-43ef-95e4-d9c4e0e9948e",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "profile:read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-2160eb7f-2542-4cd1-8c7c-8d1a90373d64",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "profile:update",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-74ccfa1d-c0b4-4b9d-8ab2-5e1b39b0594d",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "farms:read_regional",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-556815b6-e8b9-475f-bba7-778e214b3708",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "fields:review",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-5213582b-8fce-4bfd-9d30-1e2e8ac24654",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "advisory:publish",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-2250bbc5-1b98-4ebb-96f8-002d1cca4296",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "business:plan",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-679f79c3-4027-45c1-93cd-50188924d491",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "learning:access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-6e1d0704-9ea2-428c-bda7-427ba9900c6c",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "learning:manage",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-cb2786a8-ca0a-4ae9-a51d-01fd88821319",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "ai:advise",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-2674e18f-cdb2-4a79-9b89-0ad83ac8ae58",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "profile:read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-f2de8d95-9fd8-48c2-a285-f572557ed340",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "profile:update",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-e7c9dd7b-8355-4425-a735-e30414321d0b",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "farms:read_portfolio",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-67d49e78-b2b0-43c2-a3b5-bcf99feb5ae7",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "analytics:view_portfolio",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-6e5c34a2-0b86-4a2b-a38f-8b51232afb32",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "notifications:broadcast",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-5fe03ae7-b9f8-4e89-82ba-4ea673113a08",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "business:plan",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-e1f56012-8131-494e-85e3-9dcd1b3c3c36",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "learning:access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-39a9b544-b3d2-42ec-b39c-798f5d07ea34",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "ai:advise",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-d50d20e3-d605-41ef-908c-f36b58c044a8",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "profile:read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-0872a919-83be-4996-bce8-cd12a976c714",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "profile:update",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-2f3d8d89-c8c0-4bd2-af8f-7522246b88e9",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:users_read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-c502d82a-9789-4594-8991-235d34d18134",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:users_manage",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-b293adb9-40a9-4a9b-999f-c53f2f4c4701",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:roles_assign",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-3e3d9f5b-3bcd-40fc-b618-84491c6fb373",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:stats_view",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-8ca28527-03b7-4b91-9404-40dbb851a9a7",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:audit_read",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-f6948bf1-4e97-439c-a9ba-db24b1697664",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "crops:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-e9d90f99-50c6-4866-bd4b-bb91556d8138",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "livestock:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-05398745-09d6-4f08-9eac-f16f87188535",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "mixed:manage_own",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-25fd6f39-9cd6-4943-8e1a-4069d209b8cf",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "business:plan",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-a34e72ef-1484-4596-9a0b-266db3f48845",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "learning:access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-49c0bd26-e866-4761-b7b2-a2e6194569cb",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "learning:manage",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-3e949a71-020c-4094-96e6-70f8c35f5e91",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "ai:advise",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:28:06.626Z"
+    },
+    {
+      "id": "perm-2b6b568f-4159-43aa-a1a9-8278e42b5b30",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "reports:generate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-ae56b446-892b-4b20-b2dd-e63976df531c",
+      "roleId": "role-prospective",
+      "userId": "user-prospective-1",
+      "permissionKey": "reports:export",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-cfae0228-50ec-45bc-9f0e-58918cfed9d5",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "reports:generate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-7a0e2a71-e60f-49bd-99b6-d68c85eabac5",
+      "roleId": "role-existing",
+      "userId": "user-existing-1",
+      "permissionKey": "reports:export",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-022997ba-ddeb-4e2f-85ac-40f99108a5bc",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "reports:generate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-3e8c2d8e-23a3-4f9b-a7cf-3c14598b669e",
+      "roleId": "role-expert",
+      "userId": "user-expert-1",
+      "permissionKey": "reports:export",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-e32e0ae9-a53f-4a92-a610-e1274893b5ea",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "reports:generate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-69fa6a7f-a4b2-4256-909f-c3c8fb860d3e",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "reports:export",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-cf55e902-e3bd-4036-8eb1-cc39b1cc57d8",
+      "roleId": "role-org",
+      "userId": "user-org-1",
+      "permissionKey": "reports:organisation_aggregate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-d4bf3fd6-ce15-4518-8dc2-c91b0b8e4ec8",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:portal_access",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-4c9fd9ff-ec1d-4b55-a883-b4761c155f2f",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:permissions_manage",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.092Z"
+    },
+    {
+      "id": "perm-5c93f849-b580-42e0-afb2-23ab7de04b2d",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:oversight_aggregated",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.093Z"
+    },
+    {
+      "id": "perm-1baf5f41-06b8-4562-a472-8106bca1e1dc",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:languages_manage",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.093Z"
+    },
+    {
+      "id": "perm-5481a2c6-13e7-4525-b6b2-b13b645a52d3",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "admin:config_manage",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.093Z"
+    },
+    {
+      "id": "perm-a20dfd99-87da-4f8c-af6b-4a136b4c4adb",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "reports:generate",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.093Z"
+    },
+    {
+      "id": "perm-a10f9cdb-656d-4202-a2e3-2f63b346166d",
+      "roleId": "role-admin",
+      "userId": "user-admin-1",
+      "permissionKey": "reports:export",
+      "isAllowed": true,
+      "createdAt": "2026-11-14T14:41:23.093Z"
     }
   ],
   "farmingTypes": [
@@ -988,6 +1516,171 @@
   ],
   "notifications": [
     {
+      "id": "notif-564e12e8-7c1f-4d18-8889-95336050b2eb",
+      "userId": "user-org-1",
+      "title": "Satiso Senhlangano: Lowveld & Midlands Growers Cooperative: Co-op Seasonal Brief",
+      "message": "Mid-season agronomic update for member farms.",
+      "category": "organisation_communication",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "ss",
+      "relatedEntityType": "Organisation",
+      "relatedEntityId": "org-lowveld-1",
+      "isRead": false,
+      "actionUrl": "notifications",
+      "createdAt": "2026-11-14T14:53:02.478Z"
+    },
+    {
+      "id": "notif-0515cd1a-d8e7-4ea1-b9c2-92eaed78fc23",
+      "userId": "user-existing-1",
+      "title": "Umyalezo Wenhlangano: Lowveld & Midlands Growers Cooperative: Co-op Seasonal Brief",
+      "message": "Mid-season agronomic update for member farms.",
+      "category": "organisation_communication",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "zu",
+      "relatedEntityType": "Organisation",
+      "relatedEntityId": "org-lowveld-1",
+      "isRead": false,
+      "actionUrl": "notifications",
+      "createdAt": "2026-11-14T14:53:02.475Z"
+    },
+    {
+      "id": "notif-62d119b3-4135-4e03-9778-d6413c6c7617",
+      "userId": "user-existing-1",
+      "title": "Isaziso Se-akhawunti Nokuphepha: Mandatory Security Alert",
+      "message": "Always delivered",
+      "category": "account_security",
+      "priority": "high",
+      "isMandatorySecurity": true,
+      "languageCode": "zu",
+      "relatedEntityType": null,
+      "relatedEntityId": null,
+      "isRead": false,
+      "actionUrl": "notifications",
+      "createdAt": "2026-11-14T14:53:02.450Z"
+    },
+    {
+      "id": "notif-78e24674-71ae-4bde-bcde-a341f1b83bb9",
+      "userId": "user-org-1",
+      "title": "Farm Access Granted: uMngeni Valley Homestead Farm",
+      "message": "Nomsa Dlamini granted scoped organisation access to uMngeni Valley Homestead Farm.",
+      "category": "organisation_communication",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "ss",
+      "relatedEntityType": "FarmAccessGrant",
+      "relatedEntityId": "grant-org-umgeni",
+      "isRead": false,
+      "actionUrl": "dashboard",
+      "createdAt": "2026-11-14T14:52:53.760Z"
+    },
+    {
+      "id": "notif-ccd50992-931e-4a01-a5a0-369ad366c9e8",
+      "userId": "user-existing-1",
+      "title": "Impendulo Yochwepheshe: Dr. Pieter van der Merwe: Smoke Check Agronomic Note",
+      "message": "Leaf nitrogen adequate",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "zu",
+      "relatedEntityType": "ExpertFeedback",
+      "relatedEntityId": "ef-b8f67ff6-408b-4746-bc44-7e8d362ebe65",
+      "isRead": false,
+      "actionUrl": "farms",
+      "createdAt": "2026-11-14T14:52:53.714Z"
+    },
+    {
+      "id": "notif-576042c1-27a3-4c60-90ab-91cebb356aac",
+      "userId": "user-expert-1",
+      "title": "Farm Access Granted: uMngeni Valley Homestead Farm",
+      "message": "Nomsa Dlamini granted scoped expert access to uMngeni Valley Homestead Farm.",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "af",
+      "relatedEntityType": "FarmAccessGrant",
+      "relatedEntityId": "grant-exp-umgeni",
+      "isRead": false,
+      "actionUrl": "dashboard",
+      "createdAt": "2026-11-14T14:52:53.695Z"
+    },
+    {
+      "id": "notif-26a8c887-d528-45f5-8756-e5edfa58af67",
+      "userId": "user-existing-1",
+      "title": "Impendulo Yochwepheshe: Dr. Pieter van der Merwe: Smoke Check Agronomic Note",
+      "message": "Leaf nitrogen adequate",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "zu",
+      "relatedEntityType": "ExpertFeedback",
+      "relatedEntityId": "ef-28ed8191-7595-481e-8fbc-0d11e8cbc335",
+      "isRead": false,
+      "actionUrl": "farms",
+      "createdAt": "2026-11-14T14:52:42.866Z"
+    },
+    {
+      "id": "notif-27d30c4b-ee61-4952-8a44-ffb0b3e19e14",
+      "userId": "user-expert-1",
+      "title": "Farm Access Granted: uMngeni Valley Homestead Farm",
+      "message": "Nomsa Dlamini granted scoped expert access to uMngeni Valley Homestead Farm.",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "af",
+      "relatedEntityType": "FarmAccessGrant",
+      "relatedEntityId": "grant-exp-umgeni",
+      "isRead": false,
+      "actionUrl": "dashboard",
+      "createdAt": "2026-11-14T14:52:42.847Z"
+    },
+    {
+      "id": "notif-73caf10c-4c65-4933-95d9-252063f8d1c6",
+      "userId": "user-existing-1",
+      "title": "Impendulo Yochwepheshe: Dr. Pieter van der Merwe: Smoke Check Agronomic Note",
+      "message": "Leaf nitrogen adequate",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "zu",
+      "relatedEntityType": "ExpertFeedback",
+      "relatedEntityId": "ef-a663f0d9-8270-4de7-9c7a-b2dc35ca64f2",
+      "isRead": false,
+      "actionUrl": "farms",
+      "createdAt": "2026-11-14T14:52:27.336Z"
+    },
+    {
+      "id": "notif-74466602-5873-486f-b98d-3703f2747a13",
+      "userId": "user-expert-1",
+      "title": "Farm Access Granted: uMngeni Valley Homestead Farm",
+      "message": "Nomsa Dlamini granted scoped expert access to uMngeni Valley Homestead Farm.",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "af",
+      "relatedEntityType": "FarmAccessGrant",
+      "relatedEntityId": "grant-exp-umgeni",
+      "isRead": false,
+      "actionUrl": "dashboard",
+      "createdAt": "2026-11-14T14:52:27.313Z"
+    },
+    {
+      "id": "notif-4f0f1a50-14d1-45e7-b2de-e5f3c08f6ed6",
+      "userId": "user-expert-1",
+      "title": "Farm Access Granted: uMngeni Valley Homestead Farm",
+      "message": "Nomsa Dlamini granted scoped expert access to uMngeni Valley Homestead Farm.",
+      "category": "expert_feedback",
+      "priority": "normal",
+      "isMandatorySecurity": false,
+      "languageCode": "af",
+      "relatedEntityType": "FarmAccessGrant",
+      "relatedEntityId": "grant-exp-umgeni",
+      "isRead": false,
+      "actionUrl": "dashboard",
+      "createdAt": "2026-11-14T14:52:15.232Z"
+    },
+    {
       "id": "notif-1",
       "userId": "user-existing-1",
       "title": "Soil Moisture Advisory — uMgungundlovu",
@@ -1019,6 +1712,972 @@
     }
   ],
   "auditLogs": [
+    {
+      "id": "audit-eddd17e9-8967-4269-b60e-97ecf606cef5",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "ORGANISATION_COMMUNICATION_SENT",
+      "entityType": "Organisation",
+      "entityId": "org-lowveld-1",
+      "details": {
+        "title": "Co-op Seasonal Brief",
+        "targetAudience": "all_connected",
+        "deliveredCount": 2,
+        "suppressedCount": 0
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:53:02.480Z"
+    },
+    {
+      "id": "audit-140fe0e5-6199-4c86-84db-21bdba584dd2",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "NOTIFICATION_PREFERENCES_UPDATED",
+      "entityType": "NotificationPreference",
+      "entityId": "user-existing-1",
+      "details": {
+        "channels": {
+          "inApp": true,
+          "email": false,
+          "sms": false,
+          "push": false
+        },
+        "categories": {
+          "weather_warning": true,
+          "agricultural_incident": true,
+          "upcoming_activity": true,
+          "crop_reminder": true,
+          "livestock_reminder": true,
+          "stock_change": true,
+          "ai_recommendation": true,
+          "expert_feedback": true,
+          "organisation_communication": true,
+          "account_security": true
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:53:02.461Z"
+    },
+    {
+      "id": "audit-e73cca52-ae9c-4f43-8118-086d11a9ce00",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "NOTIFICATION_PREFERENCES_UPDATED",
+      "entityType": "NotificationPreference",
+      "entityId": "user-existing-1",
+      "details": {
+        "channels": {
+          "inApp": true,
+          "email": false,
+          "sms": false,
+          "push": false
+        },
+        "categories": {
+          "weather_warning": true,
+          "agricultural_incident": true,
+          "upcoming_activity": true,
+          "crop_reminder": true,
+          "livestock_reminder": true,
+          "stock_change": true,
+          "ai_recommendation": true,
+          "expert_feedback": true,
+          "organisation_communication": true,
+          "account_security": true
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:53:02.433Z"
+    },
+    {
+      "id": "audit-6cf61351-157c-4c3c-a170-3e0d4320f160",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:53:02.422Z"
+    },
+    {
+      "id": "audit-cb22eee5-4c2d-4f57-ae94-920dd9a898cf",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:53:02.351Z"
+    },
+    {
+      "id": "audit-40015e3c-a559-486f-9b9e-4a13b23f5afa",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "NOTIFICATION_PREFERENCES_UPDATED",
+      "entityType": "NotificationPreference",
+      "entityId": "user-existing-1",
+      "details": {
+        "channels": {
+          "inApp": true,
+          "email": false,
+          "sms": false,
+          "push": false
+        },
+        "categories": {
+          "weather_warning": true,
+          "agricultural_incident": true,
+          "upcoming_activity": true,
+          "crop_reminder": true,
+          "livestock_reminder": true,
+          "stock_change": true,
+          "ai_recommendation": true,
+          "expert_feedback": true,
+          "organisation_communication": true,
+          "account_security": true
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.771Z"
+    },
+    {
+      "id": "audit-511fc0d8-4517-40f6-83cc-4b61acfb2a52",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "FARM_ACCESS_REVOKED",
+      "entityType": "FarmAccessGrant",
+      "entityId": "grant-org-umgeni",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "granteeType": "organisation",
+        "granteeLabel": "Lowveld & Midlands Growers Cooperative"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.743Z"
+    },
+    {
+      "id": "audit-4c331765-2fb4-43d3-b9c4-0f66f397cc9b",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "REPORT_GENERATED",
+      "entityType": "GeneratedReport",
+      "entityId": "rep-5c8fa9e7-21b7-4933-a038-8e62a0878df1",
+      "details": {
+        "reportType": "farm_expenses",
+        "farmId": "all",
+        "isOrgAggregate": true,
+        "rowCount": 4
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.734Z"
+    },
+    {
+      "id": "audit-860728ef-8b6f-4a05-8559-6e0a05cc6150",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FEEDBACK_SUBMITTED",
+      "entityType": "ExpertFeedback",
+      "entityId": "ef-b8f67ff6-408b-4746-bc44-7e8d362ebe65",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "concernCategory": "crop_concern",
+        "incidentId": null,
+        "status": "completed"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.709Z"
+    },
+    {
+      "id": "audit-a388bd7c-44b2-4527-8483-53f055720fef",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.702Z"
+    },
+    {
+      "id": "audit-83273f4a-70c8-4a0b-9e2a-f05bb70517c6",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "FARM_ACCESS_REVOKED",
+      "entityType": "FarmAccessGrant",
+      "entityId": "grant-exp-umgeni",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "granteeType": "expert",
+        "granteeLabel": "Dr. Pieter van der Merwe (Agronomist)"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.673Z"
+    },
+    {
+      "id": "audit-12088c6c-1cf5-4122-b56a-66bd3c50976b",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.659Z"
+    },
+    {
+      "id": "audit-f2b9fac0-607f-4bad-bff3-66c3024925f1",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.645Z"
+    },
+    {
+      "id": "audit-7eeb0ae3-31da-4743-80a5-ff0d1f9aa99a",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-expert-1",
+      "details": {
+        "email": "pieter.vandermerwe@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.587Z"
+    },
+    {
+      "id": "audit-be96dfcc-0fa4-4519-abfb-ddb65493e274",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:53.518Z"
+    },
+    {
+      "id": "audit-360bccb9-cbcd-44d2-b339-0cee87a198b7",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "REPORT_GENERATED",
+      "entityType": "GeneratedReport",
+      "entityId": "rep-596a60dd-c83e-40bd-b501-c8ea5166ca1e",
+      "details": {
+        "reportType": "farm_expenses",
+        "farmId": "all",
+        "isOrgAggregate": true,
+        "rowCount": 4
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.889Z"
+    },
+    {
+      "id": "audit-f851df40-40aa-49e3-9384-d4a60f271bc7",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FEEDBACK_SUBMITTED",
+      "entityType": "ExpertFeedback",
+      "entityId": "ef-28ed8191-7595-481e-8fbc-0d11e8cbc335",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "concernCategory": "crop_concern",
+        "incidentId": null,
+        "status": "completed"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.861Z"
+    },
+    {
+      "id": "audit-23b1a77a-5765-421f-a201-4fd3a7d542dc",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.854Z"
+    },
+    {
+      "id": "audit-37e92c26-7678-4944-9b70-cec59a9fc3c2",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "FARM_ACCESS_REVOKED",
+      "entityType": "FarmAccessGrant",
+      "entityId": "grant-exp-umgeni",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "granteeType": "expert",
+        "granteeLabel": "Dr. Pieter van der Merwe (Agronomist)"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.826Z"
+    },
+    {
+      "id": "audit-7447261c-7bde-404e-a54b-ce569d3258c2",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.814Z"
+    },
+    {
+      "id": "audit-a3e48ecc-b200-4f73-9e6d-5a1132c22ee8",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.802Z"
+    },
+    {
+      "id": "audit-60a39b86-7b87-42fc-aaa8-2d71f1552904",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-expert-1",
+      "details": {
+        "email": "pieter.vandermerwe@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.742Z"
+    },
+    {
+      "id": "audit-6a12b969-ec1b-4fc7-bc70-f8d1b808e305",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:42.675Z"
+    },
+    {
+      "id": "audit-9020d803-2f26-49f1-89c4-c634108b7fc6",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FEEDBACK_SUBMITTED",
+      "entityType": "ExpertFeedback",
+      "entityId": "ef-a663f0d9-8270-4de7-9c7a-b2dc35ca64f2",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "concernCategory": "crop_concern",
+        "incidentId": null,
+        "status": "completed"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.326Z"
+    },
+    {
+      "id": "audit-bfd8c70f-400d-49de-9e53-cbb7ac7e578c",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.320Z"
+    },
+    {
+      "id": "audit-cde4ae75-e6b8-4884-b987-1febce05c939",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "FARM_ACCESS_REVOKED",
+      "entityType": "FarmAccessGrant",
+      "entityId": "grant-exp-umgeni",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "granteeType": "expert",
+        "granteeLabel": "Dr. Pieter van der Merwe (Agronomist)"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.289Z"
+    },
+    {
+      "id": "audit-e509f70b-5cd5-4509-86e9-0a737de975c5",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.276Z"
+    },
+    {
+      "id": "audit-2c61b325-35d8-4094-ada7-d7794e5fd5aa",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.265Z"
+    },
+    {
+      "id": "audit-44b9f03d-c8c3-45d1-8e56-bcfffd8b3eea",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-expert-1",
+      "details": {
+        "email": "pieter.vandermerwe@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.205Z"
+    },
+    {
+      "id": "audit-b526dcc4-08c2-4c08-8927-bc6044efba1e",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:27.129Z"
+    },
+    {
+      "id": "audit-42569775-8472-4fdb-8768-3f567ad61234",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:15.239Z"
+    },
+    {
+      "id": "audit-4e2ebf6d-511e-494c-aacb-6c88c11fd407",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "FARM_ACCESS_REVOKED",
+      "entityType": "FarmAccessGrant",
+      "entityId": "grant-exp-umgeni",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "granteeType": "expert",
+        "granteeLabel": "Dr. Pieter van der Merwe (Agronomist / Soil Specialist)"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:15.208Z"
+    },
+    {
+      "id": "audit-cf61b8e9-fcda-45e6-906e-aa60f0d894de",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "EXPERT_FARM_REVIEWED",
+      "entityType": "Farm",
+      "entityId": "farm-umgeni-1",
+      "details": {
+        "scopes": {
+          "overview": true,
+          "crops": true,
+          "soil": true,
+          "livestock": true,
+          "incidents": true,
+          "aiInsights": true,
+          "weather": true,
+          "financialSummary": false
+        }
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:15.195Z"
+    },
+    {
+      "id": "audit-36cd339d-db99-4d85-a9d1-91465b780832",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:15.179Z"
+    },
+    {
+      "id": "audit-f00fd21f-f889-4be8-a050-2180e3546f9d",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-expert-1",
+      "details": {
+        "email": "pieter.vandermerwe@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:15.119Z"
+    },
+    {
+      "id": "audit-3f1f7911-2b36-4ba0-8281-42b842905cb5",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:52:15.050Z"
+    },
+    {
+      "id": "audit-d3805db9-5075-4e69-8c3b-914e97f0e694",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:51:58.031Z"
+    },
+    {
+      "id": "audit-d0a59d04-8558-48f4-8a19-c0b59f203348",
+      "actorUserId": "user-expert-1",
+      "actorEmail": "pieter.vandermerwe@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-expert-1",
+      "details": {
+        "email": "pieter.vandermerwe@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:51:57.972Z"
+    },
+    {
+      "id": "audit-a76220b9-0bc7-4569-a12d-31a241bb9464",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:51:57.869Z"
+    },
+    {
+      "id": "audit-55b16032-96ee-49a7-8b3d-31bff2688074",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "ADMIN_PERMISSION_GRANTED",
+      "entityType": "UserPermission",
+      "entityId": "user-prospective-1",
+      "details": {
+        "targetEmail": "thabo.mokoena@fieldshift.co.za",
+        "permissionKey": "reports:export",
+        "isAllowed": true
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.405Z"
+    },
+    {
+      "id": "audit-af47b98f-5cfe-488c-96ae-45dc39aa4b31",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "ADMIN_PERMISSION_REVOKED",
+      "entityType": "UserPermission",
+      "entityId": "user-prospective-1",
+      "details": {
+        "targetEmail": "thabo.mokoena@fieldshift.co.za",
+        "permissionKey": "reports:export",
+        "isAllowed": false
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.397Z"
+    },
+    {
+      "id": "audit-59dca4cc-c64c-45fc-b2be-1fece15c3d49",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "ADMIN_ANNOUNCEMENT_DELETED",
+      "entityType": "SystemAnnouncement",
+      "entityId": "ann-ee64c8e0-0a8d-462a-bc15-35226454d795",
+      "details": {
+        "title": "Smoke Test Notice"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.384Z"
+    },
+    {
+      "id": "audit-44ea002a-e9b2-42bf-9608-3f68eb57af66",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "ADMIN_ANNOUNCEMENT_CREATED",
+      "entityType": "SystemAnnouncement",
+      "entityId": "ann-ee64c8e0-0a8d-462a-bc15-35226454d795",
+      "details": {
+        "title": "Smoke Test Notice",
+        "targetRole": "all"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.376Z"
+    },
+    {
+      "id": "audit-0801f614-8b56-488f-851c-d91bd25780ec",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "ADMIN_FARM_OVERSIGHT_VIEWED",
+      "entityType": "FarmOversight",
+      "entityId": null,
+      "details": {
+        "hasPrivateRecordPermission": false
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.360Z"
+    },
+    {
+      "id": "audit-2ddc95a5-dd00-40ed-b9b0-04c02d619963",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-admin-1",
+      "details": {
+        "email": "admin@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.347Z"
+    },
+    {
+      "id": "audit-187b4290-3d83-4cc1-a639-e115ef3dbea9",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "REPORT_GENERATED",
+      "entityType": "GeneratedReport",
+      "entityId": "rep-e6fb218e-7f50-499e-8655-d2f114ff9ca9",
+      "details": {
+        "reportType": "farm_profiles",
+        "farmId": "all",
+        "isOrgAggregate": true,
+        "rowCount": 2
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.285Z"
+    },
+    {
+      "id": "audit-45fb2cbe-045a-484e-b532-529598cf842d",
+      "actorUserId": "user-org-1",
+      "actorEmail": "lindiwe.nkosi@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-org-1",
+      "details": {
+        "email": "lindiwe.nkosi@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.276Z"
+    },
+    {
+      "id": "audit-0a16c116-605c-442a-9973-ef2d816ce803",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "REPORT_GENERATED",
+      "entityType": "GeneratedReport",
+      "entityId": "rep-0d69001c-f397-478d-9a48-11fff9c0ce73",
+      "details": {
+        "reportType": "stock_valuation",
+        "farmId": "all",
+        "isOrgAggregate": false,
+        "rowCount": 7
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.213Z"
+    },
+    {
+      "id": "audit-cae2db1a-02fe-4abb-8bea-43285108cf81",
+      "actorUserId": "user-prospective-1",
+      "actorEmail": "thabo.mokoena@fieldshift.co.za",
+      "action": "PROSPECTIVE_LOCATION_SAVED",
+      "entityType": "SavedProspectiveLocation",
+      "entityId": "ploc-d6c7f76b-1579-4947-b76d-cebe194f94dd",
+      "details": {
+        "province": "Limpopo",
+        "townOrArea": "Polokwane Test Plot"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.188Z"
+    },
+    {
+      "id": "audit-f991a0b2-ddee-45b1-870b-0df67a19d4a7",
+      "actorUserId": "user-prospective-1",
+      "actorEmail": "thabo.mokoena@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-prospective-1",
+      "details": {
+        "email": "thabo.mokoena@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:32.170Z"
+    },
+    {
+      "id": "audit-14d9ddb5-1d39-4771-b92a-e0dbee278757",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:41:31.911Z"
+    },
+    {
+      "id": "audit-6206a971-22db-44a6-9644-ac73b6b5035d",
+      "actorUserId": "user-prospective-1",
+      "actorEmail": "thabo.mokoena@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-prospective-1",
+      "details": {
+        "email": "thabo.mokoena@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:38.747Z"
+    },
+    {
+      "id": "audit-6d7a0865-f4c3-4663-8525-5860825bcf15",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "LEARNING_TRANSLATION_SAVED",
+      "entityType": "LearningMaterial",
+      "entityId": "learn-b134b71f-8451-49fb-b5ae-6fcefc55b218",
+      "details": {
+        "langCode": "af",
+        "reviewed": true
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:31.633Z"
+    },
+    {
+      "id": "audit-16500e7e-35ee-4aae-a10b-92009f51dec3",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "LEARNING_MATERIAL_STATUS_CHANGED",
+      "entityType": "LearningMaterial",
+      "entityId": "learn-b134b71f-8451-49fb-b5ae-6fcefc55b218",
+      "details": {
+        "status": "published"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:31.623Z"
+    },
+    {
+      "id": "audit-1e0b189b-decb-49a2-b89f-925a02b12ca3",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "LEARNING_MATERIAL_CREATED",
+      "entityType": "LearningMaterial",
+      "entityId": "learn-b134b71f-8451-49fb-b5ae-6fcefc55b218",
+      "details": {
+        "category": "irrigation",
+        "status": "draft",
+        "title": "Drip Filter Flushing Routine"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:31.616Z"
+    },
+    {
+      "id": "audit-a45574d8-68c2-434a-b6b5-00c35f2ae04b",
+      "actorUserId": "user-admin-1",
+      "actorEmail": "admin@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-admin-1",
+      "details": {
+        "email": "admin@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:31.609Z"
+    },
+    {
+      "id": "audit-294ca8e1-38bb-4cb0-bc4a-4c1d18fd36fd",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "BUSINESS_PLAN_CREATED",
+      "entityType": "BusinessPlanScenario",
+      "entityId": "bplan-c1cf032c-224e-49d6-b307-2f5b33d0ecd5",
+      "details": {
+        "planName": "Smoke Test Veg Plan",
+        "scaleTier": "medium_scale",
+        "farmId": "farm-umgeni-1"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:31.505Z"
+    },
+    {
+      "id": "audit-8e9a6a20-910d-45cd-b7aa-16310e58b591",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "FARMER_WEATHER_OBSERVATION_LOGGED",
+      "entityType": "FarmerWeatherObservation",
+      "entityId": "wobs-a1633e5b-9456-48e1-a5f7-a2dad9237aae",
+      "details": {
+        "farmId": "farm-umgeni-1",
+        "observationDate": "2026-11-14",
+        "rainfallOccurred": true,
+        "measuredRainfallMm": 14.5,
+        "qcStatus": "qc_passed_reference",
+        "sourceCategory": "farmer_reported_observation"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:16.978Z"
+    },
+    {
+      "id": "audit-a6c51538-c8ae-4f8e-a837-0643322c5f76",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:28:16.783Z"
+    },
+    {
+      "id": "audit-f4a81a4c-d280-479a-bd22-b4556bc3810b",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:14:27.607Z"
+    },
+    {
+      "id": "audit-5ee5a6ff-51de-41b3-8bb7-0bdd62fd8a18",
+      "actorUserId": "user-existing-1",
+      "actorEmail": "nomsa.dlamini@fieldshift.co.za",
+      "action": "USER_LOGIN",
+      "entityType": "User",
+      "entityId": "user-existing-1",
+      "details": {
+        "email": "nomsa.dlamini@fieldshift.co.za"
+      },
+      "ipAddress": "127.0.0.1",
+      "createdAt": "2026-11-14T14:14:23.840Z"
+    },
     {
       "id": "audit-f218ba06-d0d5-418c-9906-1606f7c3f5ae",
       "actorUserId": "user-existing-1",
@@ -1692,6 +3351,188 @@
       "tokenHash": "58c69ad2e868638941533a5c06392a8fc80dab06ccc37707bacda048e2097a26",
       "expiresAt": "2026-11-21T14:05:11.444Z",
       "createdAt": "2026-11-14T14:05:11.444Z"
+    },
+    {
+      "id": "sess-cb45a310-07e1-48cf-98f5-fb4141dab906",
+      "userId": "user-existing-1",
+      "tokenHash": "449c8a425f132cbf8b86e8dab444bb50173008ef32b40dc9dca0287769df15cf",
+      "expiresAt": "2026-11-21T14:14:23.837Z",
+      "createdAt": "2026-11-14T14:14:23.838Z"
+    },
+    {
+      "id": "sess-bec29bdb-e348-499c-9080-5fa91d0ff2a7",
+      "userId": "user-existing-1",
+      "tokenHash": "c6bdd340744caffd903f9b5d0b9ea76562976f70dca3ddb5cf326da6c82f93d9",
+      "expiresAt": "2026-11-21T14:14:27.605Z",
+      "createdAt": "2026-11-14T14:14:27.605Z"
+    },
+    {
+      "id": "sess-1973aa14-32eb-4764-99e4-898e7280e4dc",
+      "userId": "user-existing-1",
+      "tokenHash": "602aa39a556c142c4d2acdce64415311675385ca9ab45f030d895d5feea73dcb",
+      "expiresAt": "2026-11-21T14:28:16.779Z",
+      "createdAt": "2026-11-14T14:28:16.779Z"
+    },
+    {
+      "id": "sess-2d3845cd-aa2e-49fa-b510-30024ed5b555",
+      "userId": "user-admin-1",
+      "tokenHash": "02d0255f4b1e3200606667478f9e403f6355cc07e1096080650a73add78ee5b5",
+      "expiresAt": "2026-11-21T14:28:31.607Z",
+      "createdAt": "2026-11-14T14:28:31.607Z"
+    },
+    {
+      "id": "sess-e0b716ba-bf56-49f5-b5b9-bac14c3cb8d1",
+      "userId": "user-prospective-1",
+      "tokenHash": "d04fee124c09dc48e8a1553513474d78ebed60b765adf0f7bb9883d20a3496f1",
+      "expiresAt": "2026-11-21T14:28:38.745Z",
+      "createdAt": "2026-11-14T14:28:38.745Z"
+    },
+    {
+      "id": "sess-031fa78e-d53c-4c7a-a4e4-5827a4a3acc6",
+      "userId": "user-existing-1",
+      "tokenHash": "0bfcedb54fd78c5eb78b2e009462052d58429d3da6990e2cb570fd4116290254",
+      "expiresAt": "2026-11-21T14:41:31.908Z",
+      "createdAt": "2026-11-14T14:41:31.908Z"
+    },
+    {
+      "id": "sess-2991f73e-26bf-4281-bde3-136b22011ee9",
+      "userId": "user-prospective-1",
+      "tokenHash": "db01bd53d72d08af57be275f36b3d99125b6d5ffb64f6419291aeda5b462f403",
+      "expiresAt": "2026-11-21T14:41:32.168Z",
+      "createdAt": "2026-11-14T14:41:32.168Z"
+    },
+    {
+      "id": "sess-e8d5168b-7f16-4962-ab25-046311669da2",
+      "userId": "user-org-1",
+      "tokenHash": "1a6775a36f55d129b51256f9f5737b977091f9b16cfa327f1af2edceee2f6e3f",
+      "expiresAt": "2026-11-21T14:41:32.273Z",
+      "createdAt": "2026-11-14T14:41:32.273Z"
+    },
+    {
+      "id": "sess-239730ea-025c-4f40-81b5-b4aad397cf3a",
+      "userId": "user-admin-1",
+      "tokenHash": "25705bfb51ce0dc10ee7ba9e0ba99aa7880682a64ff3eb48ca7c58eb3895b9f3",
+      "expiresAt": "2026-11-21T14:41:32.344Z",
+      "createdAt": "2026-11-14T14:41:32.345Z"
+    },
+    {
+      "id": "sess-a229e2e7-e56b-49d3-b60e-28334dae1419",
+      "userId": "user-existing-1",
+      "tokenHash": "3b72b88f77b228d288cf41637eea89e70b795751e801dc5fee785c1b127abc63",
+      "expiresAt": "2026-11-21T14:51:57.865Z",
+      "createdAt": "2026-11-14T14:51:57.865Z"
+    },
+    {
+      "id": "sess-ae0008fb-a2dc-4d52-a9f1-f7076fb7947b",
+      "userId": "user-expert-1",
+      "tokenHash": "22d053162bef56a4696bb7b6015a3edbb18ba2f05ff5360305f38f3953678c25",
+      "expiresAt": "2026-11-21T14:51:57.969Z",
+      "createdAt": "2026-11-14T14:51:57.969Z"
+    },
+    {
+      "id": "sess-586937df-6805-4678-811d-296a453251ab",
+      "userId": "user-org-1",
+      "tokenHash": "a492cf86321c5ae769de9e96819e910baf5369d3190a5e9441c63059b5b44e7b",
+      "expiresAt": "2026-11-21T14:51:58.029Z",
+      "createdAt": "2026-11-14T14:51:58.029Z"
+    },
+    {
+      "id": "sess-58b66652-bb14-454f-95a0-df812283d780",
+      "userId": "user-existing-1",
+      "tokenHash": "2e481d958e8a04c681c7c774cb2b127061720291d548cadea33f24e5d7ef721e",
+      "expiresAt": "2026-11-21T14:52:15.048Z",
+      "createdAt": "2026-11-14T14:52:15.048Z"
+    },
+    {
+      "id": "sess-4c068e4c-4031-4a40-903e-6254aeca315c",
+      "userId": "user-expert-1",
+      "tokenHash": "fd7554d954c6e0086ca3b0f0a963dfc8c901d09f8ae7ca81d4650868ce58eb3c",
+      "expiresAt": "2026-11-21T14:52:15.117Z",
+      "createdAt": "2026-11-14T14:52:15.117Z"
+    },
+    {
+      "id": "sess-4b380981-4a67-4830-b1b7-b1a81a0dec0e",
+      "userId": "user-org-1",
+      "tokenHash": "63f3bd3cb1e05260f93aee2fcc458c5e46fea887d7aa96e272b190dff27c1166",
+      "expiresAt": "2026-11-21T14:52:15.177Z",
+      "createdAt": "2026-11-14T14:52:15.177Z"
+    },
+    {
+      "id": "sess-d8af7ebe-8794-4f60-b183-d8a8c0e95ac9",
+      "userId": "user-existing-1",
+      "tokenHash": "42d1fa7c9551c17bb68aa21a3094be940b82b370938881097d7e754755ffd0eb",
+      "expiresAt": "2026-11-21T14:52:27.126Z",
+      "createdAt": "2026-11-14T14:52:27.126Z"
+    },
+    {
+      "id": "sess-ca4253b6-5363-4ad7-a7f3-03cccddb1b8e",
+      "userId": "user-expert-1",
+      "tokenHash": "cd944071d4b3154d348da8ad322f8d22b5a0bf456a26ee3b7e0d244a8aee6dfd",
+      "expiresAt": "2026-11-21T14:52:27.197Z",
+      "createdAt": "2026-11-14T14:52:27.197Z"
+    },
+    {
+      "id": "sess-eff8e754-be4e-4a7b-bb13-fe14f8afad05",
+      "userId": "user-org-1",
+      "tokenHash": "d2a13675d0cd74cddf2e548e64e096b7cc5715e652d5028e52cf87802a14a495",
+      "expiresAt": "2026-11-21T14:52:27.262Z",
+      "createdAt": "2026-11-14T14:52:27.262Z"
+    },
+    {
+      "id": "sess-c88e6816-0a52-4af9-95e0-7bcfa8ec6140",
+      "userId": "user-existing-1",
+      "tokenHash": "d7d800935ebe640136f5a22d65cb43a31ad7d9c46e0b4c5a09520d4e52d63233",
+      "expiresAt": "2026-11-21T14:52:42.673Z",
+      "createdAt": "2026-11-14T14:52:42.673Z"
+    },
+    {
+      "id": "sess-8a54828c-9206-4290-98e6-1823adbddb52",
+      "userId": "user-expert-1",
+      "tokenHash": "134d9892a7ea4dcb4d1248c34a614d93fdf1cf2cf00e10083b39870a16e9dd14",
+      "expiresAt": "2026-11-21T14:52:42.740Z",
+      "createdAt": "2026-11-14T14:52:42.740Z"
+    },
+    {
+      "id": "sess-65b89a71-e411-473a-91a0-2a7c2894404a",
+      "userId": "user-org-1",
+      "tokenHash": "7ed8cae2a4007480953bba58630a4e253c12eecefa667f21beb00795548e00ab",
+      "expiresAt": "2026-11-21T14:52:42.799Z",
+      "createdAt": "2026-11-14T14:52:42.799Z"
+    },
+    {
+      "id": "sess-42bc6bc4-fea3-4cc7-9adf-d5f83527dc6a",
+      "userId": "user-existing-1",
+      "tokenHash": "e845f685674fead169d82b9de0f16569f4600f6e2273f86c3b7d2542a0a39780",
+      "expiresAt": "2026-11-21T14:52:53.516Z",
+      "createdAt": "2026-11-14T14:52:53.516Z"
+    },
+    {
+      "id": "sess-7a25d8c2-f9b6-4b79-bcb6-ec66b9a1ed2f",
+      "userId": "user-expert-1",
+      "tokenHash": "8ff82d0003bda7e9c910d81e473b2d84b60846a8eaf7b0e7faf4f254f6bc0c0f",
+      "expiresAt": "2026-11-21T14:52:53.584Z",
+      "createdAt": "2026-11-14T14:52:53.584Z"
+    },
+    {
+      "id": "sess-56cb16d7-5407-4262-9732-4bc817208c2c",
+      "userId": "user-org-1",
+      "tokenHash": "d2bc7e4c0ef326a732eb05fde5f3ba3d48155662f0ed70d1d6e7c1b2b0191e8e",
+      "expiresAt": "2026-11-21T14:52:53.643Z",
+      "createdAt": "2026-11-14T14:52:53.643Z"
+    },
+    {
+      "id": "sess-4156a294-25f8-4cd9-b70a-fd28067dbc4c",
+      "userId": "user-existing-1",
+      "tokenHash": "fa3b9de7a97f94826e63b944ceaf20ad38d2ddd584730b678ba2e7b6bd146d3a",
+      "expiresAt": "2026-11-21T14:53:02.348Z",
+      "createdAt": "2026-11-14T14:53:02.348Z"
+    },
+    {
+      "id": "sess-62a51546-a4aa-4fd0-8a9e-22e6b25e8d45",
+      "userId": "user-org-1",
+      "tokenHash": "4a7bd2e3c31d7c9140fe65ca05e63e0fa3fbeabb91b057eb08e06f75fa80884f",
+      "expiresAt": "2026-11-21T14:53:02.418Z",
+      "createdAt": "2026-11-14T14:53:02.418Z"
     }
   ],
   "passwordResetTokens": [],
@@ -2370,6 +4211,1796 @@
       ],
       "createdAt": "2026-11-14T14:04:18.711Z",
       "updatedAt": "2026-11-14T14:04:18.711Z"
+    }
+  ],
+  "weatherForecastRecords": [
+    {
+      "id": "wfc-d7a68865-ae3a-4596-b685-4a3010b34ed6",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-20",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0.9,
+      "predictedTempMinC": 18.5,
+      "predictedTempMaxC": 25.4,
+      "predictedWindMaxKmh": 13.4,
+      "weatherDescription": "Light to moderate drizzle"
+    },
+    {
+      "id": "wfc-b6b9c420-41a7-4375-a594-10b077908e9f",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-19",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0,
+      "predictedTempMinC": 15.8,
+      "predictedTempMaxC": 33.9,
+      "predictedWindMaxKmh": 17,
+      "weatherDescription": "Mainly clear / partly cloudy"
+    },
+    {
+      "id": "wfc-94d99a73-1bd5-4c81-91b4-5be0e6f78741",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-18",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0.6,
+      "predictedTempMinC": 12.5,
+      "predictedTempMaxC": 25.1,
+      "predictedWindMaxKmh": 12.6,
+      "weatherDescription": "Light to moderate drizzle"
+    },
+    {
+      "id": "wfc-5aaf4fc2-b22b-4c19-8f72-32c5c38cfa31",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-17",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 1.1,
+      "predictedTempMinC": 12.2,
+      "predictedTempMaxC": 19.9,
+      "predictedWindMaxKmh": 15.8,
+      "weatherDescription": "Light to moderate drizzle"
+    },
+    {
+      "id": "wfc-e8856e5f-f6c3-4f6e-b174-19d73110173d",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-16",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 2.4,
+      "predictedTempMinC": 13.8,
+      "predictedTempMaxC": 23.5,
+      "predictedWindMaxKmh": 21,
+      "weatherDescription": "Thunderstorm activity"
+    },
+    {
+      "id": "wfc-911bbf33-ed69-4165-bfaf-fe2d79517b5e",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-15",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 16.1,
+      "predictedTempMinC": 13.7,
+      "predictedTempMaxC": 23.9,
+      "predictedWindMaxKmh": 16.6,
+      "weatherDescription": "Thunderstorm activity"
+    },
+    {
+      "id": "wfc-08811ff9-d9f4-4f02-9709-03591c34c1fe",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-14",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 13.3,
+      "predictedTempMinC": 14.2,
+      "predictedTempMaxC": 18.5,
+      "predictedWindMaxKmh": 13,
+      "weatherDescription": "Heavy rain showers"
+    },
+    {
+      "id": "wfc-dca3f23c-54a1-41c7-8e05-390ada557dc9",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-12",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0.2,
+      "predictedTempMinC": 15.3,
+      "predictedTempMaxC": 24.4,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-ba3b5505-148b-4ac4-bf5c-c2a7eeaa472b",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-10",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0,
+      "predictedTempMinC": 12,
+      "predictedTempMaxC": 27,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Dry archive day"
+    },
+    {
+      "id": "wfc-e86a996f-6815-4af0-a450-755d088e2974",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-09",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0.1,
+      "predictedTempMinC": 8.5,
+      "predictedTempMaxC": 20.8,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-0b5e5ec4-317c-4fca-ae63-03effb7b7113",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-08",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 11.4,
+      "predictedTempMinC": 9.1,
+      "predictedTempMaxC": 13.1,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-e6941493-1bee-445a-8814-8648337d75d6",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-07",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 8.3,
+      "predictedTempMinC": 13,
+      "predictedTempMaxC": 16.8,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-1e0cb149-8a97-4f46-9eac-e63e30ae76dc",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-06",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 1.6,
+      "predictedTempMinC": 13.5,
+      "predictedTempMaxC": 27.5,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-1150bbf9-298a-4d94-a97b-85f3004d8a37",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-05",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 1.6,
+      "predictedTempMinC": 17.4,
+      "predictedTempMaxC": 30.5,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-f195662d-d614-40c2-9520-3a53be355e5c",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-04",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 1,
+      "predictedTempMinC": 15.2,
+      "predictedTempMaxC": 26.2,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-2ed6d78d-c1bb-42df-9ade-2f1d11491949",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-03",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 5.8,
+      "predictedTempMinC": 15.4,
+      "predictedTempMaxC": 21.2,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-7a874db0-2ac2-4ac4-b708-a7c899e82323",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-02",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 10.9,
+      "predictedTempMinC": 14.8,
+      "predictedTempMaxC": 23.8,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-ad6606a1-2e15-48fe-9315-c8537afbb3e1",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-01",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 22.5,
+      "predictedTempMinC": 15.8,
+      "predictedTempMaxC": 25.1,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Coordinate archive rainfall day"
+    },
+    {
+      "id": "wfc-ea3a3b31-b878-4eae-baab-6b19bd9355ce",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-10-31",
+      "fetchedAt": "2026-11-14T14:28:16.942Z",
+      "sourceName": "Open-Meteo Coordinate Weather & Historical Archive API",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 0,
+      "predictedTempMinC": 15.5,
+      "predictedTempMaxC": 28.9,
+      "predictedWindMaxKmh": 0,
+      "weatherDescription": "Dry archive day"
+    },
+    {
+      "id": "wfc-seed-1",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-11",
+      "fetchedAt": "2026-11-11T06:00:00.000Z",
+      "sourceName": "Open-Meteo Coordinate Weather Forecast Snapshot",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 14.5,
+      "predictedTempMinC": 13,
+      "predictedTempMaxC": 24.5,
+      "predictedWindMaxKmh": 22,
+      "weatherDescription": "Afternoon thundershowers expected"
+    },
+    {
+      "id": "wfc-seed-2",
+      "farmId": "farm-umgeni-1",
+      "forecastDate": "2026-11-13",
+      "fetchedAt": "2026-11-13T06:00:00.000Z",
+      "sourceName": "Open-Meteo Coordinate Weather Forecast Snapshot",
+      "sourceCategory": "forecast_information",
+      "verifiedStationName": null,
+      "verifiedStationRainMm": null,
+      "verifiedStationTempC": null,
+      "predictedRainfallMm": 4,
+      "predictedTempMinC": 12.2,
+      "predictedTempMaxC": 26,
+      "predictedWindMaxKmh": 16.5,
+      "weatherDescription": "Partly cloudy with light evening shower risk"
+    }
+  ],
+  "weatherObservations": [
+    {
+      "id": "wobs-a1633e5b-9456-48e1-a5f7-a2dad9237aae",
+      "farmId": "farm-umgeni-1",
+      "ownerId": "user-existing-1",
+      "farmLocationLabel": "Howick / KwaMevana, uMngeni, KwaZulu-Natal",
+      "latitude": -29.5412,
+      "longitude": 30.2815,
+      "observationDate": "2026-11-14",
+      "rainfallOccurred": true,
+      "rainfallIntensity": "moderate",
+      "measuredRainfallMm": 14.5,
+      "temperatureC": 23.2,
+      "windObservation": "light_breeze",
+      "windSpeedEstimateKmh": 12,
+      "notes": "Smoke test rain gauge verification",
+      "sourceCategory": "farmer_reported_observation",
+      "qcStatus": "qc_passed_reference",
+      "qcNotes": "Passed basic plausibility check as a farmer-reported observation. Not a verified weather-station measurement; retained only for potential quality-controlled calibration review.",
+      "comparedForecastRecordId": "wfc-08811ff9-d9f4-4f02-9709-03591c34c1fe",
+      "createdAt": "2026-11-14T14:28:16.978Z",
+      "updatedAt": "2026-11-14T14:28:16.978Z"
+    },
+    {
+      "id": "wobs-seed-1",
+      "farmId": "farm-umgeni-1",
+      "ownerId": "user-existing-1",
+      "farmLocationLabel": "Howick West, uMngeni, KwaZulu-Natal",
+      "latitude": -29.5412,
+      "longitude": 30.2814,
+      "observationDate": "2026-11-11",
+      "rainfallOccurred": true,
+      "rainfallIntensity": "heavy",
+      "measuredRainfallMm": 21,
+      "temperatureC": 22.5,
+      "windObservation": "moderate_wind",
+      "windSpeedEstimateKmh": 25,
+      "notes": "Manual rain gauge near North Maize Block measured 21 mm during a sharp 45-minute afternoon storm.",
+      "sourceCategory": "farmer_reported_observation",
+      "qcStatus": "qc_passed_reference",
+      "qcNotes": "Passed basic plausibility check as a farmer-reported observation. Not a verified weather-station measurement; retained only for potential quality-controlled calibration review.",
+      "comparedForecastRecordId": "wfc-seed-1",
+      "createdAt": "2026-11-11T18:15:00.000Z",
+      "updatedAt": "2026-11-11T18:15:00.000Z"
+    },
+    {
+      "id": "wobs-seed-2",
+      "farmId": "farm-umgeni-1",
+      "ownerId": "user-existing-1",
+      "farmLocationLabel": "Howick West, uMngeni, KwaZulu-Natal",
+      "latitude": -29.5412,
+      "longitude": 30.2814,
+      "observationDate": "2026-11-13",
+      "rainfallOccurred": false,
+      "rainfallIntensity": "none",
+      "measuredRainfallMm": 0,
+      "temperatureC": 25,
+      "windObservation": "light_breeze",
+      "windSpeedEstimateKmh": 14,
+      "notes": "Storm cells stayed south over Pietermaritzburg; zero rain on farm gauge.",
+      "sourceCategory": "farmer_reported_observation",
+      "qcStatus": "qc_passed_reference",
+      "qcNotes": "Passed basic plausibility check as a farmer-reported observation. Not a verified weather-station measurement; retained only for potential quality-controlled calibration review.",
+      "comparedForecastRecordId": "wfc-seed-2",
+      "createdAt": "2026-11-13T17:45:00.000Z",
+      "updatedAt": "2026-11-13T17:45:00.000Z"
+    }
+  ],
+  "businessPlans": [
+    {
+      "id": "bplan-seed-prospective-1",
+      "ownerId": "user-prospective-1",
+      "farmId": null,
+      "planName": "Thabo Mofutsanyana 2 ha Mixed Spinach & Cabbage Starter Plan",
+      "farmingType": "horticulture_veg",
+      "scaleTier": "small_scale",
+      "province": "Free State",
+      "district": "Thabo Mofutsanyana District",
+      "farmSizeHectares": 2,
+      "productionGoals": "Supply local retail and school buyers with staggered leafy vegetables across 2 ha.",
+      "marketChannel": "Local Fresh Produce Market & School Nutrition Buyers",
+      "equipmentCostZar": 24000,
+      "equipmentNotes": "Two knapsack sprayers, crates, digital scale, drip tape fittings.",
+      "seedsPlantingCostZar": 17500,
+      "fertilisersCostZar": 21000,
+      "feedCostZar": 0,
+      "waterCostZar": 11500,
+      "waterDemandM3": 7800,
+      "labourWorkers": 3,
+      "labourCostZar": 82000,
+      "infrastructureCostZar": 42000,
+      "operatingExpensesZar": 24000,
+      "expectedProductionQty": 32000,
+      "productionUnit": "kg",
+      "sellingPricePerUnitZar": 8.5,
+      "assumptionsNotes": "Planning estimate assuming staggered planting and 10% post-harvest loss allowance; non-guaranteed.",
+      "createdAt": "2026-11-14T14:28:06.624Z",
+      "updatedAt": "2026-11-14T14:28:06.624Z"
+    },
+    {
+      "id": "bplan-seed-existing-1",
+      "ownerId": "user-existing-1",
+      "farmId": "farm-umgeni-1",
+      "planName": "uMngeni Homestead Seasonal Expansion Scenario (5 ha Vegetables)",
+      "farmingType": "horticulture_veg",
+      "scaleTier": "medium_scale",
+      "province": "KwaZulu-Natal",
+      "district": "uMgungundlovu District",
+      "farmSizeHectares": 5,
+      "productionGoals": "Expand drip-irrigated vegetable terrace output alongside existing maize and Nguni cattle.",
+      "marketChannel": "Pietermaritzburg Fresh Produce Market & Regional Wholesalers",
+      "equipmentCostZar": 78000,
+      "equipmentNotes": "Boom sprayer upgrade, vegetable bed former, sorting shed tables.",
+      "seedsPlantingCostZar": 41000,
+      "fertilisersCostZar": 48000,
+      "feedCostZar": 0,
+      "waterCostZar": 26000,
+      "waterDemandM3": 18500,
+      "labourWorkers": 6,
+      "labourCostZar": 175000,
+      "infrastructureCostZar": 95000,
+      "operatingExpensesZar": 62000,
+      "expectedProductionQty": 92000,
+      "productionUnit": "kg",
+      "sellingPricePerUnitZar": 8.4,
+      "assumptionsNotes": "Linked to uMngeni Homestead Farm to benchmark estimates against recorded expenses.",
+      "createdAt": "2026-11-14T14:28:06.624Z",
+      "updatedAt": "2026-11-14T14:28:06.624Z"
+    }
+  ],
+  "learningMaterials": [
+    {
+      "id": "learn-beginner-1",
+      "slug": "first-season-farm-readiness-checklist",
+      "category": "beginner_farming",
+      "contentType": "step_by_step_guide",
+      "difficulty": "beginner",
+      "illustrationKey": "soil_crops",
+      "videoDurationLabel": "4 min visual lesson",
+      "videoSlides": [
+        {
+          "heading": "1. Confirm Reliable Water Before Planting",
+          "caption": "Measure borehole yield (litres/hour) or storage capacity for dry months before buying seed.",
+          "visualCue": "Borehole pump, 5,000L buffer tank, and drip line flow check.",
+          "durationSeconds": 6
+        },
+        {
+          "heading": "2. Sample 0–20 cm Topsoil for Lab Testing",
+          "caption": "Collect 10–15 clean sub-samples across the plot in a zig-zag pattern before applying lime or fertiliser.",
+          "visualCue": "Topsoil A-horizon sampling cross-section.",
+          "durationSeconds": 6
+        },
+        {
+          "heading": "3. Identify Local Buyers Prior to Planting",
+          "caption": "Confirm size, grade, and delivery frequency with at least 2–3 buyers within 50 km.",
+          "visualCue": "Harvest crates and market delivery logbook.",
+          "durationSeconds": 6
+        }
+      ],
+      "sourceAttribution": "DALRRD / ARC Smallholder Extension Readiness Baseline (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 6,
+      "tags": [
+        "beginner",
+        "water",
+        "soil test",
+        "market"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "First-Season Farm Readiness: Water, Soil & Buyers First",
+          "summary": "Three foundational checks to complete before spending capital on seeds, stock, or tillage.",
+          "body": "Many new farming enterprises run into cash-flow difficulty because planting begins before water reliability, soil acidity, and buyer specifications are verified. Completing these baseline checks reduces avoidable input waste.",
+          "steps": [
+            "Verify dry-season water supply (borehole litres/hour, dam level, or municipal allocation) and size planted hectares to match.",
+            "Submit a composite 0–20 cm soil sample to an accredited South African soil laboratory to measure pH and major nutrients.",
+            "Confirm target buyer requirements (pack size, variety, delivery schedule) within 50 km before choosing planting dates.",
+            "Set up a simple seasonal budget separating one-off equipment purchases from recurring seed, fertiliser, and labour expenses."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Agricultural Editorial Team",
+          "reviewedAt": "2026-09-01"
+        },
+        "zu": {
+          "title": "Ukulungiselela Isizini Yokuqala: Amanzi, Inhlabathi kanye Nabathengi",
+          "summary": "Izinyathelo ezintathu ezibalulekile okufanele uzenze ngaphambi kokuthenga imbewu noma umanyolo.",
+          "body": "Abalimi abaqalayo bavame ukulahlekelwa yimali uma beqala ukutshala bengakahloli amanzi, ukumuncu kwenhlabathi, kanye nezidingo zabathengi. Lezi zinyathelo zinciphisa ukumosheka kwezindleko.",
+          "steps": [
+            "Hlola isilinganiso samanzi ngesikhathi somileyo (umthombo noma idamu) bese ulinganisa indawo ozoyitshala namanzi akhona.",
+            "Thatha amasampula enhlabathi ajule nge-0–20 cm uyohlolisa elabhorethri ukuze wazi i-pH kanye nomsoco wenhlabathi.",
+            "Xoxisana nabathengi basendaweni ngaphambi kokutshala ukuze wazi uhlobo nosayizi wesivuno abasifunayo.",
+            "Bhala ibhajethi ehlukanisa izindleko zamathuluzi nezindleko zembewu, umanyolo kanye nabasebenzi."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift isiZulu Extension Review",
+          "reviewedAt": "2026-09-02"
+        },
+        "af": {
+          "title": "Eerste Seisoen Plaasgereedheid: Water, Grond en Kopers",
+          "summary": "Drie noodsaaklike vooraf-kontroles voordat jy geld aan saad, bemesting of bewerking spandeer.",
+          "body": "Nuwe boerderye ondervind dikwels kontantvloeidruk wanneer daar geplant word voordat waterbeskikbaarheid, grondsuurheid en markspesifikasies bevestig is.",
+          "steps": [
+            "Meet boorgat-lewering of watertoekenning in die droë tyd en pas aangeplante hektare daarby aan.",
+            "Neem saamgestelde 0–20 cm grondmonsters vir laboratorium-ontleding voordat kalk of kunsmis aangekoop word.",
+            "Bevestig plaaslike kopers se verpakking- en gehaltevereistes binne 50 km voor planttyd.",
+            "Stel ’n begroting op wat eenmalige toerusting skei van lopende saad-, kunsmis- en arbeidskoste."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Afrikaans Redaksie",
+          "reviewedAt": "2026-09-02"
+        }
+      }
+    },
+    {
+      "id": "learn-soil-1",
+      "slug": "composite-soil-sampling-and-ph-correction",
+      "category": "soil_preparation",
+      "contentType": "illustrated_guide",
+      "difficulty": "beginner",
+      "illustrationKey": "soil_crops",
+      "sourceAttribution": "ARC Soil, Climate and Water — Standard Soil Sampling Protocol (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 7,
+      "tags": [
+        "soil",
+        "pH",
+        "lime",
+        "sampling"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Taking a Composite 0–20 cm Soil Sample & Reading pH",
+          "summary": "How to sample uniform blocks accurately and understand why soil pH unlocks fertiliser uptake.",
+          "body": "Soil fertility varies across slopes and soil colours. Mixing separate soil types in one bag gives misleading lab averages. Group uniform blocks separately and target soil pH (KCl) around 5.2–6.0 (pH water 6.0–6.8) for most grain and vegetable crops.",
+          "steps": [
+            "Divide your farm into uniform blocks by soil colour, slope, and past crop history.",
+            "Clear surface plant litter and collect 10–15 cores at 0–20 cm depth along a W-pattern using a clean spade or auger.",
+            "Mix cores thoroughly in a clean plastic bucket (avoid galvanised metal buckets that contaminate zinc readings).",
+            "Bag ~500 g, label farm, block, and depth, and send to your provincial agricultural laboratory 6–8 weeks before planting so lime has time to react."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Agronomy Desk",
+          "reviewedAt": "2026-09-01"
+        },
+        "xh": {
+          "title": "Ukuthatha Iisampulu Zomhlaba (0–20 cm) Nokuqonda I-pH",
+          "summary": "Indlela yokuthatha iisampulu ezichanekileyo nokufumanisa ukuba kutheni i-pH yomhlaba ibalulekile.",
+          "body": "Ukuchuma komhlaba kuyahluka ngokweenduli nemibala yomhlaba. Yahlula iibhloko ezifanayo uze uthumele iisampulu elabhoratri kwiveki ezintandathu phambi kokutyala.",
+          "steps": [
+            "Yahlula amasimi akho ngeebhloko ezinomhlaba ofanayo.",
+            "Susa ingca engaphezulu uze uthathe iisampulu ezili-10 ukuya kwezili-15 kubunzulu be-0–20 cm.",
+            "Xuba kakuhle kwibhakethi yeplastiki ecocekileyo, ususe amatye neengcambu.",
+            "Faka i-500 g engxoweni ebhalwe igama lefama nebhloko uyithumele elabhoratri."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift isiXhosa Extension Review",
+          "reviewedAt": "2026-09-03"
+        }
+      }
+    },
+    {
+      "id": "learn-crop-1",
+      "slug": "maize-and-leafy-vegetable-spacing-stand-establishment",
+      "category": "crop_production",
+      "contentType": "article",
+      "difficulty": "beginner",
+      "illustrationKey": "soil_crops",
+      "sourceAttribution": "ARC Grain Crops & Vegetable Production Guides (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 6,
+      "tags": [
+        "maize",
+        "cabbage",
+        "spinach",
+        "plant population"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Crop Establishment: Row Spacing & Plant Population Basics",
+          "summary": "Aligning seed spacing to seasonal rainfall or drip irrigation capacity for even emergence.",
+          "body": "Over-crowding plants in low-rainfall zones causes severe moisture competition during flowering, while erratic planter depth reduces emergence uniformity. Check planter calibration and seed-to-soil moisture contact across every field.",
+          "steps": [
+            "Match dryland maize population to local seasonal rainfall (typically 28,000–45,000 plants/ha in drier areas, higher under supplementary irrigation).",
+            "Inspect seed furrow depth consistency (3–5 cm for maize depending on topsoil moisture; shallow 1–2 cm for fine vegetable seeds).",
+            "Perform a 10-day emergence count per 10-metre row sample and log surviving plants in Field Shift Crops & Stock."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Agronomy Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-irrigation-1",
+      "slug": "drip-irrigation-scheduling-and-et0-moisture-checks",
+      "category": "irrigation",
+      "contentType": "step_by_step_guide",
+      "difficulty": "intermediate",
+      "illustrationKey": "soil_crops",
+      "sourceAttribution": "Water Research Commission (WRC) Smallholder Irrigation Guidelines (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 8,
+      "tags": [
+        "drip",
+        "evapotranspiration",
+        "moisture",
+        "pumping"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Irrigation Scheduling Using Soil Moisture Feel & ET₀ Forecasts",
+          "summary": "Prevent root waterlogging and wasted electricity by checking root-zone moisture before irrigating.",
+          "body": "Fixed calendar watering wastes water and leaches nitrogen when cool overcast weather or upcoming rain reduces crop water demand. Combine Field Shift Weather ET₀ readings with a physical spade check in the root zone.",
+          "steps": [
+            "Check the 72-hour rainfall forecast in Weather Intelligence before running pumps; pause cycles if 12 mm+ rain is imminent.",
+            "Inspect 15–20 cm depth beside the drip line with a trowel or soil auger; irrigate only when topsoil begins losing moisture cohesion.",
+            "Flush drip tape ends and clean screen/disc filters weekly to prevent uneven emitter clogging."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Water & Soils Team",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-fertiliser-1",
+      "slug": "split-nitrogen-application-and-lab-calibrated-basal-feeding",
+      "category": "fertiliser_application",
+      "contentType": "article",
+      "difficulty": "intermediate",
+      "illustrationKey": "soil_crops",
+      "sourceAttribution": "FERTASA / DALRRD Nutrient Management Principles (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 7,
+      "tags": [
+        "NPK",
+        "top-dressing",
+        "fertiliser",
+        "timing"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Fertiliser Application: Basal Placement vs Split Top-Dressing",
+          "summary": "Applying the right nutrient source at planting and vegetative growth to avoid burn and leaching.",
+          "body": "Applying all nitrogen at planting increases leaching losses during heavy summer thunderstorms. Base phosphorus and potassium rates on laboratory soil reports, and split nitrogen into planting plus active vegetative top-dressing.",
+          "steps": [
+            "Place basal NPK fertiliser banded ~5 cm beside and below the seed rather than in direct contact with germinating seed.",
+            "Apply nitrogen top-dressing when foliage is dry and soil has light moisture (avoid applying immediately ahead of forecast heavy downpours >30 mm).",
+            "Record fertiliser batch, rate, and date in Crop Management to compare yield response at harvest."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Agronomy Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-pest-1",
+      "slug": "weekly-crop-scouting-and-ipm-thresholds",
+      "category": "pest_management",
+      "contentType": "illustrated_guide",
+      "difficulty": "beginner",
+      "illustrationKey": "pest_disease",
+      "videoDurationLabel": "3 min visual lesson",
+      "videoSlides": [
+        {
+          "heading": "1. Walk a W-Pattern Across Each Field Weekly",
+          "caption": "Inspect at least 20 plants across 5 spots — check leaf undersides and maize whorls early morning.",
+          "visualCue": "Healthy vs window-pane chewed maize leaf comparison.",
+          "durationSeconds": 6
+        },
+        {
+          "heading": "2. Distinguish Insect Damage from Nutrient Stress",
+          "caption": "Look for frass, feeding holes, or aphids before choosing any registered intervention.",
+          "visualCue": "Close-up of chewing caterpillar damage and beetle spots.",
+          "durationSeconds": 6
+        },
+        {
+          "heading": "3. Record Affected Plants & Consult Extension",
+          "caption": "Use Visual Analysis & Incidents to quantify affected plants and follow registered label thresholds.",
+          "visualCue": "Field inspection log and qualified extension check.",
+          "durationSeconds": 6
+        }
+      ],
+      "sourceAttribution": "ARC Integrated Pest Management (IPM) Scouting Guide (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 7,
+      "tags": [
+        "IPM",
+        "scouting",
+        "armyworm",
+        "aphids"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Weekly Field Scouting & Integrated Pest Management (IPM)",
+          "summary": "Catch early pest build-up through structured weekly scouting and protect beneficial insects.",
+          "body": "Routine weekly scouting catches pest outbreaks while populations are still small and confined to field edges. Never spray unlabelled or expired mixtures; confirm pest identity and action thresholds with a qualified crop advisor or product label.",
+          "steps": [
+            "Walk a W-shaped path through each field weekly, checking 5–10 consecutive plants at 4–5 stations.",
+            "Inspect leaf undersides, growing points (whorls), and stem bases for eggs, larvae, frass, or aphids.",
+            "Preserve natural predators (ladybirds, lacewings, parasitic wasps) by avoiding unnecessary broad-spectrum sprays.",
+            "Upload clear close-up photos in Visual Agricultural Analysis or contact your provincial extension officer before chemical selection."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Plant Health Desk",
+          "reviewedAt": "2026-09-01"
+        },
+        "zu": {
+          "title": "Ukuhlolwa Kwamasimu Masonto Onke Nokulawulwa Kwezinambuzane (IPM)",
+          "summary": "Bona izinambuzane zisencane ngokuhlola amasimu njalo ngesonto uvikele nezinambuzane ezisizayo.",
+          "body": "Ukuhlola insimu masonto onke kusiza ukubona izinkinga zisencane emaphethelweni ensimu. Ungalokothi usebenzise amakhemikhali angabhalisiwe ngaphandle kokubonisana nochwepheshe.",
+          "steps": [
+            "Hamba ngesimo sika-W ensimini masonto onke uhlola izitshalo ezingu-5 kuye kweziyi-10 endaweni ngayinye.",
+            "Bheka ngaphansi kwamaqabunga naphakathi kwesiqu ukuze ubone amaqanda noma izibungu.",
+            "Vikela izinambuzane eziwusizo ngokugwema ukufafaza ngokungadingekile.",
+            "Thatha isithombe esicacile usifake ku-Visual Analysis noma uthintane nomeluleki wezolimo."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift isiZulu Extension Review",
+          "reviewedAt": "2026-09-04"
+        }
+      }
+    },
+    {
+      "id": "learn-disease-1",
+      "slug": "recognising-fungal-leaf-spots-and-blights-early",
+      "category": "plant_disease_awareness",
+      "contentType": "illustrated_guide",
+      "difficulty": "intermediate",
+      "illustrationKey": "pest_disease",
+      "sourceAttribution": "ARC Plant Health & Diagnostic Clinic Guidance (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 6,
+      "tags": [
+        "disease",
+        "fungal",
+        "leaf spot",
+        "sanitation"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Plant Disease Awareness: Fungal Leaf Spots vs Nutrient Deficiency",
+          "summary": "How lesion borders, humidity patterns, and crop rotation help separate infectious diseases from nutritional stress.",
+          "body": "Nutrient deficiencies usually appear uniformly across whole blocks and show symmetrical yellowing, whereas fungal or bacterial infections often start in damp patches and show irregular lesions with dark or yellow halos. Laboratory confirmation is essential before major treatments.",
+          "steps": [
+            "Compare lesion distribution: patchy spread after warm humid nights points toward possible fungal/bacterial pressure.",
+            "Avoid working in wet foliage (early dew or rain) because hands, boots, and tools spread bacterial and fungal spores along rows.",
+            "Practise 2–3 year crop rotation and remove heavily infected crop debris where recommended.",
+            "Submit symptomatic samples to a diagnostic clinic when spread accelerates rather than guessing treatments."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Plant Health Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-harvest-1",
+      "slug": "harvest-timing-cooling-and-post-harvest-handling",
+      "category": "harvesting",
+      "contentType": "step_by_step_guide",
+      "difficulty": "beginner",
+      "illustrationKey": "farmland_hero",
+      "sourceAttribution": "DALRRD Post-Harvest Handling Guidelines (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 5,
+      "tags": [
+        "harvest",
+        "post-harvest",
+        "cooling",
+        "storage"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Harvesting & Reducing Post-Harvest Spoilage on Farm",
+          "summary": "Harvesting during cool morning hours, shading crates, and tracking stored vs spoiled kg.",
+          "body": "High field heat cuts leafy vegetable shelf-life dramatically. Harvesting early in the morning, using ventilated clean crates, and tracking actual harvested vs spoiled weight protects both product quality and farm profitability.",
+          "steps": [
+            "Harvest fresh vegetables in cool early morning hours and move filled crates immediately into shade.",
+            "Sanitise harvest knives and plastic crates between blocks; avoid stacking heavy produce in deep sacks that bruise bottom layers.",
+            "Weigh harvested lots and record both Stored Production and any Spoilage inside Field Shift Stock & Inventory."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Post-Harvest Team",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-livestock-1",
+      "slug": "livestock-identification-biosecurity-and-vet-escalation",
+      "category": "livestock_management",
+      "contentType": "article",
+      "difficulty": "beginner",
+      "illustrationKey": "livestock_housing",
+      "sourceAttribution": "South African Animal Identification & Biosecurity Standards (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 7,
+      "tags": [
+        "biosecurity",
+        "quarantine",
+        "herd health",
+        "livestock"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Livestock Herd Biosecurity, Quarantine & Veterinary Escalation",
+          "summary": "Isolating newly purchased stock, maintaining footbaths, and knowing when to call a state or private vet.",
+          "body": "Bringing unquarantined animals into an existing herd or flock is one of the fastest ways to introduce respiratory disease, foot-and-mouth risk, or resistant internal parasites. Strict quarantine and clean arrival records protect the whole farm.",
+          "steps": [
+            "Keep newly bought animals in a separate quarantine camp for at least 21–28 days while monitoring appetite, manure, and gait.",
+            "Maintain a disinfectant footbath and clean boot/vehicle log at poultry houses and kraal entrances.",
+            "Log all births, deaths, vaccinations, and veterinary treatments in Livestock Management; contact a qualified veterinarian immediately for sudden deaths, fever, or lameness."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Animal Health Advisory",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-feeding-1",
+      "slug": "dry-season-forage-water-and-mineral-supplementation",
+      "category": "animal_feeding",
+      "contentType": "article",
+      "difficulty": "intermediate",
+      "illustrationKey": "livestock_housing",
+      "sourceAttribution": "ARC Animal Production — Winter Veld & Feeding Guidance (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 6,
+      "tags": [
+        "feeding",
+        "veld",
+        "water",
+        "minerals"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Animal Feeding: Clean Water, Rotational Grazing & Dry-Season Licks",
+          "summary": "Balancing forage intake, water cleanliness, and winter protein/mineral supplements without feed waste.",
+          "body": "Feed intake drops sharply if drinking troughs are algae-fouled or warm. During dry South African winter months, sourveld protein levels fall below maintenance requirements, making timely winter supplementation and conserved crop stover critical.",
+          "steps": [
+            "Scrub livestock drinking troughs weekly and inspect float valves daily during summer heat.",
+            "Rest grazed veld camps periodically so desirable grasses recover root reserves and seed.",
+            "Introduce winter protein/phosphate licks or conserved hay gradually over 10–14 days to prevent digestive upset; verify urea lick safety (never let rain pool in urea troughs)."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Animal Nutrition Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-housing-1",
+      "slug": "ventilated-poultry-and-small-stock-housing-design",
+      "category": "animal_housing",
+      "contentType": "video_lesson",
+      "difficulty": "beginner",
+      "illustrationKey": "livestock_housing",
+      "videoDurationLabel": "4 min visual lesson",
+      "videoSlides": [
+        {
+          "heading": "1. East-West Roof Orientation & Ridge Ventilation",
+          "caption": "Orient houses East-West to cut midday solar heat on sidewalls and vent warm ammonia upward through ridge openings.",
+          "visualCue": "Cross-ventilation ridge roof and shaded eaves diagram.",
+          "durationSeconds": 7
+        },
+        {
+          "heading": "2. Dry Bedding & Moisture Drainage",
+          "caption": "Maintain dry 5–8 cm wood shavings or straw; wet litter around drinkers breeds coccidiosis and foot rot.",
+          "visualCue": "Dry litter layer, suspended drinkers, and raised goat slats.",
+          "durationSeconds": 7
+        },
+        {
+          "heading": "3. Biosecurity Entrance & Predator Fencing",
+          "caption": "Install lockable perimeter wire, footbath station, and wild-bird mesh to protect flocks.",
+          "visualCue": "Biosecurity gate, boot dip, and secure fence line.",
+          "durationSeconds": 7
+        }
+      ],
+      "sourceAttribution": "SAPA / DALRRD Small-Scale Housing Best Practices (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 8,
+      "tags": [
+        "poultry house",
+        "ventilation",
+        "bedding",
+        "goats"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Animal Housing: Ventilation, Dry Bedding & Biosecurity Layout",
+          "summary": "Designing practical shelters that prevent heat stress, ammonia build-up, and moisture-borne disease.",
+          "body": "Good livestock housing does not have to be expensive, but it must stay dry underfoot, block cold winter drafts at animal height, and vent warm humid air out through high eaves or ridge openings.",
+          "steps": [
+            "Site shelters on slightly elevated, well-drained ground away from stormwater runoff channels.",
+            "Provide ridge or upper-wall ventilation above animal height with adjustable side curtains for cold nights.",
+            "Keep feeders and nipple/bell drinkers at back height to stop bedding contamination and wet patches.",
+            "Include a dedicated biosecurity boot-dip and handwash point at the single controlled entrance."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Livestock Engineering Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-equipment-1",
+      "slug": "knapsack-sprayer-calibration-and-ppe-basics",
+      "category": "farm_equipment",
+      "contentType": "illustrated_guide",
+      "difficulty": "beginner",
+      "illustrationKey": "equipment_safety",
+      "sourceAttribution": "AVCASA / CropLife SA Sprayer Safety & Calibration Standards (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 7,
+      "tags": [
+        "sprayer",
+        "calibration",
+        "PPE",
+        "safety"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Knapsack Sprayer Calibration & Personal Protective Equipment (PPE)",
+          "summary": "Measure water output with clean water first and wear mandatory PPE before handling any crop-protection label.",
+          "body": "Over-dosing wastes money and burns leaves, while under-dosing causes pest resistance. Always calibrate sprayers using clean water on a measured test strip before mixing any registered product.",
+          "steps": [
+            "Check hoses, seals, straps, and nozzle tips for leaks using clean water before every season.",
+            "Calibrate output by spraying clean water over a measured 25 m × 1 m strip at steady walking pace and measuring litres used.",
+            "Wear chemical-resistant nitrile gloves, closed waterproof boots, safety goggles, and clean overalls when mixing or applying registered inputs.",
+            "Avoid spraying when wind exceeds 12–15 km/h or rain is forecast within 6 hours (check Weather Intelligence first)."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Safety & Equipment Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-machinery-1",
+      "slug": "tractor-pre-start-checks-and-pto-shield-safety",
+      "category": "machinery_guidance",
+      "contentType": "step_by_step_guide",
+      "difficulty": "intermediate",
+      "illustrationKey": "equipment_safety",
+      "sourceAttribution": "South African Occupational Health & Agricultural Machinery Safety Checklist (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 6,
+      "tags": [
+        "tractor",
+        "PTO",
+        "maintenance",
+        "safety"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Machinery Guidance: Daily Tractor Pre-Start & PTO Shield Safety",
+          "summary": "Routine fluid checks, tyre pressures, three-point hitch locks, and PTO guard verification before field work.",
+          "body": "Unshielded power take-off (PTO) shafts and missing ROPS/seatbelts are leading causes of severe farm machinery injuries. A 5-minute morning walk-around protects operators and prevents costly engine breakdowns.",
+          "steps": [
+            "Check engine oil, radiator coolant, hydraulic oil, air pre-cleaner dust bowl, and fuel water-trap before starting.",
+            "Confirm tyre pressures match field vs road transport loads and verify wheel lug nuts are tight.",
+            "Inspect that PTO master shields and implement shaft guards turn freely and remain securely chained; never step over a rotating PTO.",
+            "Never enter wet clay fields with heavy tractors where ruts and soil compaction will damage root structure."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Safety & Equipment Desk",
+          "reviewedAt": "2026-09-01"
+        }
+      }
+    },
+    {
+      "id": "learn-business-1",
+      "slug": "farm-budgeting-startup-capex-vs-operating-cashflow",
+      "category": "agricultural_business_planning",
+      "contentType": "article",
+      "difficulty": "beginner",
+      "illustrationKey": "prospective_card",
+      "sourceAttribution": "NAMC / DALRRD Smallholder Agribusiness Financial Literacy Guide (Reviewed)",
+      "verifiedOfficialReference": true,
+      "status": "published",
+      "estimatedMinutes": 8,
+      "tags": [
+        "budget",
+        "cashflow",
+        "break-even",
+        "planning"
+      ],
+      "createdByUserId": "user-admin-1",
+      "updatedByUserId": "user-admin-1",
+      "createdAt": "2026-09-01T08:00:00.000Z",
+      "updatedAt": "2026-09-01T08:00:00.000Z",
+      "translations": {
+        "en": {
+          "title": "Agricultural Business Planning: Startup Capital vs Operating Cashflow",
+          "summary": "Understanding break-even yields, hidden transport costs, and separating estimates from actual expenses.",
+          "body": "Many first-time farms spend all starting capital on equipment and fencing, leaving nothing for feed, seed, labour, or electricity before the first harvest cheque arrives. Use the Field Shift Business Planner to stress-test lower yield and lower price scenarios.",
+          "steps": [
+            "Separate one-time startup assets (fencing, housing, tools) from recurring seasonal operating costs (seed, feed, fertiliser, water, wages).",
+            "Include packaging, transport to market, and post-harvest shrinkage (typically 5–15% for fresh produce) in operating assumptions.",
+            "Calculate break-even output and stress-test a 20% drop in yield or selling price — never budget on best-case assumptions alone.",
+            "Record every real purchase in Stock & Inventory and Mixed Farming logs to compare estimates against actual cash spent."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Agribusiness Desk",
+          "reviewedAt": "2026-09-01"
+        },
+        "af": {
+          "title": "Landboubesigheidsbeplanning: Aanvangskapitaal teenoor Bedryfskoste",
+          "summary": "Verstaan gelykbreek-opbrengste, vervoerkoste en die skeiding tussen ramings en werklike uitgawes.",
+          "body": "Nuwe boerderye spandeer soms al hul kapitaal op toerusting en omheining en bly sonder bedryfskontant vir saad, voer of arbeid voor die eerste oes. Gebruik die Besigheidsbeplanner om verskeie skale en prysaannames te toets.",
+          "steps": [
+            "Skei eenmalige kapitaalbates van herhalende seisoenale bedryfskoste.",
+            "Sluit verpakking, vervoer en oesverliese in jou bedryfsramings in.",
+            "Toets ’n 20% daling in opbrengs of prys — begroot nooit net vir die beste scenario nie.",
+            "Teken elke werklike uitgawe aan om ramings met werklike koste te vergelyk."
+          ],
+          "reviewed": true,
+          "reviewedBy": "Field Shift Afrikaans Redaksie",
+          "reviewedAt": "2026-09-03"
+        }
+      }
+    }
+  ],
+  "learningProgress": [],
+  "aiInsightRecords": [
+    {
+      "id": "ai-seed-1",
+      "userId": "user-existing-1",
+      "farmId": "farm-umgeni-1",
+      "category": "analytics",
+      "title": "Maize Top-Dressing & Drainage Follow-Up",
+      "summary": "Based on Cedara soil report CED-2026-4418A (pH H2O 6.2) and active storm-damage records on Upper Maize Block, prioritise clearing contour furrow outlets before applying LAN top-dressing.",
+      "recommendations": [
+        "Complete follow-up count on hail-damaged plants in Upper Maize Block and update incident status.",
+        "Schedule nitrogen split application only when topsoil moisture is below field capacity."
+      ],
+      "languageCode": "en",
+      "poweredBy": "grounded_fallback",
+      "createdAt": "2026-11-14T14:41:23.091Z"
+    },
+    {
+      "id": "ai-seed-2",
+      "userId": "user-prospective-1",
+      "farmId": null,
+      "category": "advisory",
+      "title": "Free State 2–4 ha Horticulture Water & Frost Planning",
+      "summary": "In Thabo Mofutsanyana District, winter night frost and spring rainfall variability mean leafy brassicas and drip-irrigated spinach require verified borehole storage buffer before planting.",
+      "recommendations": [
+        "Verify borehole delivery rate (L/hr) and install a 5,000 L buffer tank.",
+        "Compare small-scale vs medium-scale scenarios in the Business Planner before purchasing inputs."
+      ],
+      "languageCode": "en",
+      "poweredBy": "grounded_fallback",
+      "createdAt": "2026-11-14T14:41:23.091Z"
+    }
+  ],
+  "savedProspectiveLocations": [
+    {
+      "id": "spl-seed-1",
+      "userId": "user-prospective-1",
+      "province": "Free State",
+      "district": "Thabo Mofutsanyana District",
+      "townOrArea": "Bethlehem Municipal Commonage",
+      "intendedHectares": 4,
+      "waterSourceNote": "Existing shared borehole line + 5,000 L tank proposed",
+      "notes": "Evaluating 5-year municipal lease plot close to fresh market buyers.",
+      "createdAt": "2026-11-14T14:41:23.091Z"
+    },
+    {
+      "id": "spl-seed-2",
+      "userId": "user-prospective-1",
+      "province": "KwaZulu-Natal",
+      "district": "uMgungundlovu District",
+      "townOrArea": "Howick Smallholder Peri-Urban Belt",
+      "intendedHectares": 2,
+      "waterSourceNote": "High summer rainfall (750–1,100 mm) + stream abstraction permit check",
+      "notes": "Benchmarking frost-free shoulder season vegetable options.",
+      "createdAt": "2026-11-14T14:41:23.091Z"
+    }
+  ],
+  "generatedReports": [
+    {
+      "id": "rep-5c8fa9e7-21b7-4933-a038-8e62a0878df1",
+      "userId": "user-org-1",
+      "roleCode": "organisation_manager",
+      "reportType": "farm_expenses",
+      "reportTitle": "Actual Recorded Farm Expenses",
+      "farmId": "all",
+      "farmLabel": "Organisation Portfolio (2 Member Farms — Identity & Financial Privacy Protected)",
+      "isAggregatedOrganisationReport": true,
+      "startDate": "",
+      "endDate": "",
+      "farmingCategory": "all",
+      "rowCount": 4,
+      "containsEstimatedValues": false,
+      "summaryHeadline": "Actual Recorded Farm Expenses · 4 record(s) · Organisation Portfolio (2 Member Farms — Identity & Financial Privacy Protected)",
+      "createdAt": "2026-11-14T14:52:53.734Z"
+    },
+    {
+      "id": "rep-596a60dd-c83e-40bd-b501-c8ea5166ca1e",
+      "userId": "user-org-1",
+      "roleCode": "organisation_manager",
+      "reportType": "farm_expenses",
+      "reportTitle": "Actual Recorded Farm Expenses",
+      "farmId": "all",
+      "farmLabel": "Organisation Portfolio (2 Member Farms — Identity & Financial Privacy Protected)",
+      "isAggregatedOrganisationReport": true,
+      "startDate": "",
+      "endDate": "",
+      "farmingCategory": "all",
+      "rowCount": 4,
+      "containsEstimatedValues": false,
+      "summaryHeadline": "Actual Recorded Farm Expenses · 4 record(s) · Organisation Portfolio (2 Member Farms — Identity & Financial Privacy Protected)",
+      "createdAt": "2026-11-14T14:52:42.889Z"
+    },
+    {
+      "id": "rep-e6fb218e-7f50-499e-8655-d2f114ff9ca9",
+      "userId": "user-org-1",
+      "roleCode": "organisation_manager",
+      "reportType": "farm_profiles",
+      "reportTitle": "Farm Profiles & Land Register",
+      "farmId": "all",
+      "farmLabel": "Organisation Portfolio (2 Member Farms — PII Protected)",
+      "isAggregatedOrganisationReport": true,
+      "startDate": "",
+      "endDate": "",
+      "farmingCategory": "all",
+      "rowCount": 2,
+      "containsEstimatedValues": false,
+      "summaryHeadline": "Farm Profiles & Land Register · 2 record(s) · Organisation Portfolio (2 Member Farms — PII Protected)",
+      "createdAt": "2026-11-14T14:41:32.285Z"
+    },
+    {
+      "id": "rep-0d69001c-f397-478d-9a48-11fff9c0ce73",
+      "userId": "user-existing-1",
+      "roleCode": "existing_farmer",
+      "reportType": "stock_valuation",
+      "reportTitle": "Estimated Stock Valuation",
+      "farmId": "all",
+      "farmLabel": "All Accessible Farms (2)",
+      "isAggregatedOrganisationReport": false,
+      "startDate": "",
+      "endDate": "",
+      "farmingCategory": "all",
+      "rowCount": 7,
+      "containsEstimatedValues": true,
+      "summaryHeadline": "Estimated Stock Valuation · 7 record(s) · All Accessible Farms (2)",
+      "createdAt": "2026-11-14T14:41:32.213Z"
+    }
+  ],
+  "translationOverrides": [],
+  "systemConfig": {
+    "application": {
+      "platformName": "Field Shift South Africa",
+      "defaultLanguageCode": "en",
+      "allowSelfRegistration": true,
+      "maintenanceMode": false,
+      "maxMediaUploadMb": 12,
+      "sessionTimeoutHours": 168
+    },
+    "notifications": {
+      "inAppAlertsEnabled": true,
+      "emailDigestEnabled": false,
+      "rainfallAlertThresholdMm": 35,
+      "heatAlertThresholdC": 35,
+      "incidentEscalationNotify": true
+    },
+    "agriculturalReference": {
+      "supportedCategories": [
+        "Field Crops",
+        "Horticulture & Vegetables",
+        "Orchards & Subtropical",
+        "Livestock & Grazing",
+        "Poultry & Small Stock",
+        "Mixed Farming"
+      ],
+      "defaultExtensionDeskEmail": "extension@fieldshift.co.za",
+      "soilLabGuidanceNote": "Use accredited South African laboratories (e.g. ARC-SCW, Cedara, Elsenburg) with 0–20 cm composite topsoil cores.",
+      "valuationDisclaimerText": "Estimated stock values and business plans use user-entered prices or South African reference assumptions and do not guarantee market returns.",
+      "diagnosticSafetyNotice": "Visual AI and weather summaries provide decision support only and never replace certified veterinary or agronomic inspection."
+    },
+    "ai": {
+      "aiEnabled": true,
+      "primaryModel": "gemini-4-hydrogen",
+      "fallbackModel": "gemini-3.1-flash-lite",
+      "visualAnalysisEnabled": true,
+      "weatherAiSummaryEnabled": true,
+      "advisorySafetyDisclaimer": "AI insights are grounded in your farm records for guidance only. Always verify chemical labels and consult a qualified veterinarian or agronomist for serious issues."
+    },
+    "updatedByUserId": "user-admin-1",
+    "updatedAt": "2026-11-14T14:41:23.091Z"
+  },
+  "systemAnnouncements": [
+    {
+      "id": "ann-seed-1",
+      "title": "Summer Rainy Season Field & Drainage Readiness",
+      "message": "Record farm rain-gauge readings after heavy storms in Weather Feedback and inspect low-lying contour drains to minimise waterlogging.",
+      "targetRole": "all",
+      "severity": "advisory",
+      "isActive": true,
+      "createdByUserId": "user-admin-1",
+      "createdAt": "2026-11-14T14:41:23.091Z",
+      "expiresAt": null
+    }
+  ],
+  "expertProfiles": [
+    {
+      "userId": "user-expert-1",
+      "specialisation": "agronomist",
+      "secondarySpecialisations": [
+        "soil_specialist"
+      ],
+      "qualifications": "Ph.D. Agronomy & Soil Fertility (Stellenbosch University)",
+      "professionalBodyNumber": "SACNASP Pr.Sci.Nat. 400218/08",
+      "yearsExperience": 18,
+      "provincesServed": [
+        "Western Cape",
+        "KwaZulu-Natal",
+        "Free State"
+      ],
+      "languagesSpoken": [
+        "af",
+        "en",
+        "zu"
+      ],
+      "bio": "Senior soil fertility, contour drainage, and dryland grain agronomist advising smallholder and commercial producers across South Africa.",
+      "availabilityStatus": "available",
+      "updatedAt": "2026-11-14T14:51:49.836Z"
+    }
+  ],
+  "organisations": [
+    {
+      "id": "org-lowveld-1",
+      "name": "Lowveld & Midlands Growers Cooperative",
+      "organisationType": "cooperative",
+      "registrationNumber": "COOP-2019/044120/24",
+      "province": "Mpumalanga",
+      "district": "Ehlanzeni District",
+      "primaryFocus": "Horticulture, Subtropical Citrus & Mixed Smallholder Support",
+      "contactEmail": "operations@lowveldglowers.co.za",
+      "contactPhone": "+27 13 752 4410",
+      "description": "Agricultural cooperative coordinating extension intelligence, bulk input planning, and regional market readiness while safeguarding member farmer privacy.",
+      "ownerUserId": "user-org-1",
+      "createdAt": "2026-11-14T14:51:49.836Z",
+      "updatedAt": "2026-11-14T14:51:49.836Z"
+    }
+  ],
+  "organisationMemberships": [
+    {
+      "id": "orgmem-1",
+      "organisationId": "org-lowveld-1",
+      "userId": "user-org-1",
+      "orgRole": "owner",
+      "status": "active",
+      "joinedAt": "2026-11-14T14:51:49.836Z"
+    }
+  ],
+  "farmAccessGrants": [
+    {
+      "id": "grant-exp-umgeni",
+      "farmId": "farm-umgeni-1",
+      "farmerUserId": "user-existing-1",
+      "granteeType": "expert",
+      "granteeUserId": "user-expert-1",
+      "organisationId": null,
+      "granteeLabel": "Dr. Pieter van der Merwe (Agronomist)",
+      "scopes": {
+        "overview": true,
+        "crops": true,
+        "soil": true,
+        "livestock": true,
+        "incidents": true,
+        "aiInsights": true,
+        "weather": true,
+        "financialSummary": false
+      },
+      "authorisedBasis": "Farmer explicit advisory grant",
+      "status": "active",
+      "grantedAt": "2026-11-14T14:52:53.692Z",
+      "revokedAt": null
+    },
+    {
+      "id": "grant-exp-mkhambathini",
+      "farmId": "farm-mkhambathini-2",
+      "farmerUserId": "user-existing-1",
+      "granteeType": "expert",
+      "granteeUserId": "user-expert-1",
+      "organisationId": null,
+      "granteeLabel": "Dr. Pieter van der Merwe (Agronomist / Soil Specialist)",
+      "scopes": {
+        "overview": true,
+        "crops": true,
+        "soil": true,
+        "livestock": true,
+        "incidents": true,
+        "aiInsights": true,
+        "weather": true,
+        "financialSummary": false
+      },
+      "authorisedBasis": "Farmer explicit advisory grant",
+      "status": "active",
+      "grantedAt": "2026-11-14T14:51:49.836Z",
+      "revokedAt": null
+    },
+    {
+      "id": "grant-org-umgeni",
+      "farmId": "farm-umgeni-1",
+      "farmerUserId": "user-existing-1",
+      "granteeType": "organisation",
+      "granteeUserId": "user-org-1",
+      "organisationId": "org-lowveld-1",
+      "granteeLabel": "Lowveld & Midlands Growers Cooperative",
+      "scopes": {
+        "overview": true,
+        "crops": true,
+        "soil": true,
+        "livestock": true,
+        "incidents": true,
+        "aiInsights": false,
+        "weather": true,
+        "financialSummary": false
+      },
+      "authorisedBasis": "Cooperative member oversight consent (non-financial)",
+      "status": "active",
+      "grantedAt": "2026-11-14T14:52:53.755Z",
+      "revokedAt": null
+    },
+    {
+      "id": "grant-org-mkhambathini",
+      "farmId": "farm-mkhambathini-2",
+      "farmerUserId": "user-existing-1",
+      "granteeType": "organisation",
+      "granteeUserId": "user-org-1",
+      "organisationId": "org-lowveld-1",
+      "granteeLabel": "Lowveld & Midlands Growers Cooperative",
+      "scopes": {
+        "overview": true,
+        "crops": true,
+        "soil": true,
+        "livestock": true,
+        "incidents": true,
+        "aiInsights": false,
+        "weather": true,
+        "financialSummary": false
+      },
+      "authorisedBasis": "Cooperative member oversight consent (non-financial)",
+      "status": "active",
+      "grantedAt": "2026-11-14T14:51:49.836Z",
+      "revokedAt": null
+    }
+  ],
+  "expertFeedbacks": [
+    {
+      "id": "ef-b8f67ff6-408b-4746-bc44-7e8d362ebe65",
+      "expertUserId": "user-expert-1",
+      "expertName": "Dr. Pieter van der Merwe",
+      "expertSpecialisation": "agronomist",
+      "farmId": "farm-umgeni-1",
+      "incidentId": null,
+      "cropId": null,
+      "livestockGroupId": null,
+      "soilReportId": null,
+      "aiInsightId": null,
+      "concernCategory": "crop_concern",
+      "subject": "Smoke Check Agronomic Note",
+      "assessment": "Leaf nitrogen adequate",
+      "recommendations": [
+        "Maintain top-dressing plan and inspect irrigation lines"
+      ],
+      "status": "completed",
+      "farmerAcknowledged": true,
+      "createdAt": "2026-11-14T14:52:53.709Z",
+      "updatedAt": "2026-11-14T14:52:53.721Z"
+    },
+    {
+      "id": "ef-28ed8191-7595-481e-8fbc-0d11e8cbc335",
+      "expertUserId": "user-expert-1",
+      "expertName": "Dr. Pieter van der Merwe",
+      "expertSpecialisation": "agronomist",
+      "farmId": "farm-umgeni-1",
+      "incidentId": null,
+      "cropId": null,
+      "livestockGroupId": null,
+      "soilReportId": null,
+      "aiInsightId": null,
+      "concernCategory": "crop_concern",
+      "subject": "Smoke Check Agronomic Note",
+      "assessment": "Leaf nitrogen adequate",
+      "recommendations": [
+        "Maintain top-dressing plan and inspect irrigation lines"
+      ],
+      "status": "completed",
+      "farmerAcknowledged": true,
+      "createdAt": "2026-11-14T14:52:42.861Z",
+      "updatedAt": "2026-11-14T14:52:42.873Z"
+    },
+    {
+      "id": "ef-a663f0d9-8270-4de7-9c7a-b2dc35ca64f2",
+      "expertUserId": "user-expert-1",
+      "expertName": "Dr. Pieter van der Merwe",
+      "expertSpecialisation": "agronomist",
+      "farmId": "farm-umgeni-1",
+      "incidentId": null,
+      "cropId": null,
+      "livestockGroupId": null,
+      "soilReportId": null,
+      "aiInsightId": null,
+      "concernCategory": "crop_concern",
+      "subject": "Smoke Check Agronomic Note",
+      "assessment": "Leaf nitrogen adequate",
+      "recommendations": [
+        "Maintain top-dressing plan and inspect irrigation lines"
+      ],
+      "status": "completed",
+      "farmerAcknowledged": true,
+      "createdAt": "2026-11-14T14:52:27.326Z",
+      "updatedAt": "2026-11-14T14:52:27.342Z"
+    },
+    {
+      "id": "ef-seed-1",
+      "expertUserId": "user-expert-1",
+      "expertName": "Dr. Pieter van der Merwe",
+      "expertSpecialisation": "agronomist",
+      "farmId": "farm-umgeni-1",
+      "incidentId": null,
+      "cropId": "crop-maize-1",
+      "livestockGroupId": null,
+      "soilReportId": "soilrep-umgeni-1",
+      "aiInsightId": "ai-seed-1",
+      "concernCategory": "soil_info",
+      "subject": "Cedara Soil Report CED-2026-4418A & AI Top-Dressing Validation",
+      "assessment": "Soil pH (H2O 6.2, KCl 5.4) and phosphorus (26 mg/kg) are well suited for yellow maize after your August dolomitic lime application. Confirmed the AI insight warning to clear contour outlets before applying LAN top-dressing.",
+      "recommendations": [
+        "Delay LAN 28 top-dressing until standing surface water drains after heavy convective storms.",
+        "Recheck topsoil pH in 12 months to verify lime reaction across the 0–20 cm horizon."
+      ],
+      "status": "completed",
+      "farmerAcknowledged": true,
+      "createdAt": "2026-11-14T14:51:49.836Z",
+      "updatedAt": "2026-11-14T14:51:49.836Z"
+    },
+    {
+      "id": "ef-seed-2",
+      "expertUserId": "user-expert-1",
+      "expertName": "Dr. Pieter van der Merwe",
+      "expertSpecialisation": "agronomist",
+      "farmId": "farm-umgeni-1",
+      "incidentId": "inc-umgeni-pest-1",
+      "cropId": "crop-maize-1",
+      "livestockGroupId": null,
+      "soilReportId": null,
+      "aiInsightId": null,
+      "concernCategory": "incident_assistance",
+      "subject": "Follow-Up Guidance on Stalk Borer North Headland Edge",
+      "assessment": "Pin-hole feeding on 14,000 border stands represents ~3.3% incidence. Good decision clearing border grass hosts; monitor interior rows before escalating treatment.",
+      "recommendations": [
+        "Inspect 20 consecutive maize whorls in 5 interior transects over the next 7 days.",
+        "If threshold exceeds 10% fresh whorl damage, request registered target-specific control advice from your local registered pest control advisor."
+      ],
+      "status": "in_progress",
+      "farmerAcknowledged": false,
+      "createdAt": "2026-11-14T14:51:49.836Z",
+      "updatedAt": "2026-11-14T14:51:49.836Z"
+    }
+  ],
+  "notificationPreferences": [
+    {
+      "userId": "user-expert-1",
+      "channels": {
+        "inApp": true,
+        "email": false,
+        "sms": false,
+        "push": false
+      },
+      "categories": {
+        "weather_warning": true,
+        "agricultural_incident": true,
+        "upcoming_activity": true,
+        "crop_reminder": true,
+        "livestock_reminder": true,
+        "stock_change": true,
+        "ai_recommendation": true,
+        "expert_feedback": true,
+        "organisation_communication": true,
+        "account_security": true
+      },
+      "quietHoursStart": "21:00",
+      "quietHoursEnd": "05:30",
+      "updatedAt": "2026-11-14T14:52:15.230Z"
+    },
+    {
+      "userId": "user-existing-1",
+      "channels": {
+        "inApp": true,
+        "email": false,
+        "sms": false,
+        "push": false
+      },
+      "categories": {
+        "weather_warning": true,
+        "agricultural_incident": true,
+        "upcoming_activity": true,
+        "crop_reminder": true,
+        "livestock_reminder": true,
+        "stock_change": true,
+        "ai_recommendation": true,
+        "expert_feedback": true,
+        "organisation_communication": true,
+        "account_security": true
+      },
+      "quietHoursStart": "21:00",
+      "quietHoursEnd": "05:30",
+      "updatedAt": "2026-11-14T14:53:02.458Z"
+    },
+    {
+      "userId": "user-org-1",
+      "channels": {
+        "inApp": true,
+        "email": false,
+        "sms": false,
+        "push": false
+      },
+      "categories": {
+        "weather_warning": true,
+        "agricultural_incident": true,
+        "upcoming_activity": true,
+        "crop_reminder": true,
+        "livestock_reminder": true,
+        "stock_change": true,
+        "ai_recommendation": true,
+        "expert_feedback": true,
+        "organisation_communication": true,
+        "account_security": true
+      },
+      "quietHoursStart": "21:00",
+      "quietHoursEnd": "05:30",
+      "updatedAt": "2026-11-14T14:52:53.757Z"
+    }
+  ],
+  "notificationDeliveries": [
+    {
+      "id": "ndel-9f6cd390-75a5-40a0-bf61-555cd9cb8bf8",
+      "notificationId": "notif-564e12e8-7c1f-4d18-8889-95336050b2eb",
+      "userId": "user-org-1",
+      "category": "organisation_communication",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "li***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (ss).",
+      "createdAt": "2026-11-14T14:53:02.478Z"
+    },
+    {
+      "id": "ndel-769238bd-bb5d-4524-953b-c4d85e32c649",
+      "notificationId": "notif-0515cd1a-d8e7-4ea1-b9c2-92eaed78fc23",
+      "userId": "user-existing-1",
+      "category": "organisation_communication",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (zu).",
+      "createdAt": "2026-11-14T14:53:02.475Z"
+    },
+    {
+      "id": "ndel-2089bd96-2a3e-4ddd-91ff-d854187ef37c",
+      "notificationId": "notif-62d119b3-4135-4e03-9778-d6413c6c7617",
+      "userId": "user-existing-1",
+      "category": "account_security",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "Mandatory account/security notification delivered to in-app inbox.",
+      "createdAt": "2026-11-14T14:53:02.450Z"
+    },
+    {
+      "id": "ndel-94965d96-0589-49ab-bc0b-7719d68419b3",
+      "notificationId": "notif-62d119b3-4135-4e03-9778-d6413c6c7617",
+      "userId": "user-existing-1",
+      "category": "account_security",
+      "channel": "email",
+      "status": "skipped_provider_unconfigured",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "User email opted-in; awaiting server SMTP/Resend configuration.",
+      "createdAt": "2026-11-14T14:53:02.450Z"
+    },
+    {
+      "id": "ndel-426534f6-2c77-4890-a442-30f5ad206b22",
+      "notificationId": "suppressed",
+      "userId": "user-existing-1",
+      "category": "stock_change",
+      "channel": "in_app",
+      "status": "skipped_user_disabled",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "Notification suppressed because user disabled 'stock_change' notifications.",
+      "createdAt": "2026-11-14T14:53:02.441Z"
+    },
+    {
+      "id": "ndel-11b8cfcf-fc72-4d7d-b02a-d6822965b963",
+      "notificationId": "notif-78e24674-71ae-4bde-bcde-a341f1b83bb9",
+      "userId": "user-org-1",
+      "category": "organisation_communication",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "li***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (ss).",
+      "createdAt": "2026-11-14T14:52:53.760Z"
+    },
+    {
+      "id": "ndel-b6115b2e-aacf-40c0-b090-e119d28d37ae",
+      "notificationId": "notif-ccd50992-931e-4a01-a5a0-369ad366c9e8",
+      "userId": "user-existing-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (zu).",
+      "createdAt": "2026-11-14T14:52:53.714Z"
+    },
+    {
+      "id": "ndel-15c54afc-e368-4ce1-b6e7-ba75bb46a690",
+      "notificationId": "notif-576042c1-27a3-4c60-90ab-91cebb356aac",
+      "userId": "user-expert-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "pi***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (af).",
+      "createdAt": "2026-11-14T14:52:53.695Z"
+    },
+    {
+      "id": "ndel-5f2d5bf7-3e61-4467-9f6e-62fa02e9e66b",
+      "notificationId": "notif-26a8c887-d528-45f5-8756-e5edfa58af67",
+      "userId": "user-existing-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (zu).",
+      "createdAt": "2026-11-14T14:52:42.866Z"
+    },
+    {
+      "id": "ndel-fc6d48d5-575c-423a-b8cf-fc35d5a143a2",
+      "notificationId": "notif-27d30c4b-ee61-4952-8a44-ffb0b3e19e14",
+      "userId": "user-expert-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "pi***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (af).",
+      "createdAt": "2026-11-14T14:52:42.847Z"
+    },
+    {
+      "id": "ndel-43980a71-3b10-4f43-8c46-fa64ab6cb524",
+      "notificationId": "notif-73caf10c-4c65-4933-95d9-252063f8d1c6",
+      "userId": "user-existing-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "no***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (zu).",
+      "createdAt": "2026-11-14T14:52:27.336Z"
+    },
+    {
+      "id": "ndel-8f8145bf-9394-433e-b0dd-e04b53553749",
+      "notificationId": "notif-74466602-5873-486f-b98d-3703f2747a13",
+      "userId": "user-expert-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "pi***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (af).",
+      "createdAt": "2026-11-14T14:52:27.313Z"
+    },
+    {
+      "id": "ndel-ec8b7dd3-46e8-4ddb-8458-924ff214c253",
+      "notificationId": "notif-4f0f1a50-14d1-45e7-b2de-e5f3c08f6ed6",
+      "userId": "user-expert-1",
+      "category": "expert_feedback",
+      "channel": "in_app",
+      "status": "delivered_in_app",
+      "targetMasked": "pi***@fieldshift.co.za",
+      "providerNote": "Delivered to in-app inbox (af).",
+      "createdAt": "2026-11-14T14:52:15.232Z"
     }
   ]
 }

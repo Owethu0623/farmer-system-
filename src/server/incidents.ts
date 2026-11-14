@@ -49,6 +49,22 @@ export function buildIncidentDashboard(accessibleFarmIds: string[], farmFilter?:
     incidents.reduce((s, i) => s + i.affectedAreaHectares, 0).toFixed(2)
   );
 
+  const incidentIds = new Set(incidents.map((i) => i.id));
+  const targetFarmSet = new Set(targetIds);
+  const auditHistory = store.db.auditLogs
+    .filter((log) => {
+      const d = log.details || {};
+      const logFarmId = typeof d.farmId === 'string' ? d.farmId : null;
+      if (log.entityType === 'FarmIncident') {
+        return (log.entityId && incidentIds.has(log.entityId)) || (logFarmId && targetFarmSet.has(logFarmId));
+      }
+      if (log.action === 'CROP_STOCK_MOVEMENT' && logFarmId && targetFarmSet.has(logFarmId)) {
+        return true;
+      }
+      return false;
+    })
+    .slice(0, 50);
+
   return {
     summary: {
       totalIncidents: incidents.length,
@@ -61,6 +77,7 @@ export function buildIncidentDashboard(accessibleFarmIds: string[], farmFilter?:
       totalAffectedHectares,
     },
     incidents,
+    auditHistory,
   };
 }
 
@@ -282,7 +299,7 @@ export function addIncidentFollowUp(params: {
     'INCIDENT_FOLLOW_UP_ADDED',
     'FarmIncident',
     params.incident.id,
-    { statusAfter: params.statusAfter, actionTaken: followUp.actionTaken },
+    { farmId: params.incident.farmId, statusAfter: params.statusAfter, actionTaken: followUp.actionTaken },
     '127.0.0.1'
   );
 

@@ -4,11 +4,57 @@ import { ROLE_PERMISSION_MAP, hashToken, store } from './store.ts';
 import { RoleCode, SanitizedUser, User } from './types.ts';
 
 const COOKIE_NAME = 'fieldshift_session';
-const SESSION_TTL_MS = 1000 * 60 * 60 * 24 * 7; // 7 days
+const DEFAULT_SESSION_TTL_HOURS = 168; // 7 days
+
+export function getSessionTtlMs(): number {
+  const configuredHours = Number(store.db.systemConfig?.application?.sessionTimeoutHours);
+  const clampedHours = Number.isFinite(configuredHours)
+    ? Math.max(1, Math.min(720, configuredHours))
+    : DEFAULT_SESSION_TTL_HOURS;
+  return clampedHours * 60 * 60 * 1000;
+}
 
 export interface AuthRequest extends Request {
   authUser?: SanitizedUser;
   sessionToken?: string;
+}
+
+export function securityHeadersMiddleware(req: Request, res: Response, next: NextFunction): void {
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('X-Frame-Options', 'SAMEORIGIN');
+  res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin');
+  res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=(self)');
+  if (req.path.startsWith('/api/')) {
+    res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, private');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
+}
+
+export function createAuthRateLimiter(maxAttempts = 15, windowMs = 60_000) {
+  const buckets = new Map<string, number[]>();
+  return (req: Request, res: Response, next: NextFunction): void => {
+    const ip = req.ip || req.socket?.remoteAddress || 'unknown';
+    const key = `${ip}:${req.path}`;
+    const now = Date.now();
+    const recent = (buckets.get(key) || []).filter((ts) => now - ts < windowMs);
+    if (recent.length >= maxAttempts) {
+      res.status(429).json({
+        error: 'Too many authentication attempts. Please wait a minute before trying again.',
+      });
+      return;
+    }
+    recent.push(now);
+    buckets.set(key, recent);
+    if (buckets.size > 5000) {
+      for (const [k, v] of buckets.entries()) {
+        if (v.every((ts) => now - ts >= windowMs)) {
+          buckets.delete(k);
+        }
+      }
+    }
+    next();
+  };
 }
 
 export function parseCookies(cookieHeader: string | undefined): Record<string, string> {
@@ -29,11 +75,11 @@ export function sanitizeUser(user: User): SanitizedUser {
   const profile = store.db.userProfiles.find((p) => p.userId === user.id) || null;
   const roleCode = (role?.code || 'prospective_farmer') as RoleCode;
 
-  const customPerms = store.db.userPermissions
-    .filter((p) => p.userId === user.id && p.isAllowed)
-    .map((p) => p.permissionKey);
-  const rolePerms = ROLE_PERMISSION_MAP[roleCode] || [];
-  const permissions = Array.from(new Set([...rolePerms, ...customPerms]));
+  const userPerms = store.db.userPermissions.filter((p) => p.userId === user.id);
+  const revokedKeys = new Set(userPerms.filter((p) => !p.isAllowed).map((p) => p.permissionKey));
+  const customAllowed = userPerms.filter((p) => p.isAllowed).map((p) => p.permissionKey);
+  const rolePerms = (ROLE_PERMISSION_MAP[roleCode] || []).filter((k) => !revokedKeys.has(k));
+  const permissions = Array.from(new Set([...rolePerms, ...customAllowed]));
 
   return {
     id: user.id,
@@ -54,7 +100,14 @@ export function sanitizeUser(user: User): SanitizedUser {
 export function createSessionForUser(userId: string): { rawToken: string; expiresAt: string } {
   const rawToken = crypto.randomBytes(32).toString('hex');
   const tokenHash = hashToken(rawToken);
-  const expiresAt = new Date(Date.now() + SESSION_TTL_MS).toISOString();
+  const ttlMs = getSessionTtlMs();
+  const expiresAt = new Date(Date.now() + ttlMs).toISOString();
+
+  // Opportunistically purge stale expired sessions on new session creation
+  const nowMs = Date.now();
+  store.db.sessions = store.db.sessions.filter(
+    (s) => new Date(s.expiresAt).getTime() > nowMs
+  );
 
   store.db.sessions.push({
     id: `sess-${crypto.randomUUID()}`,
@@ -73,7 +126,7 @@ export function setSessionCookie(res: Response, rawToken: string): void {
     httpOnly: true,
     sameSite: 'lax',
     secure: process.env.NODE_ENV === 'production',
-    maxAge: SESSION_TTL_MS,
+    maxAge: getSessionTtlMs(),
     path: '/',
   });
 }

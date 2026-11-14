@@ -2,21 +2,37 @@ import crypto from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import {
+  AiInsightRecord,
   AuditLog,
+  BusinessPlanScenario,
   CropActivity,
   CropRecord,
   CropStockMovement,
   DatabaseSchema,
+  ExpertFeedbackRecord,
+  ExpertProfile,
+  FarmAccessGrant,
   FarmIncident,
+  FarmerWeatherObservation,
   LanguageCode,
   LivestockGroup,
   LivestockRecord,
   MixedFarmingEntry,
+  Notification,
+  NotificationDeliveryAttempt,
+  NotificationPreference,
+  OrganisationMembership,
+  OrganisationProfile,
   RoleCode,
+  SavedProspectiveLocation,
   SoilReport,
   StockPriceSetting,
+  SystemAnnouncement,
+  SystemConfig,
   VisualAnalysisRecord,
+  WeatherForecastRecord,
 } from './types.ts';
+import { createSeedLearningMaterials } from './learningCentre.ts';
 import {
   calculatePolygonAreaHectares,
   calculatePolygonPerimeterMeters,
@@ -51,7 +67,10 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, string[]> = {
     'profile:update',
     'opportunities:discover',
     'suitability:explore',
+    'business:plan',
     'learning:access',
+    'reports:generate',
+    'reports:export',
     'ai:advise',
   ],
   existing_farmer: [
@@ -65,6 +84,10 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, string[]> = {
     'crops:manage_own',
     'livestock:manage_own',
     'mixed:manage_own',
+    'business:plan',
+    'learning:access',
+    'reports:generate',
+    'reports:export',
     'ai:advise',
   ],
   agricultural_expert: [
@@ -73,6 +96,11 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, string[]> = {
     'farms:read_regional',
     'fields:review',
     'advisory:publish',
+    'business:plan',
+    'learning:access',
+    'learning:manage',
+    'reports:generate',
+    'reports:export',
     'ai:advise',
   ],
   organisation_manager: [
@@ -81,23 +109,167 @@ export const ROLE_PERMISSION_MAP: Record<RoleCode, string[]> = {
     'farms:read_portfolio',
     'analytics:view_portfolio',
     'notifications:broadcast',
+    'business:plan',
+    'learning:access',
+    'reports:generate',
+    'reports:export',
+    'reports:organisation_aggregate',
     'ai:advise',
   ],
   system_administrator: [
     'profile:read',
     'profile:update',
+    'admin:portal_access',
     'admin:users_read',
     'admin:users_manage',
     'admin:roles_assign',
+    'admin:permissions_manage',
     'admin:stats_view',
     'admin:audit_read',
-    'farms:read_all',
-    'crops:manage_own',
-    'livestock:manage_own',
-    'mixed:manage_own',
+    'admin:oversight_aggregated',
+    'admin:languages_manage',
+    'admin:config_manage',
+    'business:plan',
+    'learning:access',
+    'learning:manage',
+    'reports:generate',
+    'reports:export',
     'ai:advise',
   ],
 };
+
+export function createDefaultSystemConfig(): SystemConfig {
+  const now = new Date().toISOString();
+  return {
+    application: {
+      platformName: 'Field Shift South Africa',
+      defaultLanguageCode: 'en',
+      allowSelfRegistration: true,
+      maintenanceMode: false,
+      maxMediaUploadMb: 12,
+      sessionTimeoutHours: 168,
+    },
+    notifications: {
+      inAppAlertsEnabled: true,
+      emailDigestEnabled: false,
+      rainfallAlertThresholdMm: 35,
+      heatAlertThresholdC: 35,
+      incidentEscalationNotify: true,
+    },
+    agriculturalReference: {
+      supportedCategories: [
+        'Field Crops',
+        'Horticulture & Vegetables',
+        'Orchards & Subtropical',
+        'Livestock & Grazing',
+        'Poultry & Small Stock',
+        'Mixed Farming',
+      ],
+      defaultExtensionDeskEmail: 'extension@fieldshift.co.za',
+      soilLabGuidanceNote:
+        'Use accredited South African laboratories (e.g. ARC-SCW, Cedara, Elsenburg) with 0–20 cm composite topsoil cores.',
+      valuationDisclaimerText:
+        'Estimated stock values and business plans use user-entered prices or South African reference assumptions and do not guarantee market returns.',
+      diagnosticSafetyNotice:
+        'Visual AI and weather summaries provide decision support only and never replace certified veterinary or agronomic inspection.',
+    },
+    ai: {
+      aiEnabled: true,
+      primaryModel: 'gemini-4-hydrogen',
+      fallbackModel: 'gemini-3.1-flash-lite',
+      visualAnalysisEnabled: true,
+      weatherAiSummaryEnabled: true,
+      advisorySafetyDisclaimer:
+        'AI insights are grounded in your farm records for guidance only. Always verify chemical labels and consult a qualified veterinarian or agronomist for serious issues.',
+    },
+    updatedByUserId: 'user-admin-1',
+    updatedAt: now,
+  };
+}
+
+function createSeedSystemAnnouncements(): SystemAnnouncement[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'ann-seed-1',
+      title: 'Summer Rainy Season Field & Drainage Readiness',
+      message:
+        'Record farm rain-gauge readings after heavy storms in Weather Feedback and inspect low-lying contour drains to minimise waterlogging.',
+      targetRole: 'all',
+      severity: 'advisory',
+      isActive: true,
+      createdByUserId: 'user-admin-1',
+      createdAt: now,
+      expiresAt: null,
+    },
+  ];
+}
+
+function createSeedAiInsights(): AiInsightRecord[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'ai-seed-1',
+      userId: 'user-existing-1',
+      farmId: 'farm-umgeni-1',
+      category: 'analytics',
+      title: 'Maize Top-Dressing & Drainage Follow-Up',
+      summary:
+        'Based on Cedara soil report CED-2026-4418A (pH H2O 6.2) and active storm-damage records on Upper Maize Block, prioritise clearing contour furrow outlets before applying LAN top-dressing.',
+      recommendations: [
+        'Complete follow-up count on hail-damaged plants in Upper Maize Block and update incident status.',
+        'Schedule nitrogen split application only when topsoil moisture is below field capacity.',
+      ],
+      languageCode: 'en',
+      poweredBy: 'grounded_fallback',
+      createdAt: now,
+    },
+    {
+      id: 'ai-seed-2',
+      userId: 'user-prospective-1',
+      farmId: null,
+      category: 'advisory',
+      title: 'Free State 2–4 ha Horticulture Water & Frost Planning',
+      summary:
+        'In Thabo Mofutsanyana District, winter night frost and spring rainfall variability mean leafy brassicas and drip-irrigated spinach require verified borehole storage buffer before planting.',
+      recommendations: [
+        'Verify borehole delivery rate (L/hr) and install a 5,000 L buffer tank.',
+        'Compare small-scale vs medium-scale scenarios in the Business Planner before purchasing inputs.',
+      ],
+      languageCode: 'en',
+      poweredBy: 'grounded_fallback',
+      createdAt: now,
+    },
+  ];
+}
+
+function createSeedSavedLocations(): SavedProspectiveLocation[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'spl-seed-1',
+      userId: 'user-prospective-1',
+      province: 'Free State',
+      district: 'Thabo Mofutsanyana District',
+      townOrArea: 'Bethlehem Municipal Commonage',
+      intendedHectares: 4,
+      waterSourceNote: 'Existing shared borehole line + 5,000 L tank proposed',
+      notes: 'Evaluating 5-year municipal lease plot close to fresh market buyers.',
+      createdAt: now,
+    },
+    {
+      id: 'spl-seed-2',
+      userId: 'user-prospective-1',
+      province: 'KwaZulu-Natal',
+      district: 'uMgungundlovu District',
+      townOrArea: 'Howick Smallholder Peri-Urban Belt',
+      intendedHectares: 2,
+      waterSourceNote: 'High summer rainfall (750–1,100 mm) + stream abstraction permit check',
+      notes: 'Benchmarking frost-free shoulder season vegetable options.',
+      createdAt: now,
+    },
+  ];
+}
 
 function createSeedSoilReports(): SoilReport[] {
   const now = new Date().toISOString();
@@ -1214,25 +1386,69 @@ function createInitialSeed(): DatabaseSchema {
     },
   ];
 
-  const notifications = [
+  const notifications: Notification[] = [
     {
       id: 'notif-1',
       userId: 'user-existing-1',
-      title: 'Soil Moisture Advisory — uMgungundlovu',
-      message: 'Scattered afternoon thunderstorms forecast over Howick this week. Pause sprinkler cycles on North Contour Maize Block to save pumping costs.',
-      category: 'weather' as const,
+      title: 'Isixwayiso Sesimo Sezulu — uMgungundlovu',
+      message:
+        'Izulu elinamandla ntambama lilindeleke eHowick kuleli sonto. Misa ukuchelela eNorth Contour Maize Block ukonga amanzi nogesi.',
+      category: 'weather_warning',
+      priority: 'high',
+      isMandatorySecurity: false,
+      languageCode: 'zu',
+      relatedEntityType: 'Farm',
+      relatedEntityId: 'farm-umgeni-1',
       isRead: false,
-      actionUrl: '/farms',
+      actionUrl: 'weather',
+      createdAt: now,
+    },
+    {
+      id: 'notif-1b',
+      userId: 'user-existing-1',
+      title: 'Izeluleko Zochwepheshe — Umhlabathi Nezitshalo',
+      message:
+        'UDkt. Pieter van der Merwe ubuzeze umbiko womhlabathi CED-2026-4418A futhi wancoma ukuhlola imisele yamanzi ngaphambi kokufaka umanyolo we-LAN.',
+      category: 'expert_feedback',
+      priority: 'normal',
+      isMandatorySecurity: false,
+      languageCode: 'zu',
+      relatedEntityType: 'ExpertFeedback',
+      relatedEntityId: 'ef-seed-1',
+      isRead: false,
+      actionUrl: 'soil',
+      createdAt: now,
+    },
+    {
+      id: 'notif-1c',
+      userId: 'user-existing-1',
+      title: 'Ukuhlolwa Kwesigameko Sesinambuzane',
+      message:
+        'Qapha uhlangothi lwasenyakatho lwe-North Contour Maize Block ngenxa yezibungu (stalk borer).',
+      category: 'agricultural_incident',
+      priority: 'high',
+      isMandatorySecurity: false,
+      languageCode: 'zu',
+      relatedEntityType: 'FarmIncident',
+      relatedEntityId: 'inc-umgeni-pest-1',
+      isRead: false,
+      actionUrl: 'incidents',
       createdAt: now,
     },
     {
       id: 'notif-2',
       userId: 'user-prospective-1',
-      title: 'New Municipal Commonage Opportunity',
-      message: 'Thabo Mofutsanyana District horticulture incubation plots (2–5 ha) open for emerging farmer applications.',
-      category: 'opportunity' as const,
+      title: 'Monyetla o Mocha wa Temo — Thabo Mofutsanyana',
+      message:
+        'Ditsha tsa temo ya meroho tsa masepala (2–5 ha) di butswe bakeng sa borapolasi ba qalang.',
+      category: 'upcoming_activity',
+      priority: 'normal',
+      isMandatorySecurity: false,
+      languageCode: 'st',
+      relatedEntityType: 'Opportunity',
+      relatedEntityId: null,
       isRead: false,
-      actionUrl: '/dashboard',
+      actionUrl: 'dashboard',
       createdAt: now,
     },
     {
@@ -1240,9 +1456,46 @@ function createInitialSeed(): DatabaseSchema {
       userId: 'user-admin-1',
       title: 'Platform Seeded & Operational',
       message: 'All 12 official South African languages and 5 role permission policies are active.',
-      category: 'system' as const,
+      category: 'account_security',
+      priority: 'normal',
+      isMandatorySecurity: true,
+      languageCode: 'en',
+      relatedEntityType: 'System',
+      relatedEntityId: null,
       isRead: false,
-      actionUrl: '/admin',
+      actionUrl: 'admin',
+      createdAt: now,
+    },
+    {
+      id: 'notif-4',
+      userId: 'user-expert-1',
+      title: 'Oop Boerdery-insident Toegewys (uMngeni Valley)',
+      message:
+        'Vroeë stamboorderdruk aangemeld op North Contour Maize Block. Boer het toegang verleen vir agronomiese hersiening.',
+      category: 'agricultural_incident',
+      priority: 'high',
+      isMandatorySecurity: false,
+      languageCode: 'af',
+      relatedEntityType: 'FarmIncident',
+      relatedEntityId: 'inc-umgeni-pest-1',
+      isRead: false,
+      actionUrl: 'dashboard',
+      createdAt: now,
+    },
+    {
+      id: 'notif-5',
+      userId: 'user-org-1',
+      title: 'Kwatiso ya Kopharashini — Tshekatsheko ya Masimo',
+      message:
+        'Amapulazi ama-2 e-KwaZulu-Natal ahlinzeka ngedatha yemikhakha evikelekile ngaphansi kwesivumelwano sokusebenzisana.',
+      category: 'organisation_communication',
+      priority: 'normal',
+      isMandatorySecurity: false,
+      languageCode: 'ss',
+      relatedEntityType: 'Organisation',
+      relatedEntityId: 'org-lowveld-1',
+      isRead: false,
+      actionUrl: 'dashboard',
       createdAt: now,
     },
   ];
@@ -1266,6 +1519,18 @@ function createInitialSeed(): DatabaseSchema {
   const soilReports = createSeedSoilReports();
   const { visualAnalyses, cropStockMovements, stockPriceSettings, farmIncidents } =
     createSeedVisualStockAndIncidents();
+  const { weatherForecastRecords, weatherObservations } = createSeedWeatherFeedback();
+  const businessPlans = createSeedBusinessPlans();
+  const learningMaterials = createSeedLearningMaterials();
+  const {
+    expertProfiles,
+    organisations,
+    organisationMemberships,
+    farmAccessGrants,
+    expertFeedbacks,
+    notificationPreferences,
+    notificationDeliveries,
+  } = createSeedPortalsAndNotifications();
 
   return {
     roles,
@@ -1288,11 +1553,407 @@ function createInitialSeed(): DatabaseSchema {
     cropStockMovements,
     stockPriceSettings,
     farmIncidents,
+    weatherForecastRecords,
+    weatherObservations,
+    businessPlans,
+    learningMaterials,
+    learningProgress: [],
+    aiInsightRecords: createSeedAiInsights(),
+    savedProspectiveLocations: createSeedSavedLocations(),
+    generatedReports: [],
+    translationOverrides: [],
+    systemConfig: createDefaultSystemConfig(),
+    systemAnnouncements: createSeedSystemAnnouncements(),
+    expertProfiles,
+    farmAccessGrants,
+    expertFeedbacks,
+    organisations,
+    organisationMemberships,
     notifications,
+    notificationPreferences,
+    notificationDeliveries,
     auditLogs,
     sessions: [],
     passwordResetTokens: [],
+    processedSyncIds: [],
   };
+}
+
+function createSeedPortalsAndNotifications(): {
+  expertProfiles: ExpertProfile[];
+  organisations: OrganisationProfile[];
+  organisationMemberships: OrganisationMembership[];
+  farmAccessGrants: FarmAccessGrant[];
+  expertFeedbacks: ExpertFeedbackRecord[];
+  notificationPreferences: NotificationPreference[];
+  notificationDeliveries: NotificationDeliveryAttempt[];
+} {
+  const now = new Date().toISOString();
+
+  const expertProfiles: ExpertProfile[] = [
+    {
+      userId: 'user-expert-1',
+      specialisation: 'agronomist',
+      secondarySpecialisations: ['soil_specialist'],
+      qualifications: 'Ph.D. Agronomy & Soil Fertility (Stellenbosch University)',
+      professionalBodyNumber: 'SACNASP Pr.Sci.Nat. 400218/08',
+      yearsExperience: 18,
+      provincesServed: ['Western Cape', 'KwaZulu-Natal', 'Free State'],
+      languagesSpoken: ['af', 'en', 'zu'],
+      bio: 'Senior soil fertility, contour drainage, and dryland grain agronomist advising smallholder and commercial producers across South Africa.',
+      availabilityStatus: 'available',
+      updatedAt: now,
+    },
+  ];
+
+  const organisations: OrganisationProfile[] = [
+    {
+      id: 'org-lowveld-1',
+      name: 'Lowveld & Midlands Growers Cooperative',
+      organisationType: 'cooperative',
+      registrationNumber: 'COOP-2019/044120/24',
+      province: 'Mpumalanga',
+      district: 'Ehlanzeni District',
+      primaryFocus: 'Horticulture, Subtropical Citrus & Mixed Smallholder Support',
+      contactEmail: 'operations@lowveldglowers.co.za',
+      contactPhone: '+27 13 752 4410',
+      description:
+        'Agricultural cooperative coordinating extension intelligence, bulk input planning, and regional market readiness while safeguarding member farmer privacy.',
+      ownerUserId: 'user-org-1',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  const organisationMemberships: OrganisationMembership[] = [
+    {
+      id: 'orgmem-1',
+      organisationId: 'org-lowveld-1',
+      userId: 'user-org-1',
+      orgRole: 'owner',
+      status: 'active',
+      joinedAt: now,
+    },
+  ];
+
+  const farmAccessGrants: FarmAccessGrant[] = [
+    {
+      id: 'grant-exp-umgeni',
+      farmId: 'farm-umgeni-1',
+      farmerUserId: 'user-existing-1',
+      granteeType: 'expert',
+      granteeUserId: 'user-expert-1',
+      organisationId: null,
+      granteeLabel: 'Dr. Pieter van der Merwe (Agronomist / Soil Specialist)',
+      scopes: {
+        overview: true,
+        crops: true,
+        soil: true,
+        livestock: true,
+        incidents: true,
+        aiInsights: true,
+        weather: true,
+        financialSummary: false,
+      },
+      authorisedBasis: 'Farmer explicit advisory grant',
+      status: 'active',
+      grantedAt: now,
+      revokedAt: null,
+    },
+    {
+      id: 'grant-exp-mkhambathini',
+      farmId: 'farm-mkhambathini-2',
+      farmerUserId: 'user-existing-1',
+      granteeType: 'expert',
+      granteeUserId: 'user-expert-1',
+      organisationId: null,
+      granteeLabel: 'Dr. Pieter van der Merwe (Agronomist / Soil Specialist)',
+      scopes: {
+        overview: true,
+        crops: true,
+        soil: true,
+        livestock: true,
+        incidents: true,
+        aiInsights: true,
+        weather: true,
+        financialSummary: false,
+      },
+      authorisedBasis: 'Farmer explicit advisory grant',
+      status: 'active',
+      grantedAt: now,
+      revokedAt: null,
+    },
+    {
+      id: 'grant-org-umgeni',
+      farmId: 'farm-umgeni-1',
+      farmerUserId: 'user-existing-1',
+      granteeType: 'organisation',
+      granteeUserId: 'user-org-1',
+      organisationId: 'org-lowveld-1',
+      granteeLabel: 'Lowveld & Midlands Growers Cooperative',
+      scopes: {
+        overview: true,
+        crops: true,
+        soil: true,
+        livestock: true,
+        incidents: true,
+        aiInsights: false,
+        weather: true,
+        financialSummary: false,
+      },
+      authorisedBasis: 'Cooperative member oversight consent (non-financial)',
+      status: 'active',
+      grantedAt: now,
+      revokedAt: null,
+    },
+    {
+      id: 'grant-org-mkhambathini',
+      farmId: 'farm-mkhambathini-2',
+      farmerUserId: 'user-existing-1',
+      granteeType: 'organisation',
+      granteeUserId: 'user-org-1',
+      organisationId: 'org-lowveld-1',
+      granteeLabel: 'Lowveld & Midlands Growers Cooperative',
+      scopes: {
+        overview: true,
+        crops: true,
+        soil: true,
+        livestock: true,
+        incidents: true,
+        aiInsights: false,
+        weather: true,
+        financialSummary: false,
+      },
+      authorisedBasis: 'Cooperative member oversight consent (non-financial)',
+      status: 'active',
+      grantedAt: now,
+      revokedAt: null,
+    },
+  ];
+
+  const expertFeedbacks: ExpertFeedbackRecord[] = [
+    {
+      id: 'ef-seed-1',
+      expertUserId: 'user-expert-1',
+      expertName: 'Dr. Pieter van der Merwe',
+      expertSpecialisation: 'agronomist',
+      farmId: 'farm-umgeni-1',
+      incidentId: null,
+      cropId: 'crop-maize-1',
+      livestockGroupId: null,
+      soilReportId: 'soilrep-umgeni-1',
+      aiInsightId: 'ai-seed-1',
+      concernCategory: 'soil_info',
+      subject: 'Cedara Soil Report CED-2026-4418A & AI Top-Dressing Validation',
+      assessment:
+        'Soil pH (H2O 6.2, KCl 5.4) and phosphorus (26 mg/kg) are well suited for yellow maize after your August dolomitic lime application. Confirmed the AI insight warning to clear contour outlets before applying LAN top-dressing.',
+      recommendations: [
+        'Delay LAN 28 top-dressing until standing surface water drains after heavy convective storms.',
+        'Recheck topsoil pH in 12 months to verify lime reaction across the 0–20 cm horizon.',
+      ],
+      status: 'completed',
+      farmerAcknowledged: true,
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'ef-seed-2',
+      expertUserId: 'user-expert-1',
+      expertName: 'Dr. Pieter van der Merwe',
+      expertSpecialisation: 'agronomist',
+      farmId: 'farm-umgeni-1',
+      incidentId: 'inc-umgeni-pest-1',
+      cropId: 'crop-maize-1',
+      livestockGroupId: null,
+      soilReportId: null,
+      aiInsightId: null,
+      concernCategory: 'incident_assistance',
+      subject: 'Follow-Up Guidance on Stalk Borer North Headland Edge',
+      assessment:
+        'Pin-hole feeding on 14,000 border stands represents ~3.3% incidence. Good decision clearing border grass hosts; monitor interior rows before escalating treatment.',
+      recommendations: [
+        'Inspect 20 consecutive maize whorls in 5 interior transects over the next 7 days.',
+        'If threshold exceeds 10% fresh whorl damage, request registered target-specific control advice from your local registered pest control advisor.',
+      ],
+      status: 'in_progress',
+      farmerAcknowledged: false,
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
+
+  return {
+    expertProfiles,
+    organisations,
+    organisationMemberships,
+    farmAccessGrants,
+    expertFeedbacks,
+    notificationPreferences: [],
+    notificationDeliveries: [],
+  };
+}
+
+function createSeedWeatherFeedback(): {
+  weatherForecastRecords: WeatherForecastRecord[];
+  weatherObservations: FarmerWeatherObservation[];
+} {
+  const now = new Date();
+  const dayOffsetIso = (daysAgo: number) => {
+    const d = new Date(now.getTime() - daysAgo * 86400000);
+    return d.toISOString().slice(0, 10);
+  };
+  const d3 = dayOffsetIso(3);
+  const d1 = dayOffsetIso(1);
+
+  const weatherForecastRecords: WeatherForecastRecord[] = [
+    {
+      id: 'wfc-seed-1',
+      farmId: 'farm-umgeni-1',
+      forecastDate: d3,
+      fetchedAt: `${d3}T06:00:00.000Z`,
+      sourceName: 'Open-Meteo Coordinate Weather Forecast Snapshot',
+      sourceCategory: 'forecast_information',
+      verifiedStationName: null,
+      verifiedStationRainMm: null,
+      verifiedStationTempC: null,
+      predictedRainfallMm: 14.5,
+      predictedTempMinC: 13.0,
+      predictedTempMaxC: 24.5,
+      predictedWindMaxKmh: 22.0,
+      weatherDescription: 'Afternoon thundershowers expected',
+    },
+    {
+      id: 'wfc-seed-2',
+      farmId: 'farm-umgeni-1',
+      forecastDate: d1,
+      fetchedAt: `${d1}T06:00:00.000Z`,
+      sourceName: 'Open-Meteo Coordinate Weather Forecast Snapshot',
+      sourceCategory: 'forecast_information',
+      verifiedStationName: null,
+      verifiedStationRainMm: null,
+      verifiedStationTempC: null,
+      predictedRainfallMm: 4.0,
+      predictedTempMinC: 12.2,
+      predictedTempMaxC: 26.0,
+      predictedWindMaxKmh: 16.5,
+      weatherDescription: 'Partly cloudy with light evening shower risk',
+    },
+  ];
+
+  const weatherObservations: FarmerWeatherObservation[] = [
+    {
+      id: 'wobs-seed-1',
+      farmId: 'farm-umgeni-1',
+      ownerId: 'user-existing-1',
+      farmLocationLabel: 'Howick West, uMngeni, KwaZulu-Natal',
+      latitude: -29.5412,
+      longitude: 30.2814,
+      observationDate: d3,
+      rainfallOccurred: true,
+      rainfallIntensity: 'heavy',
+      measuredRainfallMm: 21.0,
+      temperatureC: 22.5,
+      windObservation: 'moderate_wind',
+      windSpeedEstimateKmh: 25,
+      notes: 'Manual rain gauge near North Maize Block measured 21 mm during a sharp 45-minute afternoon storm.',
+      sourceCategory: 'farmer_reported_observation',
+      qcStatus: 'qc_passed_reference',
+      qcNotes: 'Passed basic plausibility check as a farmer-reported observation. Not a verified weather-station measurement; retained only for potential quality-controlled calibration review.',
+      comparedForecastRecordId: 'wfc-seed-1',
+      createdAt: `${d3}T18:15:00.000Z`,
+      updatedAt: `${d3}T18:15:00.000Z`,
+    },
+    {
+      id: 'wobs-seed-2',
+      farmId: 'farm-umgeni-1',
+      ownerId: 'user-existing-1',
+      farmLocationLabel: 'Howick West, uMngeni, KwaZulu-Natal',
+      latitude: -29.5412,
+      longitude: 30.2814,
+      observationDate: d1,
+      rainfallOccurred: false,
+      rainfallIntensity: 'none',
+      measuredRainfallMm: 0,
+      temperatureC: 25.0,
+      windObservation: 'light_breeze',
+      windSpeedEstimateKmh: 14,
+      notes: 'Storm cells stayed south over Pietermaritzburg; zero rain on farm gauge.',
+      sourceCategory: 'farmer_reported_observation',
+      qcStatus: 'qc_passed_reference',
+      qcNotes: 'Passed basic plausibility check as a farmer-reported observation. Not a verified weather-station measurement; retained only for potential quality-controlled calibration review.',
+      comparedForecastRecordId: 'wfc-seed-2',
+      createdAt: `${d1}T17:45:00.000Z`,
+      updatedAt: `${d1}T17:45:00.000Z`,
+    },
+  ];
+
+  return { weatherForecastRecords, weatherObservations };
+}
+
+function createSeedBusinessPlans(): BusinessPlanScenario[] {
+  const now = new Date().toISOString();
+  return [
+    {
+      id: 'bplan-seed-prospective-1',
+      ownerId: 'user-prospective-1',
+      farmId: null,
+      planName: 'Thabo Mofutsanyana 2 ha Mixed Spinach & Cabbage Starter Plan',
+      farmingType: 'horticulture_veg',
+      scaleTier: 'small_scale',
+      province: 'Free State',
+      district: 'Thabo Mofutsanyana District',
+      farmSizeHectares: 2,
+      productionGoals: 'Supply local retail and school buyers with staggered leafy vegetables across 2 ha.',
+      marketChannel: 'Local Fresh Produce Market & School Nutrition Buyers',
+      equipmentCostZar: 24000,
+      equipmentNotes: 'Two knapsack sprayers, crates, digital scale, drip tape fittings.',
+      seedsPlantingCostZar: 17500,
+      fertilisersCostZar: 21000,
+      feedCostZar: 0,
+      waterCostZar: 11500,
+      waterDemandM3: 7800,
+      labourWorkers: 3,
+      labourCostZar: 82000,
+      infrastructureCostZar: 42000,
+      operatingExpensesZar: 24000,
+      expectedProductionQty: 32000,
+      productionUnit: 'kg',
+      sellingPricePerUnitZar: 8.5,
+      assumptionsNotes: 'Planning estimate assuming staggered planting and 10% post-harvest loss allowance; non-guaranteed.',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'bplan-seed-existing-1',
+      ownerId: 'user-existing-1',
+      farmId: 'farm-umgeni-1',
+      planName: 'uMngeni Homestead Seasonal Expansion Scenario (5 ha Vegetables)',
+      farmingType: 'horticulture_veg',
+      scaleTier: 'medium_scale',
+      province: 'KwaZulu-Natal',
+      district: 'uMgungundlovu District',
+      farmSizeHectares: 5,
+      productionGoals: 'Expand drip-irrigated vegetable terrace output alongside existing maize and Nguni cattle.',
+      marketChannel: 'Pietermaritzburg Fresh Produce Market & Regional Wholesalers',
+      equipmentCostZar: 78000,
+      equipmentNotes: 'Boom sprayer upgrade, vegetable bed former, sorting shed tables.',
+      seedsPlantingCostZar: 41000,
+      fertilisersCostZar: 48000,
+      feedCostZar: 0,
+      waterCostZar: 26000,
+      waterDemandM3: 18500,
+      labourWorkers: 6,
+      labourCostZar: 175000,
+      infrastructureCostZar: 95000,
+      operatingExpensesZar: 62000,
+      expectedProductionQty: 92000,
+      productionUnit: 'kg',
+      sellingPricePerUnitZar: 8.4,
+      assumptionsNotes: 'Linked to uMngeni Homestead Farm to benchmark estimates against recorded expenses.',
+      createdAt: now,
+      updatedAt: now,
+    },
+  ];
 }
 
 class FieldShiftStore {
@@ -1358,6 +2019,90 @@ class FieldShiftStore {
             parsed.farmIncidents = seedVsi.farmIncidents;
             migrated = true;
           }
+          if (!Array.isArray(parsed.weatherForecastRecords) || !Array.isArray(parsed.weatherObservations)) {
+            const seedWf = createSeedWeatherFeedback();
+            if (!Array.isArray(parsed.weatherForecastRecords)) {
+              parsed.weatherForecastRecords = seedWf.weatherForecastRecords;
+            }
+            if (!Array.isArray(parsed.weatherObservations)) {
+              parsed.weatherObservations = seedWf.weatherObservations;
+            }
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.businessPlans)) {
+            parsed.businessPlans = createSeedBusinessPlans();
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.learningMaterials)) {
+            parsed.learningMaterials = createSeedLearningMaterials();
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.learningProgress)) {
+            parsed.learningProgress = [];
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.aiInsightRecords)) {
+            parsed.aiInsightRecords = createSeedAiInsights();
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.savedProspectiveLocations)) {
+            parsed.savedProspectiveLocations = createSeedSavedLocations();
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.generatedReports)) {
+            parsed.generatedReports = [];
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.translationOverrides)) {
+            parsed.translationOverrides = [];
+            migrated = true;
+          }
+          if (!parsed.systemConfig) {
+            parsed.systemConfig = createDefaultSystemConfig();
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.systemAnnouncements)) {
+            parsed.systemAnnouncements = createSeedSystemAnnouncements();
+            migrated = true;
+          }
+          if (
+            !Array.isArray(parsed.expertProfiles) ||
+            !Array.isArray(parsed.organisations) ||
+            !Array.isArray(parsed.farmAccessGrants) ||
+            !Array.isArray(parsed.expertFeedbacks)
+          ) {
+            const seedPortals = createSeedPortalsAndNotifications();
+            if (!Array.isArray(parsed.expertProfiles)) {
+              parsed.expertProfiles = seedPortals.expertProfiles;
+            }
+            if (!Array.isArray(parsed.organisations)) {
+              parsed.organisations = seedPortals.organisations;
+            }
+            if (!Array.isArray(parsed.organisationMemberships)) {
+              parsed.organisationMemberships = seedPortals.organisationMemberships;
+            }
+            if (!Array.isArray(parsed.farmAccessGrants)) {
+              parsed.farmAccessGrants = seedPortals.farmAccessGrants;
+            }
+            if (!Array.isArray(parsed.expertFeedbacks)) {
+              parsed.expertFeedbacks = seedPortals.expertFeedbacks;
+            }
+            if (!Array.isArray(parsed.notificationPreferences)) {
+              parsed.notificationPreferences = seedPortals.notificationPreferences;
+            }
+            if (!Array.isArray(parsed.notificationDeliveries)) {
+              parsed.notificationDeliveries = seedPortals.notificationDeliveries;
+            }
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.notificationPreferences)) {
+            parsed.notificationPreferences = [];
+            migrated = true;
+          }
+          if (!Array.isArray(parsed.notificationDeliveries)) {
+            parsed.notificationDeliveries = [];
+            migrated = true;
+          }
           if (Array.isArray(parsed.farmLocations)) {
             for (const loc of parsed.farmLocations) {
               if (!loc.locationSource) {
@@ -1368,6 +2113,60 @@ class FieldShiftStore {
                 loc.gpsCapturedAt = loc.gpsCapturedAt ?? null;
                 migrated = true;
               }
+            }
+          }
+          // Ensure existing users receive updated role permissions and least-privilege admin defaults
+          if (Array.isArray(parsed.users) && Array.isArray(parsed.roles) && Array.isArray(parsed.userPermissions)) {
+            const legacyAdminPermCount = parsed.userPermissions.length;
+            parsed.userPermissions = parsed.userPermissions.filter((p) => p.permissionKey !== 'farms:read_all');
+            if (parsed.userPermissions.length !== legacyAdminPermCount) {
+              migrated = true;
+            }
+            for (const u of parsed.users) {
+              const role = parsed.roles.find((r) => r.id === u.roleId);
+              if (role) {
+                const expectedPerms = ROLE_PERMISSION_MAP[role.code] || [];
+                for (const key of expectedPerms) {
+                  const has = parsed.userPermissions.some(
+                    (p) => p.userId === u.id && p.permissionKey === key
+                  );
+                  if (!has) {
+                    parsed.userPermissions.push({
+                      id: `perm-${crypto.randomUUID()}`,
+                      roleId: role.id,
+                      userId: u.id,
+                      permissionKey: key,
+                      isAllowed: true,
+                      createdAt: new Date().toISOString(),
+                    });
+                    migrated = true;
+                  }
+                }
+              }
+            }
+          }
+
+          if (!Array.isArray(parsed.processedSyncIds)) {
+            parsed.processedSyncIds = [];
+            migrated = true;
+          }
+          const nowMs = Date.now();
+          if (Array.isArray(parsed.sessions)) {
+            const validSessions = parsed.sessions.filter(
+              (s) => s.expiresAt && new Date(s.expiresAt).getTime() > nowMs
+            );
+            if (validSessions.length !== parsed.sessions.length) {
+              parsed.sessions = validSessions;
+              migrated = true;
+            }
+          }
+          if (Array.isArray(parsed.passwordResetTokens)) {
+            const validTokens = parsed.passwordResetTokens.filter(
+              (t) => !t.usedAt && t.expiresAt && new Date(t.expiresAt).getTime() > nowMs - 86400000
+            );
+            if (validTokens.length !== parsed.passwordResetTokens.length) {
+              parsed.passwordResetTokens = validTokens;
+              migrated = true;
             }
           }
 

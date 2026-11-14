@@ -11,6 +11,11 @@ import {
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
 import {
+  enqueueOfflineMutation,
+  isLikelyOfflineError,
+  loadOfflineBundle,
+} from '../lib/offlineSync';
+import {
   CropActivityItem,
   CropActivityType,
   CropAnalytics,
@@ -20,6 +25,7 @@ import {
 } from '../types';
 
 interface CropManagementViewProps {
+  userId?: string;
   farms: FarmItem[];
   selectedFarmId: string | null;
   onSelectFarmFilter: (farmId: string | null) => void;
@@ -47,6 +53,7 @@ const ACTIVITY_TYPES: { value: CropActivityType; label: string; unitHint: string
 ];
 
 export const CropManagementView: React.FC<CropManagementViewProps> = ({
+  userId,
   farms,
   selectedFarmId,
   onSelectFarmFilter,
@@ -57,6 +64,7 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
   const [analytics, setAnalytics] = useState<CropAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
 
   // Register / Edit Crop Modal
   const [cropModalMode, setCropModalMode] = useState<'create' | 'edit' | null>(null);
@@ -102,11 +110,24 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
       setCrops(cropList);
       setAnalytics(stats);
     } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(userId);
+        if (bundle) {
+          const cachedCrops =
+            farmFilter !== 'all'
+              ? bundle.crops.filter((c) => c.farmId === farmFilter)
+              : bundle.crops;
+          setCrops(cachedCrops);
+          setNotice(`Showing cached crops downloaded at ${new Date(bundle.downloadedAt).toLocaleString()} (offline mode).`);
+          setError(null);
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : 'Unable to load crop data.');
     } finally {
       setLoading(false);
     }
-  }, [farmFilter]);
+  }, [farmFilter, userId]);
 
   useEffect(() => {
     loadData();
@@ -157,6 +178,11 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
   const handleSaveCrop = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setNotice(null);
+    if (expectedHarvestDate && plantingDate && expectedHarvestDate < plantingDate) {
+      setError('Expected harvest date cannot be earlier than the planting date.');
+      return;
+    }
     setSavingCrop(true);
     try {
       const payload = {
@@ -193,9 +219,14 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
   };
 
   const handleDeleteCrop = async (cropId: string) => {
-    await apiRequest(`/api/crops/${cropId}`, { method: 'DELETE' });
-    await loadData();
-    onDataChanged();
+    setError(null);
+    try {
+      await apiRequest(`/api/crops/${cropId}`, { method: 'DELETE' });
+      await loadData();
+      onDataChanged();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Could not delete crop.');
+    }
   };
 
   const openActivityModal = (crop: CropItem) => {
@@ -213,22 +244,56 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
     e.preventDefault();
     if (!activityTargetCrop) return;
     setSavingActivity(true);
+    setError(null);
+    setNotice(null);
+    const activityPayload = {
+      activityType,
+      activityDate,
+      quantity: activityQty,
+      unit: activityUnit,
+      valueZar: activityValZar,
+      notes: activityNotes,
+      newGrowthStage: activityType === 'stage_update' ? newStage : undefined,
+    };
+
+    const queueActivityOffline = async () => {
+      if (!userId) return false;
+      await enqueueOfflineMutation({
+        userId,
+        mutationType: 'crop_activity',
+        label: `${activityType.replace(/_/g, ' ')} — ${activityTargetCrop.cropName}`,
+        farmId: activityTargetCrop.farmId,
+        farmName: activityTargetCrop.farmName || null,
+        baseUpdatedAt: activityTargetCrop.updatedAt,
+        payload: {
+          cropId: activityTargetCrop.id,
+          ...activityPayload,
+        },
+      });
+      setActivityTargetCrop(null);
+      setNotice('Offline mode: crop activity saved locally and queued for sync.');
+      return true;
+    };
+
     try {
+      const simulatedOffline =
+        typeof window !== 'undefined' &&
+        window.localStorage.getItem('fieldshift_simulated_offline') === 'true';
+      if ((typeof navigator !== 'undefined' && !navigator.onLine) || simulatedOffline) {
+        if (await queueActivityOffline()) return;
+      }
       await apiRequest(`/api/crops/${activityTargetCrop.id}/activities`, {
         method: 'POST',
-        body: JSON.stringify({
-          activityType,
-          activityDate,
-          quantity: activityQty,
-          unit: activityUnit,
-          valueZar: activityValZar,
-          notes: activityNotes,
-          newGrowthStage: activityType === 'stage_update' ? newStage : undefined,
-        }),
+        body: JSON.stringify(activityPayload),
       });
       setActivityTargetCrop(null);
       await loadData();
       onDataChanged();
+    } catch (err: unknown) {
+      if (isLikelyOfflineError(err) && (await queueActivityOffline())) {
+        return;
+      }
+      setError(err instanceof Error ? err.message : 'Could not record crop activity.');
     } finally {
       setSavingActivity(false);
     }
@@ -236,8 +301,19 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
 
   const openHistory = async (crop: CropItem) => {
     setHistoryCrop(crop);
-    const logs = await apiRequest<CropActivityItem[]>(`/api/crops/${crop.id}/activities`);
-    setHistoryLogs(logs);
+    try {
+      const logs = await apiRequest<CropActivityItem[]>(`/api/crops/${crop.id}/activities`);
+      setHistoryLogs(logs);
+    } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(userId);
+        if (bundle) {
+          setHistoryLogs(bundle.cropActivities.filter((a) => a.cropId === crop.id));
+          return;
+        }
+      }
+      setHistoryLogs([]);
+    }
   };
 
   const maxChartHa = Math.max(1, ...(analytics?.byCrop.map((c) => c.cultivatedAreaHectares) || [1]));
@@ -287,6 +363,12 @@ export const CropManagementView: React.FC<CropManagementViewProps> = ({
           )}
         </div>
       </div>
+
+      {notice && (
+        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm">
+          {notice}
+        </div>
+      )}
 
       {error && (
         <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">

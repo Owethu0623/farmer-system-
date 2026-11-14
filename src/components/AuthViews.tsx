@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import { LANGUAGE_LIST, t } from '../i18n/translations';
 import { apiRequest, setStoredToken } from '../lib/api';
-import { AuthUser, LanguageCode, RoleCode } from '../types';
+import { AuthUser, ExpertSpecialisation, LanguageCode, OrganisationType, RoleCode } from '../types';
 import { LanguageSelector, SpeakButton } from './AccessibilityControls';
 
 interface AuthViewsProps {
@@ -53,6 +53,11 @@ export const AuthViews: React.FC<AuthViewsProps> = ({
   const [fullName, setFullName] = useState('');
   const [roleCode, setRoleCode] = useState<RoleCode>(preselectRole || 'prospective_farmer');
   const [selectedLang, setSelectedLang] = useState<LanguageCode>(languageCode);
+  const [expertSpecialisation, setExpertSpecialisation] =
+    useState<ExpertSpecialisation>('agronomist');
+  const [expertQualifications, setExpertQualifications] = useState('');
+  const [organisationName, setOrganisationName] = useState('');
+  const [organisationType, setOrganisationType] = useState<OrganisationType>('cooperative');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [infoMessage, setInfoMessage] = useState<string | null>(null);
@@ -97,6 +102,18 @@ export const AuthViews: React.FC<AuthViewsProps> = ({
             password,
             roleCode,
             preferredLanguageCode: selectedLang,
+            ...(roleCode === 'agricultural_expert'
+              ? {
+                  expertSpecialisation,
+                  expertQualifications: expertQualifications.trim() || undefined,
+                }
+              : {}),
+            ...(roleCode === 'organisation_manager'
+              ? {
+                  organisationName: organisationName.trim() || undefined,
+                  organisationType,
+                }
+              : {}),
           }),
         }
       );
@@ -418,6 +435,83 @@ export const AuthViews: React.FC<AuthViewsProps> = ({
                   ))}
                 </div>
               </div>
+
+              {roleCode === 'agricultural_expert' && (
+                <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#2D6A4F]">
+                    Agricultural Expert Details
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-[#17201B]">
+                        Specialisation
+                      </label>
+                      <select
+                        value={expertSpecialisation}
+                        onChange={(e) =>
+                          setExpertSpecialisation(e.target.value as ExpertSpecialisation)
+                        }
+                        className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                      >
+                        <option value="agronomist">Agronomist</option>
+                        <option value="soil_specialist">Soil Specialist</option>
+                        <option value="livestock_specialist">Livestock Specialist</option>
+                        <option value="veterinarian">Veterinarian</option>
+                        <option value="agricultural_consultant">Agricultural Consultant</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-[#17201B]">
+                        Qualifications (Optional)
+                      </label>
+                      <input
+                        type="text"
+                        value={expertQualifications}
+                        onChange={(e) => setExpertQualifications(e.target.value)}
+                        placeholder="e.g. BSc Agric (Agronomy), Pr.Sci.Nat"
+                        className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {roleCode === 'organisation_manager' && (
+                <div className="bg-[#F6F7F4] border border-[#E2E6DF] rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide text-[#2D6A4F]">
+                    Organisation Registration
+                  </p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-[#17201B]">
+                        Organisation Name
+                      </label>
+                      <input
+                        type="text"
+                        value={organisationName}
+                        onChange={(e) => setOrganisationName(e.target.value)}
+                        placeholder="e.g. Eastern Cape Smallholder Co-op"
+                        className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="block text-xs font-semibold text-[#17201B]">
+                        Organisation Type
+                      </label>
+                      <select
+                        value={organisationType}
+                        onChange={(e) => setOrganisationType(e.target.value as OrganisationType)}
+                        className="w-full px-3 py-2.5 rounded-xl border border-[#D4DDD2] bg-white text-sm"
+                      >
+                        <option value="cooperative">Agricultural Cooperative</option>
+                        <option value="agricultural_company">Agricultural Company</option>
+                        <option value="extension_agency">Extension Agency</option>
+                        <option value="research_body">Research Body</option>
+                      </select>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-1.5">
                 <label className="block text-sm font-semibold text-[#17201B]">

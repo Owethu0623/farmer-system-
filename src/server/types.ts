@@ -302,15 +302,188 @@ export interface MixedFarmingEntry {
   createdAt: string;
 }
 
+export type NotificationCategory =
+  | 'weather_warning'
+  | 'agricultural_incident'
+  | 'upcoming_activity'
+  | 'crop_reminder'
+  | 'livestock_reminder'
+  | 'stock_change'
+  | 'ai_recommendation'
+  | 'expert_feedback'
+  | 'organisation_communication'
+  | 'account_security'
+  | 'advisory'
+  | 'system'
+  | 'opportunity'
+  | 'weather';
+
+export type NotificationPreferenceKey =
+  | 'weather_warning'
+  | 'agricultural_incident'
+  | 'upcoming_activity'
+  | 'crop_reminder'
+  | 'livestock_reminder'
+  | 'stock_change'
+  | 'ai_recommendation'
+  | 'expert_feedback'
+  | 'organisation_communication'
+  | 'account_security';
+
+export interface NotificationPreference {
+  userId: string;
+  channels: {
+    inApp: boolean;
+    email: boolean;
+    sms: boolean;
+    push: boolean;
+  };
+  categories: Record<NotificationPreferenceKey, boolean>;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  updatedAt: string;
+}
+
+export interface NotificationDeliveryAttempt {
+  id: string;
+  notificationId: string;
+  userId: string;
+  category: NotificationCategory;
+  channel: 'in_app' | 'email' | 'sms' | 'push';
+  status:
+    | 'delivered_in_app'
+    | 'queued_provider'
+    | 'skipped_user_disabled'
+    | 'skipped_provider_unconfigured';
+  targetMasked: string;
+  providerNote: string;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   userId: string;
   title: string;
   message: string;
-  category: 'advisory' | 'system' | 'opportunity' | 'weather';
+  category: NotificationCategory;
+  priority?: 'low' | 'normal' | 'high' | 'urgent';
+  isMandatorySecurity?: boolean;
+  languageCode?: LanguageCode;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
   isRead: boolean;
   actionUrl: string | null;
   createdAt: string;
+}
+
+export type ExpertSpecialisation =
+  | 'agronomist'
+  | 'soil_specialist'
+  | 'livestock_specialist'
+  | 'veterinarian'
+  | 'agricultural_consultant';
+
+export interface ExpertProfile {
+  userId: string;
+  specialisation: ExpertSpecialisation;
+  secondarySpecialisations: ExpertSpecialisation[];
+  qualifications: string;
+  professionalBodyNumber: string;
+  yearsExperience: number;
+  provincesServed: string[];
+  languagesSpoken: LanguageCode[];
+  bio: string;
+  availabilityStatus: 'available' | 'limited' | 'unavailable';
+  updatedAt: string;
+}
+
+export interface FarmAccessScopes {
+  overview: boolean;
+  crops: boolean;
+  soil: boolean;
+  livestock: boolean;
+  incidents: boolean;
+  aiInsights: boolean;
+  weather: boolean;
+  financialSummary: boolean;
+}
+
+export interface FarmAccessGrant {
+  id: string;
+  farmId: string;
+  farmerUserId: string;
+  granteeType: 'expert' | 'organisation';
+  granteeUserId: string | null;
+  organisationId: string | null;
+  granteeLabel: string;
+  scopes: FarmAccessScopes;
+  authorisedBasis: string;
+  status: 'active' | 'revoked';
+  grantedAt: string;
+  revokedAt: string | null;
+}
+
+export type ExpertConcernCategory =
+  | 'farm_info'
+  | 'crop_concern'
+  | 'soil_info'
+  | 'livestock_concern'
+  | 'ai_review'
+  | 'incident_assistance'
+  | 'general_guidance';
+
+export interface ExpertFeedbackRecord {
+  id: string;
+  expertUserId: string;
+  expertName: string;
+  expertSpecialisation: ExpertSpecialisation;
+  farmId: string;
+  incidentId: string | null;
+  cropId: string | null;
+  livestockGroupId: string | null;
+  soilReportId: string | null;
+  aiInsightId: string | null;
+  concernCategory: ExpertConcernCategory;
+  subject: string;
+  assessment: string;
+  recommendations: string[];
+  status: 'pending_review' | 'in_progress' | 'completed';
+  farmerAcknowledged: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OrganisationType =
+  | 'cooperative'
+  | 'agricultural_company'
+  | 'extension_agency'
+  | 'research_body';
+
+export interface OrganisationProfile {
+  id: string;
+  name: string;
+  organisationType: OrganisationType;
+  registrationNumber: string;
+  province: string;
+  district: string;
+  primaryFocus: string;
+  contactEmail: string;
+  contactPhone: string;
+  description: string;
+  ownerUserId: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type OrganisationMemberRole = 'owner' | 'manager' | 'analyst' | 'advisor';
+
+export interface OrganisationMembership {
+  id: string;
+  organisationId: string;
+  userId: string;
+  orgRole: OrganisationMemberRole;
+  status: 'active' | 'inactive';
+  joinedAt: string;
 }
 
 export interface AuditLog {
@@ -506,6 +679,284 @@ export interface FarmIncident {
   updatedAt: string;
 }
 
+export type WeatherSourceCategory =
+  | 'verified_station_measurement'
+  | 'farmer_reported_observation'
+  | 'forecast_information'
+  | 'ai_generated_estimate';
+
+export type RainfallIntensity = 'none' | 'light' | 'moderate' | 'heavy' | 'extreme';
+
+export type WindObservationLevel =
+  | 'calm'
+  | 'light_breeze'
+  | 'moderate_wind'
+  | 'strong_wind'
+  | 'gale';
+
+export interface WeatherForecastRecord {
+  id: string;
+  farmId: string;
+  forecastDate: string;
+  fetchedAt: string;
+  sourceName: string;
+  sourceCategory: 'forecast_information';
+  verifiedStationName: string | null;
+  verifiedStationRainMm: number | null;
+  verifiedStationTempC: number | null;
+  predictedRainfallMm: number;
+  predictedTempMinC: number;
+  predictedTempMaxC: number;
+  predictedWindMaxKmh: number;
+  weatherDescription: string;
+}
+
+export interface FarmerWeatherObservation {
+  id: string;
+  farmId: string;
+  ownerId: string;
+  farmLocationLabel: string;
+  latitude: number;
+  longitude: number;
+  observationDate: string;
+  rainfallOccurred: boolean;
+  rainfallIntensity: RainfallIntensity;
+  measuredRainfallMm: number | null;
+  temperatureC: number | null;
+  windObservation: WindObservationLevel;
+  windSpeedEstimateKmh: number | null;
+  notes: string;
+  sourceCategory: 'farmer_reported_observation';
+  qcStatus: 'pending_qc' | 'qc_passed_reference' | 'qc_flagged_outlier';
+  qcNotes: string;
+  comparedForecastRecordId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type BusinessScaleTier = 'small_scale' | 'medium_scale' | 'large_scale';
+
+export interface BusinessPlanScenario {
+  id: string;
+  ownerId: string;
+  farmId: string | null;
+  planName: string;
+  farmingType: string;
+  scaleTier: BusinessScaleTier;
+  province: string;
+  district: string;
+  farmSizeHectares: number;
+  productionGoals: string;
+  marketChannel: string;
+  equipmentCostZar: number;
+  equipmentNotes: string;
+  seedsPlantingCostZar: number;
+  fertilisersCostZar: number;
+  feedCostZar: number;
+  waterCostZar: number;
+  waterDemandM3: number;
+  labourWorkers: number;
+  labourCostZar: number;
+  infrastructureCostZar: number;
+  operatingExpensesZar: number;
+  expectedProductionQty: number;
+  productionUnit: string;
+  sellingPricePerUnitZar: number;
+  assumptionsNotes: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type LearningCategoryCode =
+  | 'beginner_farming'
+  | 'crop_production'
+  | 'soil_preparation'
+  | 'irrigation'
+  | 'fertiliser_application'
+  | 'pest_management'
+  | 'plant_disease_awareness'
+  | 'harvesting'
+  | 'livestock_management'
+  | 'animal_feeding'
+  | 'animal_housing'
+  | 'farm_equipment'
+  | 'machinery_guidance'
+  | 'agricultural_business_planning';
+
+export type LearningContentType =
+  | 'article'
+  | 'step_by_step_guide'
+  | 'illustrated_guide'
+  | 'video_lesson';
+
+export type LearningDifficulty = 'beginner' | 'intermediate' | 'experienced';
+
+export interface LearningTranslation {
+  title: string;
+  summary: string;
+  body: string;
+  steps: string[];
+  reviewed: boolean;
+  reviewedBy?: string;
+  reviewedAt?: string;
+}
+
+export interface VideoLessonSlide {
+  heading: string;
+  caption: string;
+  visualCue: string;
+  durationSeconds: number;
+}
+
+export interface LearningMaterial {
+  id: string;
+  slug: string;
+  category: LearningCategoryCode;
+  contentType: LearningContentType;
+  difficulty: LearningDifficulty;
+  illustrationKey: string;
+  customIllustrationDataUrl?: string | null;
+  videoUrl?: string | null;
+  videoDurationLabel?: string;
+  videoSlides?: VideoLessonSlide[];
+  sourceAttribution: string;
+  verifiedOfficialReference: boolean;
+  status: 'published' | 'draft' | 'archived';
+  estimatedMinutes: number;
+  tags: string[];
+  translations: Partial<Record<LanguageCode, LearningTranslation>>;
+  createdByUserId: string | null;
+  updatedByUserId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserLearningProgress {
+  id: string;
+  userId: string;
+  materialId: string;
+  isSaved: boolean;
+  status: 'not_started' | 'in_progress' | 'completed';
+  completedSteps: number[];
+  progressPercent: number;
+  lastAccessedAt: string;
+  completedAt: string | null;
+}
+
+export interface AiInsightRecord {
+  id: string;
+  userId: string;
+  farmId: string | null;
+  category: 'advisory' | 'analytics' | 'visual_analysis' | 'weather_summary';
+  title: string;
+  summary: string;
+  recommendations: string[];
+  languageCode: LanguageCode;
+  poweredBy: 'gemini' | 'grounded_fallback' | 'deterministic_summary';
+  createdAt: string;
+}
+
+export interface SavedProspectiveLocation {
+  id: string;
+  userId: string;
+  province: string;
+  district: string;
+  townOrArea: string;
+  intendedHectares: number;
+  waterSourceNote: string;
+  notes: string;
+  createdAt: string;
+}
+
+export type ReportTypeCode =
+  | 'farm_profiles'
+  | 'crop_production'
+  | 'livestock_production'
+  | 'stock_levels'
+  | 'stock_valuation'
+  | 'agricultural_incidents'
+  | 'damage_and_losses'
+  | 'weather_observations'
+  | 'ai_insights'
+  | 'business_planning'
+  | 'farm_expenses'
+  | 'farm_performance';
+
+export interface GeneratedReportRecord {
+  id: string;
+  userId: string;
+  roleCode: RoleCode;
+  reportType: ReportTypeCode;
+  reportTitle: string;
+  farmId: string | 'all';
+  farmLabel: string;
+  isAggregatedOrganisationReport: boolean;
+  startDate: string;
+  endDate: string;
+  farmingCategory: string;
+  rowCount: number;
+  containsEstimatedValues: boolean;
+  summaryHeadline: string;
+  createdAt: string;
+}
+
+export interface TranslationOverrideRecord {
+  id: string;
+  languageCode: LanguageCode;
+  key: string;
+  value: string;
+  reviewed: boolean;
+  updatedByUserId: string | null;
+  updatedAt: string;
+}
+
+export interface SystemAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  targetRole: RoleCode | 'all';
+  severity: 'info' | 'advisory' | 'warning';
+  isActive: boolean;
+  createdByUserId: string | null;
+  createdAt: string;
+  expiresAt: string | null;
+}
+
+export interface SystemConfig {
+  application: {
+    platformName: string;
+    defaultLanguageCode: LanguageCode;
+    allowSelfRegistration: boolean;
+    maintenanceMode: boolean;
+    maxMediaUploadMb: number;
+    sessionTimeoutHours: number;
+  };
+  notifications: {
+    inAppAlertsEnabled: boolean;
+    emailDigestEnabled: boolean;
+    rainfallAlertThresholdMm: number;
+    heatAlertThresholdC: number;
+    incidentEscalationNotify: boolean;
+  };
+  agriculturalReference: {
+    supportedCategories: string[];
+    defaultExtensionDeskEmail: string;
+    soilLabGuidanceNote: string;
+    valuationDisclaimerText: string;
+    diagnosticSafetyNotice: string;
+  };
+  ai: {
+    aiEnabled: boolean;
+    primaryModel: string;
+    fallbackModel: string;
+    visualAnalysisEnabled: boolean;
+    weatherAiSummaryEnabled: boolean;
+    advisorySafetyDisclaimer: string;
+  };
+  updatedByUserId: string | null;
+  updatedAt: string;
+}
+
 export interface DatabaseSchema {
   roles: Role[];
   languages: Language[];
@@ -527,10 +978,35 @@ export interface DatabaseSchema {
   cropStockMovements: CropStockMovement[];
   stockPriceSettings: StockPriceSetting[];
   farmIncidents: FarmIncident[];
+  weatherForecastRecords: WeatherForecastRecord[];
+  weatherObservations: FarmerWeatherObservation[];
+  businessPlans: BusinessPlanScenario[];
+  learningMaterials: LearningMaterial[];
+  learningProgress: UserLearningProgress[];
+  aiInsightRecords: AiInsightRecord[];
+  savedProspectiveLocations: SavedProspectiveLocation[];
+  generatedReports: GeneratedReportRecord[];
+  translationOverrides: TranslationOverrideRecord[];
+  systemConfig: SystemConfig;
+  systemAnnouncements: SystemAnnouncement[];
+  expertProfiles: ExpertProfile[];
+  farmAccessGrants: FarmAccessGrant[];
+  expertFeedbacks: ExpertFeedbackRecord[];
+  organisations: OrganisationProfile[];
+  organisationMemberships: OrganisationMembership[];
   notifications: Notification[];
+  notificationPreferences: NotificationPreference[];
+  notificationDeliveries: NotificationDeliveryAttempt[];
   auditLogs: AuditLog[];
   sessions: Session[];
   passwordResetTokens: PasswordResetToken[];
+  processedSyncIds: {
+    clientMutationId: string;
+    userId: string;
+    mutationType: string;
+    serverEntityId: string | null;
+    syncedAt: string;
+  }[];
 }
 
 export interface SanitizedUser {

@@ -1,9 +1,16 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import {
   AlertOctagon,
+  Award,
   Beef,
+  Bell,
+  BookOpen,
+  Briefcase,
+  Building2,
   Camera,
+  CloudOff,
   CloudRain,
+  FileSpreadsheet,
   Layers,
   LayoutDashboard,
   LogOut,
@@ -16,30 +23,44 @@ import {
   Sprout,
   Tractor,
   User,
+  Wifi,
+  WifiOff,
   X,
 } from 'lucide-react';
+import { registerSW } from 'virtual:pwa-register';
 import {
   EasyReadToggle,
   LanguageSelector,
   SaslBanner,
 } from './components/AccessibilityControls';
+import { AdminPortalView } from './components/AdminPortalView';
 import { AuthViews } from './components/AuthViews';
+import { BusinessPlannerView } from './components/BusinessPlannerView';
 import { CropManagementView } from './components/CropManagementView';
+import { ExpertPortalView } from './components/ExpertPortalView';
 import { FarmManagement } from './components/FarmManagement';
 import { GeminiAdvisorPanel } from './components/GeminiAdvisorPanel';
 import { IncidentDamageView } from './components/IncidentDamageView';
 import { LandingPage } from './components/LandingPage';
+import { LearningCentreView } from './components/LearningCentreView';
 import { LivestockMixedView } from './components/LivestockMixedView';
+import { NotificationCentreView } from './components/NotificationCentreView';
+import { OfflineSyncView } from './components/OfflineSyncView';
 import { OnboardingWizard } from './components/OnboardingWizard';
+import { OrganisationPortalView } from './components/OrganisationPortalView';
 import { ProfileSettingsView } from './components/ProfileSettingsView';
+import { ReportingExportsView } from './components/ReportingExportsView';
 import { RoleDashboard } from './components/RoleDashboards';
 import { SoilLandView } from './components/SoilLandView';
 import { StockInventoryView } from './components/StockInventoryView';
 import { VisualAnalysisView } from './components/VisualAnalysisView';
 import { WeatherIntelligenceView } from './components/WeatherIntelligenceView';
 import { useAccessibility } from './hooks/useAccessibility';
-import { t } from './i18n/translations';
+import { useOnlineStatus } from './hooks/useOnlineStatus';
+import { PWAInstallButton } from './hooks/usePWAInstall';
+import { applyTranslationOverrides, t } from './i18n/translations';
 import { apiRequest, getStoredToken, setStoredToken } from './lib/api';
+import { loadOfflineBundle, loadOfflineQueue, syncPendingQueue } from './lib/offlineSync';
 import {
   AuthUser,
   FarmItem,
@@ -50,6 +71,8 @@ import {
 
 type WorkspaceTab =
   | 'dashboard'
+  | 'expert_portal'
+  | 'organisation_portal'
   | 'farms'
   | 'crops'
   | 'livestock'
@@ -59,8 +82,13 @@ type WorkspaceTab =
   | 'visual'
   | 'stock'
   | 'incidents'
+  | 'planner'
+  | 'learning'
+  | 'reports'
   | 'advisor'
+  | 'notifications'
   | 'admin'
+  | 'offline'
   | 'profile'
   | 'settings';
 
@@ -84,6 +112,10 @@ export default function App() {
   const [notifications, setNotifications] = useState<NotificationItem[]>([]);
   const [activationBannerCode, setActivationBannerCode] = useState<string | null>(null);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [pendingSyncCount, setPendingSyncCount] = useState(0);
+  const [offlineCacheTimestamp, setOfflineCacheTimestamp] = useState<string | null>(null);
+
+  const { isOnline } = useOnlineStatus();
 
   const {
     speak,
@@ -94,6 +126,14 @@ export default function App() {
     speechSupported,
     recognitionSupported,
   } = useAccessibility(languageCode, largeMode);
+
+  useEffect(() => {
+    try {
+      registerSW({ immediate: true });
+    } catch {
+      // Service worker registration skipped in non-supported contexts
+    }
+  }, []);
 
   const loadWorkspaceData = useCallback(async () => {
     try {
@@ -108,19 +148,42 @@ export default function App() {
       }
       setRefreshKey((k) => k + 1);
     } catch {
-      // handled gracefully
+      if (user?.id) {
+        const cached = await loadOfflineBundle(user.id);
+        if (cached) {
+          setFarms(cached.farms);
+          setOfflineCacheTimestamp(cached.downloadedAt);
+          if (cached.farms.length > 0 && !selectedFarmId) {
+            setSelectedFarmId(cached.farms[0].id);
+          }
+        }
+      }
     }
-  }, [selectedFarmId]);
+  }, [selectedFarmId, user?.id]);
 
   const handleOperationalDataChanged = useCallback(() => {
     setRefreshKey((k) => k + 1);
     loadWorkspaceData();
   }, [loadWorkspaceData]);
 
+  const refreshMetaTranslations = useCallback(() => {
+    apiRequest<{
+      overrides: { languageCode: LanguageCode; key: string; value: string }[];
+    }>('/api/meta/translations')
+      .then((res) => {
+        if (Array.isArray(res.overrides)) {
+          applyTranslationOverrides(res.overrides);
+          setRefreshKey((k) => k + 1);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   useEffect(() => {
     apiRequest<ProvinceInfo[]>('/api/meta/provinces')
       .then(setProvinces)
       .catch(() => {});
+    refreshMetaTranslations();
 
     const token = getStoredToken();
     if (!token) {
@@ -151,6 +214,48 @@ export default function App() {
       loadWorkspaceData();
     }
   }, [user, loadWorkspaceData]);
+
+  useEffect(() => {
+    if (!user?.id) {
+      setPendingSyncCount(0);
+      setOfflineCacheTimestamp(null);
+      return;
+    }
+    const refreshQueueBadge = async () => {
+      const [q, b] = await Promise.all([loadOfflineQueue(user.id), loadOfflineBundle(user.id)]);
+      setPendingSyncCount(q.length);
+      setOfflineCacheTimestamp(b?.downloadedAt || null);
+    };
+    refreshQueueBadge();
+    const handler = () => {
+      refreshQueueBadge();
+    };
+    window.addEventListener('fieldshift-offline-queue-changed', handler);
+    return () => {
+      window.removeEventListener('fieldshift-offline-queue-changed', handler);
+    };
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (!isOnline || !user?.id || user.roleCode === 'organisation_manager') return;
+    let cancelled = false;
+    (async () => {
+      const q = await loadOfflineQueue(user.id);
+      const pendingTargets = q.filter((item) => item.syncState === 'pending');
+      if (pendingTargets.length === 0 || cancelled) return;
+      try {
+        const res = await syncPendingQueue(user.id);
+        if (!cancelled && res.syncedCount > 0) {
+          loadWorkspaceData();
+        }
+      } catch {
+        // Retry on next connection or manual sync
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOnline, user?.id, user?.roleCode, loadWorkspaceData]);
 
   const handleLanguageChange = async (code: LanguageCode) => {
     setLanguageCode(code);
@@ -275,18 +380,53 @@ export default function App() {
     );
   }
 
+  // Dedicated System Administrator Portal (dark forest-green sidebar shell without double sidebars)
+  if (
+    user.roleCode === 'system_administrator' &&
+    (activeTab === 'dashboard' || activeTab === 'admin')
+  ) {
+    return (
+      <AdminPortalView
+        user={user}
+        onNavigateWorkspace={(tab) => setActiveTab(tab)}
+        onTranslationsUpdated={refreshMetaTranslations}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  const isAdminWithPrivateAccess =
+    user.roleCode === 'system_administrator' &&
+    user.permissions.includes('admin:private_farmer_records');
+
   const showFarmOps =
     user.roleCode === 'existing_farmer' ||
     user.roleCode === 'agricultural_expert' ||
-    user.roleCode === 'organisation_manager' ||
-    user.roleCode === 'system_administrator';
+    isAdminWithPrivateAccess;
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   const navItems: { id: WorkspaceTab; label: string; icon: React.ReactNode; show: boolean }[] = [
     {
       id: 'dashboard',
       label: t(languageCode, 'navDashboard'),
       icon: <LayoutDashboard className="w-5 h-5" />,
-      show: true,
+      show:
+        user.roleCode !== 'system_administrator' &&
+        user.roleCode !== 'agricultural_expert' &&
+        user.roleCode !== 'organisation_manager',
+    },
+    {
+      id: 'expert_portal',
+      label: t(languageCode, 'navExpertPortal'),
+      icon: <Award className="w-5 h-5" />,
+      show: user.roleCode === 'agricultural_expert',
+    },
+    {
+      id: 'organisation_portal',
+      label: t(languageCode, 'navOrganisationPortal'),
+      icon: <Building2 className="w-5 h-5" />,
+      show: user.roleCode === 'organisation_manager',
     },
     {
       id: 'farms',
@@ -343,16 +483,52 @@ export default function App() {
       show: showFarmOps,
     },
     {
+      id: 'planner',
+      label: t(languageCode, 'navBusinessPlanner'),
+      icon: <Briefcase className="w-5 h-5" />,
+      show: true,
+    },
+    {
+      id: 'learning',
+      label: t(languageCode, 'navLearningCentre'),
+      icon: <BookOpen className="w-5 h-5" />,
+      show: true,
+    },
+    {
+      id: 'reports',
+      label: t(languageCode, 'navReports'),
+      icon: <FileSpreadsheet className="w-5 h-5" />,
+      show: true,
+    },
+    {
       id: 'advisor',
       label: t(languageCode, 'navAdvisor'),
       icon: <Sparkles className="w-5 h-5" />,
+      show: user.roleCode !== 'system_administrator',
+    },
+    {
+      id: 'notifications',
+      label:
+        unreadCount > 0
+          ? `${t(languageCode, 'navNotifications')} (${unreadCount})`
+          : t(languageCode, 'navNotifications'),
+      icon: <Bell className="w-5 h-5" />,
       show: true,
     },
     {
       id: 'admin',
-      label: t(languageCode, 'navAdmin'),
+      label: t(languageCode, 'navAdminPortal'),
       icon: <Shield className="w-5 h-5" />,
       show: user.roleCode === 'system_administrator',
+    },
+    {
+      id: 'offline',
+      label:
+        pendingSyncCount > 0
+          ? `${t(languageCode, 'navOfflineSync')} (${pendingSyncCount})`
+          : t(languageCode, 'navOfflineSync'),
+      icon: <CloudOff className="w-5 h-5" />,
+      show: user.roleCode !== 'organisation_manager',
     },
     {
       id: 'profile',
@@ -367,8 +543,6 @@ export default function App() {
       show: true,
     },
   ];
-
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
 
   return (
     <div className="min-h-screen bg-[#F6F7F4] flex flex-col lg:flex-row">
@@ -386,7 +560,10 @@ export default function App() {
             .map((item) => {
               const active =
                 activeTab === item.id ||
-                (activeTab === 'admin' && item.id === 'dashboard' && false);
+                (activeTab === 'dashboard' &&
+                  ((item.id === 'expert_portal' && user.roleCode === 'agricultural_expert') ||
+                    (item.id === 'organisation_portal' &&
+                      user.roleCode === 'organisation_manager')));
               return (
                 <button
                   key={item.id}
@@ -442,7 +619,33 @@ export default function App() {
             </span>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2.5 flex-wrap justify-end">
+            <button
+              type="button"
+              onClick={() => setActiveTab('offline')}
+              title={
+                offlineCacheTimestamp
+                  ? `Offline pack downloaded ${new Date(offlineCacheTimestamp).toLocaleString()}`
+                  : 'Open Offline Storage & Sync'
+              }
+              className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold whitespace-nowrap shrink-0 cursor-pointer ${
+                !isOnline
+                  ? 'bg-[#FDF2F2] border-[#E8B4B4] text-[#8E2424]'
+                  : pendingSyncCount > 0
+                  ? 'bg-[#FDF8EE] border-[#E5D3A3] text-[#8A5A00]'
+                  : 'bg-[#F6F7F4] border-[#D4DDD2] text-[#143326] hover:bg-[#EDF2EC]'
+              }`}
+            >
+              {isOnline ? <Wifi className="w-3.5 h-3.5" /> : <WifiOff className="w-3.5 h-3.5" />}
+              <span>
+                {isOnline
+                  ? pendingSyncCount > 0
+                    ? `Sync (${pendingSyncCount})`
+                    : 'Online'
+                  : `Offline${pendingSyncCount > 0 ? ` · ${pendingSyncCount} Queued` : ' · Cached'}`}
+              </span>
+            </button>
+            <PWAInstallButton />
             <LanguageSelector value={languageCode} onChange={handleLanguageChange} compact />
             <div className="hidden sm:block">
               <EasyReadToggle
@@ -454,8 +657,8 @@ export default function App() {
             {unreadCount > 0 && (
               <button
                 type="button"
-                onClick={() => setActiveTab('profile')}
-                className="px-3 py-1.5 rounded-lg bg-[#EDF5EF] text-[#1B4332] text-xs font-semibold cursor-pointer whitespace-nowrap"
+                onClick={() => setActiveTab('notifications')}
+                className="px-3 py-1.5 rounded-lg bg-[#EDF5EF] text-[#1B4332] text-xs font-semibold cursor-pointer whitespace-nowrap shrink-0"
               >
                 {unreadCount} Alert{unreadCount === 1 ? '' : 's'}
               </button>
@@ -516,57 +719,54 @@ export default function App() {
             </div>
           )}
 
-          {activeTab === 'dashboard' && (
-            <RoleDashboard
+          {(activeTab === 'expert_portal' ||
+            (activeTab === 'dashboard' && user.roleCode === 'agricultural_expert')) && (
+            <ExpertPortalView
               user={user}
-              farms={farms}
-              selectedFarmId={selectedFarmId}
-              onSelectFarm={setSelectedFarmId}
-              onOpenFarmsView={() => setActiveTab('farms')}
-              onOpenCropsView={() => setActiveTab('crops')}
-              onOpenLivestockView={() => setActiveTab('livestock')}
-              onOpenMixedView={() => setActiveTab('mixed')}
-              onOpenSoilLandView={() => setActiveTab('soil')}
-              onOpenWeatherView={() => setActiveTab('weather')}
-              onOpenVisualView={() => setActiveTab('visual')}
-              onOpenStockView={() => setActiveTab('stock')}
-              onOpenIncidentsView={() => setActiveTab('incidents')}
-              onOpenAdvisorView={() => setActiveTab('advisor')}
-              refreshKey={refreshKey}
               provinces={provinces}
-              languageCode={languageCode}
-              isSpeaking={isSpeaking}
-              speechSupported={speechSupported}
-              onSpeak={speak}
-              onStopSpeaking={stopSpeaking}
+              onRefreshWorkspace={loadWorkspaceData}
             />
           )}
 
-          {activeTab === 'admin' && (
-            <RoleDashboard
+          {(activeTab === 'organisation_portal' ||
+            (activeTab === 'dashboard' && user.roleCode === 'organisation_manager')) && (
+            <OrganisationPortalView
               user={user}
-              farms={farms}
-              selectedFarmId={selectedFarmId}
-              onSelectFarm={setSelectedFarmId}
-              onOpenFarmsView={() => setActiveTab('farms')}
-              onOpenCropsView={() => setActiveTab('crops')}
-              onOpenLivestockView={() => setActiveTab('livestock')}
-              onOpenMixedView={() => setActiveTab('mixed')}
-              onOpenSoilLandView={() => setActiveTab('soil')}
-              onOpenWeatherView={() => setActiveTab('weather')}
-              onOpenVisualView={() => setActiveTab('visual')}
-              onOpenStockView={() => setActiveTab('stock')}
-              onOpenIncidentsView={() => setActiveTab('incidents')}
-              onOpenAdvisorView={() => setActiveTab('advisor')}
-              refreshKey={refreshKey}
               provinces={provinces}
-              languageCode={languageCode}
-              isSpeaking={isSpeaking}
-              speechSupported={speechSupported}
-              onSpeak={speak}
-              onStopSpeaking={stopSpeaking}
+              onOpenReportsView={() => setActiveTab('reports')}
             />
           )}
+
+          {activeTab === 'dashboard' &&
+            user.roleCode !== 'agricultural_expert' &&
+            user.roleCode !== 'organisation_manager' && (
+              <RoleDashboard
+                user={user}
+                farms={farms}
+                selectedFarmId={selectedFarmId}
+                onSelectFarm={setSelectedFarmId}
+                onOpenFarmsView={() => setActiveTab('farms')}
+                onOpenCropsView={() => setActiveTab('crops')}
+                onOpenLivestockView={() => setActiveTab('livestock')}
+                onOpenMixedView={() => setActiveTab('mixed')}
+                onOpenSoilLandView={() => setActiveTab('soil')}
+                onOpenWeatherView={() => setActiveTab('weather')}
+                onOpenVisualView={() => setActiveTab('visual')}
+                onOpenStockView={() => setActiveTab('stock')}
+                onOpenIncidentsView={() => setActiveTab('incidents')}
+                onOpenPlannerView={() => setActiveTab('planner')}
+                onOpenLearningView={() => setActiveTab('learning')}
+                onOpenAdvisorView={() => setActiveTab('advisor')}
+                onOpenReportsView={() => setActiveTab('reports')}
+                refreshKey={refreshKey}
+                provinces={provinces}
+                languageCode={languageCode}
+                isSpeaking={isSpeaking}
+                speechSupported={speechSupported}
+                onSpeak={speak}
+                onStopSpeaking={stopSpeaking}
+              />
+            )}
 
           {activeTab === 'farms' && (
             <FarmManagement
@@ -585,6 +785,7 @@ export default function App() {
 
           {activeTab === 'crops' && (
             <CropManagementView
+              userId={user.id}
               farms={farms}
               selectedFarmId={selectedFarmId}
               onSelectFarmFilter={setSelectedFarmId}
@@ -594,6 +795,7 @@ export default function App() {
 
           {(activeTab === 'livestock' || activeTab === 'mixed') && (
             <LivestockMixedView
+              userId={user.id}
               initialSection={activeTab === 'mixed' ? 'mixed' : 'livestock'}
               farms={farms}
               selectedFarmId={selectedFarmId}
@@ -620,6 +822,7 @@ export default function App() {
               selectedFarmId={selectedFarmId}
               onSelectFarm={setSelectedFarmId}
               languageCode={languageCode}
+              userRoleCode={user.roleCode}
               isSpeaking={isSpeaking}
               speechSupported={speechSupported}
               onSpeak={speak}
@@ -656,10 +859,44 @@ export default function App() {
 
           {activeTab === 'incidents' && (
             <IncidentDamageView
+              userId={user.id}
               farms={farms}
               selectedFarmId={selectedFarmId}
               onSelectFarm={setSelectedFarmId}
               onDataChanged={handleOperationalDataChanged}
+            />
+          )}
+
+          {activeTab === 'planner' && (
+            <BusinessPlannerView
+              user={user}
+              farms={farms}
+              provinces={provinces}
+              languageCode={languageCode}
+              isSpeaking={isSpeaking}
+              speechSupported={speechSupported}
+              onSpeak={speak}
+              onStopSpeaking={stopSpeaking}
+            />
+          )}
+
+          {activeTab === 'learning' && (
+            <LearningCentreView
+              user={user}
+              languageCode={languageCode}
+              largeMode={largeMode}
+              isSpeaking={isSpeaking}
+              speechSupported={speechSupported}
+              onSpeak={speak}
+              onStopSpeaking={stopSpeaking}
+            />
+          )}
+
+          {activeTab === 'reports' && (
+            <ReportingExportsView
+              user={user}
+              farms={farms}
+              selectedFarmId={selectedFarmId}
             />
           )}
 
@@ -679,6 +916,24 @@ export default function App() {
             />
           )}
 
+          {activeTab === 'notifications' && (
+            <NotificationCentreView
+              user={user}
+              languageCode={languageCode}
+              onNavigateTab={(tab) => setActiveTab(tab as WorkspaceTab)}
+              onNotificationsChanged={loadWorkspaceData}
+            />
+          )}
+
+          {activeTab === 'offline' && (
+            <OfflineSyncView
+              user={user}
+              farms={farms}
+              onSyncedDataChanged={handleOperationalDataChanged}
+              onNavigateTab={(tab) => setActiveTab(tab as WorkspaceTab)}
+            />
+          )}
+
           {(activeTab === 'profile' || activeTab === 'settings') && (
             <ProfileSettingsView
               mode={activeTab}
@@ -690,6 +945,14 @@ export default function App() {
               onLanguageChange={handleLanguageChange}
               onUserUpdated={setUser}
               onNotificationsRefresh={loadWorkspaceData}
+              onOpenNotifications={() => setActiveTab('notifications')}
+              onAccountErased={() => {
+                setStoredToken(null);
+                setUser(null);
+                setFarms([]);
+                setPublicView('landing');
+                setActiveTab('dashboard');
+              }}
             />
           )}
         </main>

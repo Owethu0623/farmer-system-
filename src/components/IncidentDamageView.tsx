@@ -4,12 +4,19 @@ import {
   CalendarClock,
   CheckCircle2,
   ClipboardList,
+  Film,
+  History,
   Info,
   Plus,
   Upload,
   X,
 } from 'lucide-react';
 import { apiRequest } from '../lib/api';
+import {
+  enqueueOfflineMutation,
+  isLikelyOfflineError,
+  loadOfflineBundle,
+} from '../lib/offlineSync';
 import {
   CropItem,
   FarmIncidentItem,
@@ -21,6 +28,7 @@ import {
 } from '../types';
 
 interface IncidentDamageViewProps {
+  userId?: string;
   farms: FarmItem[];
   selectedFarmId: string | null;
   onSelectFarm: (farmId: string | null) => void;
@@ -63,7 +71,53 @@ async function readImagePreview(file: File): Promise<string> {
   });
 }
 
+async function readVideoThumbnail(file: File): Promise<string | null> {
+  return new Promise((resolve) => {
+    const objUrl = URL.createObjectURL(file);
+    const vid = document.createElement('video');
+    vid.preload = 'metadata';
+    vid.muted = true;
+    vid.playsInline = true;
+    const cleanup = () => URL.revokeObjectURL(objUrl);
+    const timer = setTimeout(() => {
+      cleanup();
+      resolve(null);
+    }, 3000);
+    vid.onloadeddata = () => {
+      try {
+        const scale = Math.min(1, 960 / (vid.videoWidth || 640));
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.max(1, Math.round((vid.videoWidth || 640) * scale));
+        canvas.height = Math.max(1, Math.round((vid.videoHeight || 360) * scale));
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          clearTimeout(timer);
+          cleanup();
+          resolve(null);
+          return;
+        }
+        ctx.drawImage(vid, 0, 0, canvas.width, canvas.height);
+        const url = canvas.toDataURL('image/jpeg', 0.8);
+        clearTimeout(timer);
+        cleanup();
+        resolve(url);
+      } catch {
+        clearTimeout(timer);
+        cleanup();
+        resolve(null);
+      }
+    };
+    vid.onerror = () => {
+      clearTimeout(timer);
+      cleanup();
+      resolve(null);
+    };
+    vid.src = objUrl;
+  });
+}
+
 export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
+  userId,
   farms,
   selectedFarmId,
   onSelectFarm,
@@ -75,7 +129,7 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [statusFilter, setStatusFilter] = useState<'all' | IncidentStatus>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | IncidentStatus | 'audit'>('all');
 
   // New Incident Modal
   const [createOpen, setCreateOpen] = useState(false);
@@ -119,11 +173,44 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
       setCrops(cropsData);
       setLivestock(lvkData);
     } catch (err: unknown) {
+      if (userId && isLikelyOfflineError(err)) {
+        const bundle = await loadOfflineBundle(userId);
+        if (bundle) {
+          const cachedInc = selectedFarmId
+            ? bundle.incidents.filter((i) => i.farmId === selectedFarmId)
+            : bundle.incidents;
+          setDashboard({
+            summary: {
+              activeCount: cachedInc.filter((i) => i.status === 'active').length,
+              monitoringCount: cachedInc.filter((i) => i.status === 'monitoring').length,
+              resolvedCount: cachedInc.filter((i) => i.status === 'resolved').length,
+              totalFinancialImpactZar: cachedInc.reduce(
+                (sum, i) => sum + (i.estimatedFinancialImpactZar || 0),
+                0
+              ),
+              totalAffectedCropPlants: cachedInc.reduce((sum, i) => sum + (i.affectedQuantity || 0), 0),
+              totalAffectedLivestockHead: 0,
+              totalAffectedHectares: cachedInc.reduce(
+                (sum, i) => sum + (i.affectedAreaHectares || 0),
+                0
+              ),
+            },
+            incidents: cachedInc,
+            auditHistory: [],
+          });
+          setCrops(bundle.crops);
+          setLivestock(bundle.livestockGroups);
+          setSuccessMsg(
+            `Offline mode: viewing cached incidents from ${new Date(bundle.downloadedAt).toLocaleString()}. New reports will be queued on this device.`
+          );
+          return;
+        }
+      }
       setError(err instanceof Error ? err.message : 'Unable to load farm incidents.');
     } finally {
       setLoading(false);
     }
-  }, [selectedFarmId]);
+  }, [selectedFarmId, userId]);
 
   useEffect(() => {
     loadData();
@@ -177,7 +264,8 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
     setFormMediaName(file.name);
     if (file.type.startsWith('video/')) {
       setFormMediaType('video');
-      setFormMediaPreview(null);
+      const thumb = await readVideoThumbnail(file);
+      setFormMediaPreview(thumb);
     } else {
       try {
         const preview = await readImagePreview(file);
@@ -194,27 +282,65 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
     e.preventDefault();
     setSubmitting(true);
     setError(null);
+    const incidentPayload = {
+      farmId: formFarmId,
+      fieldId: formFieldId || null,
+      cropId: formCropId || null,
+      livestockGroupId: formLivestockId || null,
+      incidentType: formType,
+      title: formTitle,
+      occurredAt: new Date(formOccurredAt).toISOString(),
+      description: formDescription,
+      mediaFileName: formMediaName,
+      mediaType: formMediaType,
+      mediaPreviewDataUrl: formMediaPreview,
+      affectedQuantity: Number(formAffectedQty) || 0,
+      affectedUnit: formAffectedUnit,
+      affectedAreaHectares: Number(formAffectedAreaHa) || 0,
+      estimatedFinancialImpactZar: Number(formImpactZar) || 0,
+      recommendedActions: formActions
+        .split('\n')
+        .map((s) => s.trim())
+        .filter(Boolean),
+      status: formStatus,
+    };
+
+    const queueIncidentOffline = async () => {
+      if (!userId) return false;
+      await enqueueOfflineMutation({
+        userId,
+        mutationType: 'farm_incident',
+        label: `Incident: ${formTitle}`,
+        farmId: formFarmId,
+        farmName: formFarm?.name || null,
+        payload: incidentPayload,
+      });
+      setCreateOpen(false);
+      setFormTitle('');
+      setFormDescription('');
+      setFormAffectedQty('0');
+      setFormAffectedAreaHa('0');
+      setFormImpactZar('0');
+      setFormActions('');
+      setFormMediaName(null);
+      setFormMediaPreview(null);
+      setSuccessMsg('Offline mode: incident captured locally and queued for automatic sync when signal returns.');
+      return true;
+    };
+
     try {
+      const simulatedOffline =
+        typeof window !== 'undefined' &&
+        window.localStorage.getItem('fieldshift_simulated_offline') === 'true';
+      if ((typeof navigator !== 'undefined' && !navigator.onLine) || simulatedOffline) {
+        if (await queueIncidentOffline()) return;
+      }
+
       await apiRequest('/api/incidents', {
         method: 'POST',
         body: JSON.stringify({
-          farmId: formFarmId,
-          fieldId: formFieldId || null,
-          cropId: formCropId || null,
-          livestockGroupId: formLivestockId || null,
-          incidentType: formType,
-          title: formTitle,
-          occurredAt: new Date(formOccurredAt).toISOString(),
-          description: formDescription,
-          mediaFileName: formMediaName,
-          mediaType: formMediaType,
-          mediaPreviewDataUrl: formMediaPreview,
-          affectedQuantity: Number(formAffectedQty) || 0,
-          affectedUnit: formAffectedUnit,
-          affectedAreaHectares: Number(formAffectedAreaHa) || 0,
-          estimatedFinancialImpactZar: Number(formImpactZar) || 0,
+          ...incidentPayload,
           recommendedActions: formActions,
-          status: formStatus,
         }),
       });
       setCreateOpen(false);
@@ -230,6 +356,9 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
       await loadData();
       onDataChanged();
     } catch (err: unknown) {
+      if (isLikelyOfflineError(err) && (await queueIncidentOffline())) {
+        return;
+      }
       setError(err instanceof Error ? err.message : 'Unable to record farm incident.');
     } finally {
       setSubmitting(false);
@@ -401,24 +530,80 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
           {/* Filter Bar */}
           <div className="flex flex-wrap items-center gap-2">
-            {(['all', 'active', 'monitoring', 'resolved'] as const).map((st) => (
+            {(['all', 'active', 'monitoring', 'resolved', 'audit'] as const).map((st) => (
               <button
                 key={st}
                 type="button"
                 onClick={() => setStatusFilter(st)}
-                className={`min-h-[40px] px-4 py-2 rounded-xl border text-xs font-semibold capitalize cursor-pointer ${
+                className={`min-h-[40px] px-4 py-2 rounded-xl border text-xs font-semibold capitalize cursor-pointer inline-flex items-center gap-1.5 ${
                   statusFilter === st
                     ? 'bg-[#1B4332] text-white border-[#1B4332]'
                     : 'bg-white text-[#17201B] border-[#D4DDD2] hover:bg-[#F6F7F4]'
                 }`}
               >
-                {st === 'all' ? `All Incidents (${dashboard.incidents.length})` : st}
+                {st === 'audit' && <History className="w-3.5 h-3.5" />}
+                <span>
+                  {st === 'all'
+                    ? `All Incidents (${dashboard.incidents.length})`
+                    : st === 'audit'
+                    ? `Damage & Audit History (${dashboard.auditHistory?.length || 0})`
+                    : st}
+                </span>
               </button>
             ))}
           </div>
 
-          {/* Incident Cards */}
-          {filteredIncidents.length === 0 ? (
+          {/* Audit History View */}
+          {statusFilter === 'audit' ? (
+            <section className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+              <div className="flex items-center gap-2">
+                <History className="w-5 h-5 text-[#1B4332]" />
+                <h2 className="font-display text-lg font-bold text-[#143326]">
+                  Immutable Damage & Incident Audit History
+                </h2>
+              </div>
+              <p className="text-xs text-[#4A5A50]">
+                Original planted and herd records are preserved permanently. Every reported incident, validated stock deduction, status change, and follow-up is logged chronologically below.
+              </p>
+              {!dashboard.auditHistory || dashboard.auditHistory.length === 0 ? (
+                <p className="text-sm text-[#4A5A50]">No incident audit entries recorded yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-[#E2E6DF] text-[#4A5A50]">
+                        <th className="py-2 pr-3 font-semibold">Timestamp</th>
+                        <th className="py-2 pr-3 font-semibold">Actor</th>
+                        <th className="py-2 pr-3 font-semibold">Event</th>
+                        <th className="py-2 font-semibold">Validated Record Details</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[#E2E6DF]">
+                      {dashboard.auditHistory.map((log) => (
+                        <tr key={log.id}>
+                          <td className="py-2.5 pr-3 font-mono tabular-nums text-[#4A5A50] whitespace-nowrap">
+                            {new Date(log.createdAt).toLocaleString()}
+                          </td>
+                          <td className="py-2.5 pr-3 text-[#143326] font-medium">
+                            {log.actorEmail || log.actorUserId || 'System'}
+                          </td>
+                          <td className="py-2.5 pr-3 font-mono font-semibold text-[#1B4332]">
+                            {log.action.replace(/_/g, ' ')}
+                          </td>
+                          <td className="py-2.5 text-[#35443B] font-mono text-[11px]">
+                            {Object.entries(log.details || {})
+                              .filter(([k]) => k !== 'farmId')
+                              .map(([k, v]) => `${k}: ${String(v)}`)
+                              .join(' · ') || log.entityId}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
+          ) : filteredIncidents.length === 0 ? (
             <div className="bg-white border border-[#E2E6DF] rounded-2xl p-8 text-center space-y-2">
               <AlertOctagon className="w-8 h-8 text-[#2D6A4F] mx-auto" />
               <p className="font-display font-bold text-[#143326]">
@@ -490,16 +675,29 @@ export const IncidentDamageView: React.FC<IncidentDamageViewProps> = ({
 
                   {/* Description & Media */}
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-start">
-                    {inc.mediaPreviewDataUrl && (
-                      <div className="md:col-span-3">
-                        <img
-                          src={inc.mediaPreviewDataUrl}
-                          alt={inc.mediaFileName || inc.title}
-                          className="w-full h-36 object-cover rounded-xl border border-[#E2E6DF]"
-                        />
+                    {(inc.mediaPreviewDataUrl || inc.mediaFileName) && (
+                      <div className="md:col-span-3 space-y-1.5">
+                        {inc.mediaPreviewDataUrl ? (
+                          <img
+                            src={inc.mediaPreviewDataUrl}
+                            alt={inc.mediaFileName || inc.title}
+                            className="w-full h-36 object-cover rounded-xl border border-[#E2E6DF]"
+                          />
+                        ) : (
+                          <div className="w-full h-24 rounded-xl border border-[#E2E6DF] bg-[#F6F7F4] flex items-center justify-center gap-2 text-xs text-[#35443B] px-3">
+                            <Film className="w-4 h-4 text-[#1B4332] shrink-0" />
+                            <span className="truncate">{inc.mediaFileName}</span>
+                          </div>
+                        )}
+                        {inc.mediaFileName && (
+                          <p className="text-[11px] font-mono text-[#4A5A50] truncate">
+                            {inc.mediaType === 'video' ? 'Video: ' : 'Photo: '}
+                            {inc.mediaFileName}
+                          </p>
+                        )}
                       </div>
                     )}
-                    <div className={inc.mediaPreviewDataUrl ? 'md:col-span-9 space-y-3' : 'md:col-span-12 space-y-3'}>
+                    <div className={inc.mediaPreviewDataUrl || inc.mediaFileName ? 'md:col-span-9 space-y-3' : 'md:col-span-12 space-y-3'}>
                       <p className="text-sm text-[#17201B] leading-relaxed whitespace-pre-line">
                         {inc.description}
                       </p>

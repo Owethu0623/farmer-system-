@@ -290,9 +290,11 @@ export function recordCropStockMovement(params: {
 
   const plantPrice = resolveCropPlantPrice(crop).price;
   const harvestPrice = resolveCropHarvestPrice(crop).price;
+  const { storedKg: currentStoredBefore } = computeCropStoredAndSold(crop);
 
   let quantityDelta = qty;
   let unitPriceZar = Number(params.unitPriceZar ?? 0);
+  let resultingStoredKg = currentStoredBefore;
 
   if (movementType === 'damage') {
     const newDamaged = Math.min(crop.plantingQuantity, crop.damagedPlants + qty);
@@ -302,35 +304,37 @@ export function recordCropStockMovement(params: {
     if (unitPriceZar <= 0) unitPriceZar = plantPrice;
   } else if (movementType === 'harvest') {
     crop.harvestedQuantityKg = Number((crop.harvestedQuantityKg + qty).toFixed(2));
+    resultingStoredKg = Number((currentStoredBefore + qty).toFixed(2));
     if (unitPriceZar <= 0) unitPriceZar = harvestPrice;
     if (unitPriceZar > 0) {
       crop.estimatedValueZar = Number((crop.estimatedValueZar + qty * unitPriceZar).toFixed(2));
     }
   } else if (movementType === 'storage_in') {
+    resultingStoredKg = Number((currentStoredBefore + qty).toFixed(2));
     if (unitPriceZar <= 0) unitPriceZar = harvestPrice;
   } else if (movementType === 'sale' || movementType === 'spoilage') {
-    const { storedKg } = computeCropStoredAndSold(crop);
-    const capped = Math.min(storedKg, qty);
+    const capped = Math.min(currentStoredBefore, qty);
     quantityDelta = -capped;
+    resultingStoredKg = Math.max(0, Number((currentStoredBefore - capped).toFixed(2)));
     if (unitPriceZar <= 0) unitPriceZar = harvestPrice;
   } else if (movementType === 'planting') {
     crop.plantingQuantity = crop.plantingQuantity + qty;
     if (unitPriceZar <= 0) unitPriceZar = plantPrice;
   } else if (movementType === 'adjustment') {
-    quantityDelta = Number(params.quantity) || 0;
+    const rawDelta = Number(params.quantity) || 0;
+    quantityDelta = rawDelta;
+    if ((params.unit || '').toLowerCase().includes('kg')) {
+      resultingStoredKg = Math.max(0, Number((currentStoredBefore + rawDelta).toFixed(2)));
+      if (unitPriceZar <= 0) unitPriceZar = harvestPrice;
+    } else {
+      crop.plantingQuantity = Math.max(crop.damagedPlants, crop.plantingQuantity + Math.round(rawDelta));
+      if (unitPriceZar <= 0) unitPriceZar = plantPrice;
+    }
   }
 
   crop.updatedAt = now;
 
   const remainingPlants = Math.max(0, crop.plantingQuantity - crop.damagedPlants);
-  const { storedKg: currentStoredBefore } = computeCropStoredAndSold(crop);
-  let resultingStoredKg = currentStoredBefore;
-  if (movementType === 'harvest' || movementType === 'storage_in') {
-    resultingStoredKg = Number((currentStoredBefore + Math.abs(quantityDelta)).toFixed(2));
-  } else if (movementType === 'sale' || movementType === 'spoilage') {
-    resultingStoredKg = Math.max(0, Number((currentStoredBefore - Math.abs(quantityDelta)).toFixed(2)));
-  }
-
   const totalValueZar = Number((Math.abs(quantityDelta) * unitPriceZar).toFixed(2));
 
   const movement: CropStockMovement = {

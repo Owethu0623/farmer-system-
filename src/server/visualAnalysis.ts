@@ -253,7 +253,12 @@ export async function runVisualAgriculturalAnalysis(params: {
         rawText = (fallbackRes.text || '{}').trim();
       }
 
-      const parsed = JSON.parse(rawText) as {
+      const cleanedJson = rawText
+        .replace(/^```(?:json)?\s*/i, '')
+        .replace(/\s*```$/i, '')
+        .trim();
+
+      const parsed = JSON.parse(cleanedJson || '{}') as {
         possibleFindings?: string[];
         explanation?: string;
         possibleCauses?: string[];
