@@ -1,0 +1,333 @@
+import React, { useState } from 'react';
+import { Bell, CheckCircle2, Globe, Shield, UserCheck } from 'lucide-react';
+import { LANGUAGE_LIST } from '../i18n/translations';
+import { apiRequest } from '../lib/api';
+import { AuthUser, LanguageCode, NotificationItem } from '../types';
+import { EasyReadToggle } from './AccessibilityControls';
+
+interface ProfileSettingsViewProps {
+  mode: 'profile' | 'settings';
+  user: AuthUser;
+  notifications: NotificationItem[];
+  languageCode: LanguageCode;
+  largeMode: boolean;
+  onToggleLargeMode: () => void;
+  onLanguageChange: (code: LanguageCode) => void;
+  onUserUpdated: (user: AuthUser) => void;
+  onNotificationsRefresh: () => Promise<void>;
+}
+
+export const ProfileSettingsView: React.FC<ProfileSettingsViewProps> = ({
+  mode,
+  user,
+  notifications,
+  languageCode,
+  largeMode,
+  onToggleLargeMode,
+  onLanguageChange,
+  onUserUpdated,
+  onNotificationsRefresh,
+}) => {
+  const [fullName, setFullName] = useState(user.profile?.fullName || '');
+  const [phoneNumber, setPhoneNumber] = useState(user.profile?.phoneNumber || '');
+  const [province, setProvince] = useState(user.profile?.province || '');
+  const [district, setDistrict] = useState(user.profile?.district || '');
+  const [bio, setBio] = useState(user.profile?.bio || '');
+  const [audioGuidance, setAudioGuidance] = useState(
+    user.profile?.accessibilityAudioGuidance || false
+  );
+  const [voiceInput, setVoiceInput] = useState(user.profile?.accessibilityVoiceInput || false);
+  const [activationCode, setActivationCode] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await apiRequest<{ user: AuthUser }>('/api/profile', {
+        method: 'PUT',
+        body: JSON.stringify({
+          fullName,
+          phoneNumber,
+          province,
+          district,
+          bio,
+          preferredLanguageCode: languageCode,
+          accessibilityLargeText: largeMode,
+          accessibilityAudioGuidance: audioGuidance,
+          accessibilityVoiceInput: voiceInput,
+        }),
+      });
+      onUserUpdated(res.user);
+      setMessage('Profile and settings saved.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Unable to save profile.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleActivate = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setMessage(null);
+    try {
+      const res = await apiRequest<{ user: AuthUser; message: string }>('/api/auth/activate', {
+        method: 'POST',
+        body: JSON.stringify({ code: activationCode }),
+      });
+      onUserUpdated(res.user);
+      setMessage(res.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Activation failed.');
+    }
+  };
+
+  const markRead = async (id: string) => {
+    await apiRequest(`/api/notifications/${id}/read`, { method: 'POST' });
+    await onNotificationsRefresh();
+  };
+
+  return (
+    <div className="max-w-4xl space-y-6">
+      <div>
+        <h1 className="font-display text-2xl font-bold text-[#143326]">
+          {mode === 'profile' ? 'User Profile & Notifications' : 'Language & Accessibility Settings'}
+        </h1>
+        <p className="text-sm text-[#4A5A50] mt-0.5">
+          Role: {user.roleName} · {user.email}
+        </p>
+      </div>
+
+      {message && (
+        <div className="bg-[#EDF5EF] border border-[#BFD6C5] text-[#143326] rounded-xl px-4 py-3 text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 text-[#1B4332]" />
+          <span>{message}</span>
+        </div>
+      )}
+
+      {error && (
+        <div className="bg-[#FDF2F2] border border-[#E8B4B4] text-[#8E2424] rounded-xl px-4 py-3 text-sm">
+          {error}
+        </div>
+      )}
+
+      {/* Account Activation Card if not yet verified */}
+      {!user.isEmailVerified && (
+        <form
+          onSubmit={handleActivate}
+          className="bg-white border border-[#BFD6C5] rounded-2xl p-6 space-y-3"
+        >
+          <div className="flex items-center gap-2 font-display font-bold text-[#143326]">
+            <UserCheck className="w-5 h-5 text-[#1B4332]" />
+            <span>Activate Your Account</span>
+          </div>
+          <p className="text-sm text-[#415047]">
+            Enter the 6-character activation code from your welcome notification below.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <input
+              type="text"
+              required
+              value={activationCode}
+              onChange={(e) => setActivationCode(e.target.value)}
+              placeholder="e.g. A1B2C3"
+              className="px-4 py-2.5 rounded-xl border border-[#D4DDD2] font-mono uppercase"
+            />
+            <button
+              type="submit"
+              className="px-5 py-2.5 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+            >
+              Verify & Activate
+            </button>
+          </div>
+        </form>
+      )}
+
+      {mode === 'profile' ? (
+        <div className="space-y-6">
+          <form
+            onSubmit={handleSave}
+            className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4"
+          >
+            <h2 className="font-display text-lg font-bold text-[#143326]">Personal Details</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold">Full Name</label>
+                <input
+                  type="text"
+                  value={fullName}
+                  onChange={(e) => setFullName(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold">Phone Number</label>
+                <input
+                  type="text"
+                  value={phoneNumber}
+                  onChange={(e) => setPhoneNumber(e.target.value)}
+                  placeholder="+27 ..."
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold">Province</label>
+                <input
+                  type="text"
+                  value={province}
+                  onChange={(e) => setProvince(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="block text-sm font-semibold">District</label>
+                <input
+                  type="text"
+                  value={district}
+                  onChange={(e) => setDistrict(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-[#D4DDD2]"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold">Short Bio / Farming Notes</label>
+              <textarea
+                rows={2}
+                value={bio}
+                onChange={(e) => setBio(e.target.value)}
+                className="w-full px-3.5 py-2 rounded-xl border border-[#D4DDD2]"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={saving}
+              className="px-5 py-2.5 rounded-xl bg-[#1B4332] text-white text-sm font-semibold cursor-pointer"
+            >
+              {saving ? 'Saving...' : 'Save Profile'}
+            </button>
+          </form>
+
+          {/* Notifications */}
+          <div className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-4">
+            <div className="flex items-center gap-2">
+              <Bell className="w-5 h-5 text-[#1B4332]" />
+              <h2 className="font-display text-lg font-bold text-[#143326]">
+                Notifications ({notifications.length})
+              </h2>
+            </div>
+            {notifications.length === 0 ? (
+              <p className="text-sm text-[#4A5A50]">No notifications yet.</p>
+            ) : (
+              <div className="divide-y divide-[#E2E6DF]">
+                {notifications.map((n) => (
+                  <div key={n.id} className="py-3 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-sm text-[#143326]">{n.title}</p>
+                      <p className="text-xs text-[#415047] mt-0.5">{n.message}</p>
+                    </div>
+                    {!n.isRead && (
+                      <button
+                        type="button"
+                        onClick={() => markRead(n.id)}
+                        className="text-xs font-semibold text-[#2D6A4F] hover:underline shrink-0 cursor-pointer"
+                      >
+                        Mark read
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : (
+        <form
+          onSubmit={handleSave}
+          className="bg-white border border-[#E2E6DF] rounded-2xl p-6 space-y-6"
+        >
+          <div className="space-y-3">
+            <div className="flex items-center gap-2">
+              <Globe className="w-5 h-5 text-[#1B4332]" />
+              <h2 className="font-display text-lg font-bold text-[#143326]">
+                Preferred Language (12 Official Languages)
+              </h2>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5">
+              {LANGUAGE_LIST.map((l) => (
+                <button
+                  key={l.code}
+                  type="button"
+                  onClick={() => onLanguageChange(l.code)}
+                  className={`p-3 rounded-xl border text-left cursor-pointer ${
+                    languageCode === l.code
+                      ? 'bg-[#1B4332] text-white border-[#1B4332]'
+                      : 'bg-white border-[#D4DDD2]'
+                  }`}
+                >
+                  <p className="font-semibold text-sm">{l.nativeName}</p>
+                  <p className={`text-xs ${languageCode === l.code ? 'text-[#D8E9DC]' : 'text-[#4A5A50]'}`}>
+                    {l.name}
+                  </p>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="pt-4 border-t border-[#E2E6DF] space-y-4">
+            <h2 className="font-display text-lg font-bold text-[#143326]">
+              Accessibility Options
+            </h2>
+            <div className="flex flex-wrap gap-3">
+              <EasyReadToggle
+                largeMode={largeMode}
+                onToggle={onToggleLargeMode}
+                languageCode={languageCode}
+              />
+            </div>
+            <label className="flex items-center gap-3 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={audioGuidance}
+                onChange={(e) => setAudioGuidance(e.target.checked)}
+                className="w-5 h-5 accent-[#1B4332]"
+              />
+              <span>Show Audio Guidance (Read Aloud) controls across onboarding and guides</span>
+            </label>
+            <label className="flex items-center gap-3 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                checked={voiceInput}
+                onChange={(e) => setVoiceInput(e.target.checked)}
+                className="w-5 h-5 accent-[#1B4332]"
+              />
+              <span>Enable Voice Dictation buttons on form fields</span>
+            </label>
+          </div>
+
+          <div className="pt-4 border-t border-[#E2E6DF] space-y-2">
+            <div className="flex items-center gap-2 text-sm font-semibold text-[#143326]">
+              <Shield className="w-4 h-4 text-[#2D6A4F]" />
+              <span>Active Role Permissions ({user.permissions.length})</span>
+            </div>
+            <p className="text-xs font-mono text-[#4A5A50]">
+              {user.permissions.join(' · ')}
+            </p>
+          </div>
+
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-3 rounded-xl bg-[#1B4332] text-white font-semibold text-sm cursor-pointer"
+          >
+            {saving ? 'Saving Preferences...' : 'Save Application Settings'}
+          </button>
+        </form>
+      )}
+    </div>
+  );
+};

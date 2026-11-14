@@ -1,0 +1,6 @@
+{
+  "name": "Field Shift",
+  "description": "Field Shift — South African agricultural intelligence and farm management platform. Your Farm. Your Language. Better Decisions.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
